@@ -53,7 +53,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Employer đăng tin: vị trí, khung giờ cần, lương, mô tả tự do
 - Job Seeker khai báo lịch rảnh dạng interval + mô tả tự do
 - Tìm kiếm/lọc việc theo khu vực, khung giờ
-- AI gợi ý việc làm bản TF-IDF: semantic + time-feasibility + geo + trust modifier, có explainable breakdown
+- AI gợi ý việc làm bản TF-IDF: **bắt buộc** semantic + time-feasibility + geo hoạt động đúng, có explainable breakdown; `trust_modifier` giữ mặc định trung lập (1.0) — đã xác nhận với GVHD, không phải thiếu sót (xem mục 3.1 FR4)
 - Ứng tuyển, quản lý trạng thái đơn, hủy đơn khi chưa được duyệt
 - Deploy production ổn định, CI/CD chạy được, có smoke test
 
@@ -83,7 +83,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR1 | Đăng ký/đăng nhập với 3 vai trò riêng biệt, phân quyền rõ ràng | ✅ Tuần 1-5 |
 | FR2 | Employer tạo/sửa/xóa tin tuyển dụng (vị trí, khung giờ, lương, mô tả tự do) | ✅ Tuần 1-5 |
 | FR3 | Job Seeker khai báo lịch rảnh dạng interval, tìm/lọc job theo khu vực và khung giờ | ✅ Tuần 1-5 |
-| FR4 | Hệ thống tính điểm gợi ý AI theo công thức 4 thành phần, trả kèm breakdown lý do | ✅ Tuần 1-5 (bản TF-IDF) |
+| FR4 | Hệ thống tính điểm gợi ý AI theo công thức 4 thành phần, trả kèm breakdown lý do | ✅ Tuần 1-5 (bản TF-IDF). **Đã xác nhận với GVHD:** mốc 70% chỉ bắt buộc `semantic + time_feasibility + geo` chạy đúng; `trust_modifier` mặc định 1.0 là kết quả mong đợi (chưa có `ratings` — FR6 làm từ tuần 6-12), không phải fallback tạm |
 | FR5 | Job Seeker ứng tuyển, theo dõi trạng thái đơn, hủy đơn khi chưa duyệt; Employer duyệt/từ chối đơn | ✅ Tuần 1-5 |
 | FR6 | Hai bên đánh giá (rating) lẫn nhau sau khi hoàn thành công việc | Tuần 6-12 |
 | FR7 | Report/block người dùng; Admin xử lý report | Tuần 6-12 |
@@ -163,7 +163,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | 1-2 | Setup monorepo (frontend/backend/ai-service/docs), Docker Compose local (Postgres+PostGIS+pgvector), khởi tạo GitHub repo + Actions cơ bản |
 | 3-4 | Thiết kế ERD, use case diagram, sequence diagram cho luồng chính; viết OpenAPI spec khung |
 | 5 | Deploy "Hello World" (FE + BE trả response đơn giản) lên production (Render), xác nhận CI/CD chạy được |
-| — | **Việc quan trọng:** xác nhận với GVHD "mốc 70% có tính AI không" trước khi qua tuần 2 |
+| — | ✅ **Đã xác nhận với GVHD:** mốc 70% có tính AI, chỉ bắt buộc `semantic + time_feasibility + geo` (xem mục 3.1 FR4, mục 8) |
 
 **Deliverable:** ERD/use case/sequence diagram, OpenAPI spec khung, Hello World chạy trên production, CI/CD xanh.
 **Milestone M1 (cuối tuần 1): ✅ Đạt.** Deploy Hello World thành công (mục 9.4) + thiết kế hoàn tất (`docs/design/`). Còn lại: xác nhận GVHD về phạm vi 70%.
@@ -172,7 +172,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Ngày | Công việc |
 |---|---|
 | 1-2 | Backend: model `users`, đăng ký/đăng nhập, JWT + refresh token, hashing password, khung xác minh (cột `verification_code` + `/auth/verify`) |
-| 3 | RBAC middleware (3 role), rate limiting cho login/register |
+| 3 | RBAC middleware (3 role), rate limiting cho login/register, CORS middleware (đọc `CORS_ORIGINS`, trỏ đúng URL frontend production đã deploy ở mục 9.4) |
 | 4-5 | Frontend: skeleton (routing, layout theo role), form đăng ký/đăng nhập kết nối API thật |
 
 **Deliverable:** Auth + RBAC hoạt động end-to-end (backend enforce, không chỉ ẩn UI), frontend skeleton deploy được.
@@ -197,7 +197,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | 5 | Ghép công thức `final_score`, trả breakdown; viết unit test cho từng hàm tính điểm |
 
 **Deliverable:** AI service chạy độc lập, trả kết quả gợi ý kèm breakdown, có unit test cho interval overlap/Haversine/TF-IDF scoring.
-**Rủi ro cao:** Nếu trễ, ưu tiên cắt `trust_modifier` (giữ mặc định 1.0 toàn bộ tuần 4-5) để đảm bảo 3 thành phần còn lại chạy đúng hạn.
+**Đã xác nhận với GVHD:** chỉ cần `semantic + time_feasibility + geo` chạy đúng ở mốc 70%; `trust_modifier` giữ mặc định 1.0 suốt tuần 4-5 (tự nhiên do chưa có `ratings`) — không phải phương án dự phòng khi trễ, mà là phạm vi đã chốt.
 
 ### Tuần 5 — Tích hợp AI vào luồng chính, chốt mốc 70%
 | Ngày | Công việc |
@@ -232,7 +232,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Tuần | Backend | Frontend | AI Service | Infra/Deploy |
 |---|---|---|---|---|
 | 1 | — | — | — | Docker Compose, CI skeleton, Hello World deploy |
-| 2 | Auth, JWT, RBAC, rate limit, khung xác minh (FR8) | Layout, routing theo role, form login/register + nhập mã xác minh | — | — |
+| 2 | Auth, JWT, RBAC, rate limit, CORS, khung xác minh (FR8) | Layout, routing theo role, form login/register + nhập mã xác minh | — | — |
 | 3 | Job CRUD, applications (gồm hủy đơn), geo search | Trang đăng tin, danh sách job, filter, form ứng tuyển | — | — |
 | 4 | Contract API với AI service | — | TF-IDF semantic, time-feasibility, geo score, trust modifier, unit test | — |
 | 5 | Tích hợp AI + fallback | UI hiển thị gợi ý + breakdown | Ghép final_score, tối ưu | Deploy bản 70%, smoke test |
@@ -266,8 +266,8 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 
 | Rủi ro | Nguyên nhân | Mức độ | Cách phòng tránh |
 |---|---|---|---|
-| AI service trễ tiến độ | Chỉ có 1 tuần (tuần 4) cho toàn bộ AI, khối lượng lớn cho 1 người | Cao | Dùng TF-IDF đơn giản trước; nếu trễ, giữ `trust_modifier` mặc định 1.0 để đảm bảo 3 thành phần còn lại đúng hạn |
-| Nhầm lẫn phạm vi "70% cơ bản" | GVHD và người thực hiện hiểu khác nhau về việc AI có tính vào 70% không | Cao nếu không xử lý | Xác nhận trực tiếp với GVHD trong tuần 1, trước khi bắt đầu dev (mục 5.1 tuần 1) |
+| AI service trễ tiến độ | Chỉ có 1 tuần (tuần 4) cho toàn bộ AI, khối lượng lớn cho 1 người | Trung bình (giảm nhờ scope đã rõ) | Dùng TF-IDF đơn giản; phạm vi đã chốt chỉ cần `semantic + time_feasibility + geo` (`trust_modifier` mặc định 1.0 sẵn), nên không còn phải "cắt" gì thêm nếu trễ — chỉ cần 3 thành phần đó đúng hạn |
+| Nhầm lẫn phạm vi "70% cơ bản" | GVHD và người thực hiện hiểu khác nhau về việc AI có tính vào 70% không | ✅ Đã xử lý (tuần 1) | Đã xác nhận với GVHD: có tính AI, nhưng chỉ bắt buộc `semantic + time_feasibility + geo`; `trust_modifier` mặc định 1.0 là đủ (mục 3.1 FR4) |
 | AI service down ảnh hưởng luồng chính | Phụ thuộc cứng giữa backend và AI service | Trung bình | Cơ chế fallback (dùng geo/content-based cơ bản) khi AI service không phản hồi |
 | Dữ liệu offline evaluation mang tính circular | Dữ liệu mô phỏng sinh ra từ chính công thức đang được đánh giá | Trung bình | Minh bạch trong báo cáo cách sinh dữ liệu mô phỏng (mục 7.1) |
 | Collaborative Filtering không chứng minh được hoạt động | Dữ liệu tương tác thưa, vòng đời job ngắn | Đã loại bỏ | Không triển khai CF; dùng semantic + time-feasibility thay thế |
@@ -337,7 +337,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 ## 11.1 DoD — Mốc tuần 5 (giai đoạn 1)
 - [ ] FR1-FR5 + khung FR8 (schema xác minh + endpoint verify) hoạt động đúng trên production
 - [ ] RBAC được enforce ở backend, có rate limiting và hashing password đúng chuẩn
-- [ ] AI service chạy ổn định (bản TF-IDF), có explainable breakdown hiển thị trên UI
+- [ ] AI service chạy ổn định (bản TF-IDF): `semantic + time_feasibility + geo` đúng, `trust_modifier` mặc định 1.0 (đã xác nhận GVHD, không phải thiếu), có explainable breakdown hiển thị trên UI
 - [ ] Có cơ chế fallback khi AI service down
 - [ ] Test xanh cho các luồng chính (auth, job CRUD, AI scoring), không còn test đỏ
 - [ ] CI/CD xanh, đã deploy production, đã smoke test

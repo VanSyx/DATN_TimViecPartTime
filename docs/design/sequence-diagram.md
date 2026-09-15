@@ -30,7 +30,7 @@ sequenceDiagram
     end
 ```
 
-**Ghi chú:** nếu tuần 1-5 không kịp tích hợp provider gửi email/SMS thật, đăng ký cho phép hoạt động với `email_verified=false` (không chặn đăng nhập) — hoàn thiện bước gửi/xác minh thật ở tuần 6+ (xem `docs/design/use-case.md` ghi chú UC3).
+**Ghi chú:** luồng này chia 2 giai đoạn theo `docs/PROJECT_PLAN.md` mục 3.1 — tuần 1-5 làm **khung** (sinh code, lưu hash + expiry, endpoint `/auth/verify` hoạt động đầy đủ; bước "gửi code qua email/SMS" ghi log thay vì gọi provider thật), tuần 6-12 thay log bằng provider thật. Trong cả hai giai đoạn, `email_verified=false` **không chặn đăng nhập** — xác minh là điều kiện tăng độ tin cậy, không phải cổng chặn.
 
 ---
 

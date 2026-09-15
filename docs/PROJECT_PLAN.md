@@ -133,6 +133,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - `applications` (trạng thái đơn ứng tuyển, liên kết user-job)
 - `ratings` (đánh giá hai chiều — tuần 6-12)
 - `reports` (báo cáo vi phạm — tuần 6-12)
+- `notifications` (thông báo in-app, FR9 — tuần 6-12)
 - Extension bắt buộc: PostGIS (geo query), pgvector (semantic search, kích hoạt từ tuần 6+)
 
 ## 4.4 API

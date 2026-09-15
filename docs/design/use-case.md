@@ -31,7 +31,7 @@ flowchart LR
     %% FR5 - Application flow
     JS --> UC7[Ứng tuyển job ✅]
     JS --> UC8[Theo dõi trạng thái đơn ✅]
-    JS --> UC9[Hủy đơn ứng tuyển]
+    JS --> UC9[Hủy đơn ứng tuyển ✅]
     EMP --> UC10[Duyệt / Từ chối đơn ứng tuyển ✅]
 
     %% FR2 - Job CRUD
@@ -64,13 +64,13 @@ flowchart LR
 |---|---|---|---|---|
 | UC1 | Đăng ký tài khoản | FR1 | JS, EMP | ✅ Tuần 1-5 |
 | UC2 | Đăng nhập / Refresh token | FR1 | JS, EMP, ADM | ✅ Tuần 1-5 |
-| UC3 | Xác minh Email / SĐT | FR8 | JS, EMP, Hệ thống | ✅ Tuần 1-5 (làm sớm cùng auth) |
+| UC3 | Xác minh Email / SĐT | FR8 | JS, EMP, Hệ thống | ✅ Tuần 1-5 (khung) — gửi mã thật: tuần 6-12 |
 | UC4 | Khai báo lịch rảnh interval | FR3 | JS | ✅ Tuần 1-5 |
 | UC5 | Tìm/lọc job theo khu vực, khung giờ | FR3 | JS | ✅ Tuần 1-5 |
 | UC6 | Xem gợi ý AI + breakdown | FR4 | JS, Hệ thống | ✅ Tuần 1-5 |
 | UC7 | Ứng tuyển job | FR5 | JS | ✅ Tuần 1-5 |
 | UC8 | Theo dõi trạng thái đơn | FR5 | JS | ✅ Tuần 1-5 |
-| UC9 | Hủy đơn ứng tuyển | FR5 (mở rộng) | JS | Tuần 6-12 |
+| UC9 | Hủy đơn ứng tuyển | FR5 | JS | ✅ Tuần 1-5 |
 | UC10 | Duyệt / Từ chối đơn ứng tuyển | FR5 | EMP | ✅ Tuần 1-5 |
 | UC11 | Đăng tin tuyển dụng | FR2 | EMP | ✅ Tuần 1-5 |
 | UC12 | Sửa tin tuyển dụng | FR2 | EMP | ✅ Tuần 1-5 |
@@ -85,5 +85,5 @@ flowchart LR
 
 ## Ghi chú
 - Actor **Hệ thống** đại diện cho các use case do backend tự kích hoạt (gửi mã xác minh, tính lại gợi ý khi có job mới, sinh thông báo) — không phải người dùng chủ động gọi, nhưng vẫn là một luồng nghiệp vụ cần cài đặt.
-- `UC3` (xác minh) đặt ✅ ở tuần 1-5 dù FR8 gắn nhãn "Tuần 6-12" trong bảng FR gốc, vì về mặt kỹ thuật nó nằm chung luồng đăng ký (UC1) — tách ra làm sau sẽ phải sửa lại schema `users` đã có. Quyết định cuối cùng vẫn theo `docs/PROJECT_PLAN.md` mục 3.1; nếu tuần 1-5 không kịp, làm luồng đăng ký **bỏ qua bước xác minh bắt buộc** (auto `email_verified/phone_verified = false`, không chặn đăng nhập) rồi hoàn thiện UC3 thật ở tuần 6+.
-- `UC9` (hủy đơn) và `UC20` (khóa/mở khóa) không có trong bảng FR gốc nhưng là phần bù bắt buộc để UC8/UC10 và UC17 hoạt động trọn vẹn (theo dõi đơn phải có đường hủy; xử lý report phải có hành động cụ thể) — không phải tính năng mới ngoài scope, chỉ là chi tiết hóa FR5/FR10 đã có.
+- `UC3` (xác minh) **tách làm 2 phần** theo quyết định đã chốt (`docs/PROJECT_PLAN.md` mục 3.1): khung xác minh (cột `verification_code`/`verification_code_expires_at` trên `users` + endpoint `/auth/verify`) làm ở tuần 1-5 vì nằm chung luồng đăng ký, tách sau sẽ phải sửa lại schema đã có; phần tích hợp provider gửi email/SMS thật để tuần 6-12. Trong giai đoạn tuần 1-5, `email_verified`/`phone_verified = false` **không chặn đăng nhập**.
+- `UC9` (hủy đơn) và `UC20` (khóa/mở khóa) là chi tiết hóa FR5/FR10 đã có, không phải tính năng mới — đã cập nhật vào bảng FR gốc. `UC9` vào tuần 1-5 (chỉ là 1 transition trạng thái `pending → cancelled`); `UC20` theo FR10 ở tuần 6-12.

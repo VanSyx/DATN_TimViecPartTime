@@ -18,7 +18,7 @@ PostgreSQL 15+. Extension bắt buộc: **PostGIS** (geo query), **pgvector** (s
 - `availability_intervals` phải lưu dạng khoảng thời gian thực (start/end datetime hoặc time-of-day range), **không** dùng enum ca cố định — đây là điểm khác biệt cốt lõi so với job site thông thường, đừng đơn giản hóa lại thành enum.
 - Cột vector embedding trên `jobs` chỉ có ý nghĩa sau khi pgvector được bật (tuần 6+); trước đó semantic score tính runtime bằng TF-IDF, không cần lưu vector trong DB.
 - `ratings` tác động vào `trust_modifier` của công thức AI (xem `ai_scoring.md`) — mặc định trung lập (1.0) khi chưa có rating nào.
-- Xác minh SĐT/email (FR8) dùng thẳng cột `verification_code`/`verification_code_expires_at` trên `users` — không cần entity OTP riêng, mã hết hạn thì sinh mã mới đè lên.
+- Xác minh SĐT/email (FR8) dùng thẳng cột `verification_code`/`verification_code_expires_at` trên `users` — không cần entity OTP riêng, mã hết hạn thì sinh mã mới đè lên. **Các cột này cần ngay từ tuần 1-5** (cùng lúc tạo model `users`), tránh phải migrate schema lại ở tuần 6 khi tích hợp provider gửi mã thật.
 - `notifications` sinh ra từ sự kiện nghiệp vụ (đơn được duyệt/từ chối, report được xử lý, có job mới khớp cao) — backend chính là nơi tạo record này, AI service không ghi trực tiếp vào bảng.
 
 ## Nguồn tham khảo

@@ -49,19 +49,20 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 
 ## 2.1 Scope bắt buộc — cuối tuần 5 (mốc 70%)
 - Đăng ký/đăng nhập, phân quyền 3 vai trò: Job Seeker, Employer, Admin
+- Khung xác minh email/SĐT: schema `users.verification_code` + endpoint `/auth/verify` (gửi mã thật qua provider để tuần 6-12)
 - Employer đăng tin: vị trí, khung giờ cần, lương, mô tả tự do
 - Job Seeker khai báo lịch rảnh dạng interval + mô tả tự do
 - Tìm kiếm/lọc việc theo khu vực, khung giờ
 - AI gợi ý việc làm bản TF-IDF: semantic + time-feasibility + geo + trust modifier, có explainable breakdown
-- Ứng tuyển, quản lý trạng thái đơn cơ bản
+- Ứng tuyển, quản lý trạng thái đơn, hủy đơn khi chưa được duyệt
 - Deploy production ổn định, CI/CD chạy được, có smoke test
 
 ## 2.2 Scope hoàn thiện — tuần 6-12 (không chi tiết trong tài liệu này)
 - Nâng cấp semantic_score từ TF-IDF sang embedding (sentence-transformers) + pgvector
 - Rating 2 chiều đầy đủ sau khi hoàn thành công việc
-- Trust & Safety đầy đủ: xác minh SĐT/email, report/block user
+- Trust & Safety đầy đủ: tích hợp provider gửi mã xác minh email/SMS thật (khung xác minh đã có từ tuần 1-5), report/block user
 - Thông báo in-app
-- Trang admin: duyệt tin, quản lý user, xử lý report
+- Trang admin: duyệt tin, khóa/mở khóa tài khoản user, xử lý report
 - Viết báo cáo tốt nghiệp hoàn chỉnh
 
 ## 2.3 Out of Scope (toàn dự án)
@@ -83,12 +84,12 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR2 | Employer tạo/sửa/xóa tin tuyển dụng (vị trí, khung giờ, lương, mô tả tự do) | ✅ Tuần 1-5 |
 | FR3 | Job Seeker khai báo lịch rảnh dạng interval, tìm/lọc job theo khu vực và khung giờ | ✅ Tuần 1-5 |
 | FR4 | Hệ thống tính điểm gợi ý AI theo công thức 4 thành phần, trả kèm breakdown lý do | ✅ Tuần 1-5 (bản TF-IDF) |
-| FR5 | Job Seeker ứng tuyển, theo dõi trạng thái đơn; Employer duyệt/từ chối đơn | ✅ Tuần 1-5 |
+| FR5 | Job Seeker ứng tuyển, theo dõi trạng thái đơn, hủy đơn khi chưa duyệt; Employer duyệt/từ chối đơn | ✅ Tuần 1-5 |
 | FR6 | Hai bên đánh giá (rating) lẫn nhau sau khi hoàn thành công việc | Tuần 6-12 |
 | FR7 | Report/block người dùng; Admin xử lý report | Tuần 6-12 |
-| FR8 | Xác minh SĐT/email khi đăng ký | Tuần 6-12 (có thể làm sớm nếu kịp) |
+| FR8 | Xác minh SĐT/email khi đăng ký | ✅ Tuần 1-5 (schema + endpoint verify) — gửi mã thật qua provider: tuần 6-12 |
 | FR9 | Thông báo in-app khi có sự kiện liên quan | Tuần 6-12 |
-| FR10 | Admin duyệt tin đăng, quản lý user, xử lý report | Tuần 6-12 |
+| FR10 | Admin duyệt tin đăng, khóa/mở khóa tài khoản user, xử lý report | Tuần 6-12 |
 
 ## 3.2 Non-functional Requirements
 - **Hiệu năng:** Model embedding/TF-IDF chạy local, không phụ thuộc API ngoài — tránh độ trễ mạng và chi phí khi demo
@@ -170,7 +171,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 ### Tuần 2 — Auth & RBAC, Frontend skeleton
 | Ngày | Công việc |
 |---|---|
-| 1-2 | Backend: model `users`, đăng ký/đăng nhập, JWT + refresh token, hashing password |
+| 1-2 | Backend: model `users`, đăng ký/đăng nhập, JWT + refresh token, hashing password, khung xác minh (cột `verification_code` + `/auth/verify`) |
 | 3 | RBAC middleware (3 role), rate limiting cho login/register |
 | 4-5 | Frontend: skeleton (routing, layout theo role), form đăng ký/đăng nhập kết nối API thật |
 
@@ -231,8 +232,8 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Tuần | Backend | Frontend | AI Service | Infra/Deploy |
 |---|---|---|---|---|
 | 1 | — | — | — | Docker Compose, CI skeleton, Hello World deploy |
-| 2 | Auth, JWT, RBAC, rate limit | Layout, routing theo role, form login/register | — | — |
-| 3 | Job CRUD, applications, geo search | Trang đăng tin, danh sách job, filter, form ứng tuyển | — | — |
+| 2 | Auth, JWT, RBAC, rate limit, khung xác minh (FR8) | Layout, routing theo role, form login/register + nhập mã xác minh | — | — |
+| 3 | Job CRUD, applications (gồm hủy đơn), geo search | Trang đăng tin, danh sách job, filter, form ứng tuyển | — | — |
 | 4 | Contract API với AI service | — | TF-IDF semantic, time-feasibility, geo score, trust modifier, unit test | — |
 | 5 | Tích hợp AI + fallback | UI hiển thị gợi ý + breakdown | Ghép final_score, tối ưu | Deploy bản 70%, smoke test |
 
@@ -310,7 +311,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 # 11. Definition of Done
 
 ## 11.1 DoD — Mốc tuần 5 (giai đoạn 1)
-- [ ] FR1-FR5 hoạt động đúng trên production
+- [ ] FR1-FR5 + khung FR8 (schema xác minh + endpoint verify) hoạt động đúng trên production
 - [ ] RBAC được enforce ở backend, có rate limiting và hashing password đúng chuẩn
 - [ ] AI service chạy ổn định (bản TF-IDF), có explainable breakdown hiển thị trên UI
 - [ ] Có cơ chế fallback khi AI service down

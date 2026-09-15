@@ -60,9 +60,13 @@ class Job(Base):
     employer_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     title: Mapped[str] = mapped_column(String(200))
     description: Mapped[str] = mapped_column(Text)
+    # Địa chỉ theo địa giới 2 cấp (từ 1/7/2025): số nhà + đường / phường-xã / tỉnh-thành phố
+    street: Mapped[str] = mapped_column(String(200))
+    ward: Mapped[str] = mapped_column(String(100))
+    city: Mapped[str] = mapped_column(String(100))
+    # lat/lng do backend geocode từ địa chỉ (Goong); location do Postgres tự sinh cho GiST index + ST_DWithin
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
-    # lat/lng là nguồn dữ liệu; location do Postgres tự sinh để GiST index + ST_DWithin dùng
     location = mapped_column(
         Geography(),
         Computed("ST_SetSRID(ST_MakePoint(lng, lat), 4326)::geography", persisted=True),

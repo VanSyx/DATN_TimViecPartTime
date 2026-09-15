@@ -65,6 +65,8 @@ main { padding: 16px; }
   border-radius: 8px;
 }
 .panel .wide { grid-column: 1 / -1; }
+.map-picker { width: 100%; border-radius: 6px; margin-top: 6px; z-index: 0; }
+.map-pin { font-size: 26px; text-align: center; line-height: 1; filter: drop-shadow(0 1px 1px rgb(0 0 0 / 0.4)); }
 .card { padding: 12px 16px; border: 1px solid var(--border); border-radius: 8px; }
 .card h3 { margin: 0 0 4px; }
 .card p { margin: 4px 0; overflow-wrap: anywhere; }

@@ -32,7 +32,12 @@ erDiagram
         uuid employer_id FK
         string title
         text description
-        geography location "PostGIS point"
+        string street "số nhà, tên đường (hiển thị)"
+        string ward "phường/xã (hiển thị)"
+        string city "tỉnh/thành phố (hiển thị)"
+        float lat "chọn trên bản đồ (Leaflet/OSM)"
+        float lng
+        geography location "PostGIS point, sinh tự động từ lat/lng"
         timestamptz time_start
         timestamptz time_end
         numeric salary

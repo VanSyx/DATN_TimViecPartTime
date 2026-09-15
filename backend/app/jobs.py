@@ -20,6 +20,11 @@ job_seeker = require_role(Role.JOB_SEEKER)
 class JobIn(BaseModel):
     title: str = Field(min_length=3, max_length=200)
     description: str = Field(min_length=1, max_length=5000)
+    street: str = Field(min_length=2, max_length=200)
+    ward: str = Field(min_length=2, max_length=100)
+    city: str = Field(min_length=2, max_length=100)
+    # Người dùng ghép ghim trên bản đồ ở frontend (Leaflet/OSM) — không geocode ở backend,
+    # tránh phụ thuộc API bên thứ 3 (Goong cần admin duyệt key, Nominatim chặn IP server)
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
     time_start: AwareDatetime
@@ -38,6 +43,9 @@ class JobOut(BaseModel):
     employer_id: uuid.UUID
     title: str
     description: str
+    street: str
+    ward: str
+    city: str
     lat: float
     lng: float
     time_start: datetime
@@ -115,7 +123,7 @@ def search_jobs(
     end: AwareDatetime | None = None,
     db: Session = Depends(get_db),
 ):
-    """Tìm/lọc thô job đang mở theo khu vực + khung giờ (không dùng AI)."""
+    """Tìm/lọc thô job đang mở quanh 1 toạ độ (GPS hoặc điểm chọn trên bản đồ) + khung giờ (không dùng AI)."""
     if (lat is None) != (lng is None):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Cần truyền cả lat và lng")
 

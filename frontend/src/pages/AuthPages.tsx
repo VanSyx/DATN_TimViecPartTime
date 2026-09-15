@@ -3,7 +3,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { api, roleHome, type Role } from '../api'
 import { useAuth } from '../auth'
 
-function useSubmit() {
+export function useSubmit() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
 

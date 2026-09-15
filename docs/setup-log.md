@@ -22,4 +22,5 @@ Các bước dưới đây đã hoàn thành trước khi có quy tắc này nê
 
 | # | Ngày | Bước | Ảnh | Ghi chú |
 |---|---|---|---|---|
-| | | | | |
+| 7 | 2026-09-15 (Tuần 3) | Migration `658771f39e2e`: bật extension PostGIS + tạo bảng `jobs` (cột `location` geography sinh tự động + GiST index), `availability_intervals`, `applications` | `screenshots/week3/01-alembic-migration.png` | Có `CREATE EXTENSION IF NOT EXISTS postgis` vì Postgres managed của Render không bật sẵn như image `postgis/postgis`. Kiểm tra lại khi deploy lên Render |
+| 8 | 2026-09-15 (Tuần 3) | Chạy E2E trên UI thật + chụp ảnh tự động bằng Edge headless (Chrome DevTools Protocol, Node 22) | `screenshots/week3/02..12-*.png` | Không cài thêm tool (không Playwright); ảnh chụp do agent tự sinh trong lúc test luồng chính |

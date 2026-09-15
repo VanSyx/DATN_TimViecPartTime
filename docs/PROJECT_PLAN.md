@@ -133,6 +133,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - `applications` (trạng thái đơn ứng tuyển, liên kết user-job)
 - `ratings` (đánh giá hai chiều — tuần 6-12)
 - `reports` (báo cáo vi phạm — tuần 6-12)
+- `notifications` (thông báo in-app, FR9 — tuần 6-12)
 - Extension bắt buộc: PostGIS (geo query), pgvector (semantic search, kích hoạt từ tuần 6+)
 
 ## 4.4 API
@@ -299,7 +300,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 |---|---|
 | `PROJECT_PLAN.md` (tài liệu này) | Nguồn tham chiếu chính cho giai đoạn 5 tuần đầu |
 | `docs/de-cuong.md` | Mô tả chi tiết đề tài, gửi GVHD duyệt tuần 1 — cần tạo |
-| `docs/erd.png`, `docs/use-case.png`, `docs/sequence-diagram.png` | Thiết kế hệ thống, hoàn thành tuần 1 — cần tạo |
+| `docs/design/erd.md`, `docs/design/use-case.md`, `docs/design/sequence-diagram.md` | Thiết kế hệ thống (Mermaid, render sẵn trên GitHub) — ✅ đã tạo |
 | API spec (OpenAPI/Swagger) | Hoàn thành khung tuần 1, cập nhật liên tục khi có thay đổi endpoint |
 | `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — cần tạo |
 | Báo cáo tốt nghiệp (các chương) | **Cần template của trường:** người thực hiện xác nhận trường có template riêng nhưng chưa cung cấp chi tiết. Khi có, bổ sung cấu trúc chương cụ thể vào đây trước khi bắt đầu viết ở tuần 6. Tạm thời áp dụng cấu trúc phổ biến (Mở đầu, Cơ sở lý thuyết, Phân tích thiết kế, Cài đặt, Kiểm thử & đánh giá, Kết luận) làm khung nháp nếu cần viết sớm |

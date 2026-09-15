@@ -11,12 +11,12 @@ Các bước dưới đây đã hoàn thành trước khi có quy tắc này nê
 
 | # | Ngày (ước tính) | Bước | Cách bù | Trạng thái |
 |---|---|---|---|---|
-| 1 | Tuần 1 | Cài Docker Desktop, chạy `docker compose up -d` lần đầu (db + backend) | Chụp lại `docker compose up -d` + `docker ps` hiện tại | ⬜ Chưa làm |
-| 2 | Tuần 1 | Tạo GitHub repo, bật GitHub Actions | Chụp tab Actions hiện tại (lịch sử run vẫn còn) | ⬜ Chưa làm |
-| 3 | Tuần 1 ngày 5 | Tạo Render Blueprint (`timviec-backend` + `timviec-db`), nhập secret lần đầu | Chụp Render dashboard hiện tại (service list, tab Environment che giá trị secret) | ⬜ Chưa làm |
-| 4 | Tuần 1 ngày 5 | Tạo Render Static Site cho frontend (tạo tay, không qua Blueprint) | Chụp cấu hình Static Site hiện tại (Build Command, Publish Directory) | ⬜ Chưa làm |
-| 5 | Tuần 2 | Alembic migration đầu tiên cho bảng `users` | Dẫn commit thêm file trong `backend/alembic/versions/` | ⬜ Chưa làm |
-| 6 | Tuần 2 ngày 3-5 | Cài `slowapi`, `react-router-dom`; rebuild container backend | Dẫn commit `67c1434` (RBAC/rate limit/CORS + frontend skeleton) | ⬜ Chưa làm |
+| 1 | Tuần 1 | Cài Docker Desktop, chạy `docker compose up -d` lần đầu (db + backend) | Chụp lại `docker compose up -d` + `docker ps` hiện tại | Hoàn thành 
+| 2 | Tuần 1 | Tạo GitHub repo, bật GitHub Actions | Chụp tab Actions hiện tại (lịch sử run vẫn còn)  Hoàn thành 
+| 3 | Tuần 1 ngày 5 | Tạo Render Blueprint (`timviec-backend` + `timviec-db`), nhập secret lần đầu | Chụp Render dashboard hiện tại (service list, tab Environment che giá trị secret) | Hoàn thành |
+| 4 | Tuần 1 ngày 5 | Tạo Render Static Site cho frontend (tạo tay, không qua Blueprint) | Chụp cấu hình Static Site hiện tại (Build Command, Publish Directory) | Hoàn thành |
+| 5 | Tuần 2 | Alembic migration đầu tiên cho bảng `users` | Dẫn commit thêm file trong `backend/alembic/versions/` | Hoàn thành |
+| 6 | Tuần 2 ngày 3-5 | Cài `slowapi`, `react-router-dom`; rebuild container backend | Dẫn commit `67c1434` (RBAC/rate limit/CORS + frontend skeleton) | Hoàn thành |
 
 ## Từ bây giờ: log các bước mới
 

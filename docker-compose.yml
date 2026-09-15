@@ -11,7 +11,9 @@ services:
       POSTGRES_PASSWORD: postgres
       POSTGRES_DB: timviec
     ports:
-      - "5432:5432"
+      # 5433 ở host vì máy dev đã có PostgreSQL cài sẵn chiếm 5432 — nối từ host dùng 5433,
+      # các service trong compose vẫn nối qua db:5432 như bình thường.
+      - "5433:5432"
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
@@ -25,12 +27,16 @@ services:
       - "8000:8000"
     environment:
       DATABASE_URL: postgresql://postgres:postgres@db:5432/timviec
+      # HS256 cần khóa >= 32 byte, PyJWT cảnh báo nếu ngắn hơn
+      JWT_SECRET: dev-only-not-a-real-secret-min-32-bytes
+      JWT_REFRESH_SECRET: dev-only-not-a-real-refresh-secret-min-32-bytes
+      CORS_ORIGINS: http://localhost:5173
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
 
 volumes:
   pgdata:

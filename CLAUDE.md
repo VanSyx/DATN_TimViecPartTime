@@ -14,7 +14,7 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 | Database | PostgreSQL 15+ + PostGIS + pgvector |
 | Auth | JWT + refresh token, bcrypt/argon2 |
 | CI/CD | Docker + Docker Compose + GitHub Actions |
-| Deploy | VPS hoặc Render |
+| Deploy | Render (Blueprint `render.yaml`) — backend Docker web service + managed Postgres, frontend static site tạo tay qua dashboard |
 
 ## 3. Dev Commands
 ```

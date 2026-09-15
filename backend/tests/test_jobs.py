@@ -1,17 +1,16 @@
 import pytest
 
-# Hồ Hoàn Kiếm; Hồ Tây cách ~4 km; TP.HCM cách ~1100 km
-HOAN_KIEM = (21.0285, 105.8542)
-HO_TAY = (21.0580, 105.8190)
-SAIGON = (10.7769, 106.7009)
+# Hồ Hoàn Kiếm; Hồ Tây cách ~4 km; TP.HCM cách ~1100 km — toạ độ lấy từ điểm ghim trên bản đồ (frontend)
+HOAN_KIEM = {"street": "1 Đinh Tiên Hoàng", "ward": "Phường Hoàn Kiếm", "city": "Hà Nội", "lat": 21.0285, "lng": 105.8542}
+HO_TAY = {"street": "614 Lạc Long Quân", "ward": "Phường Tây Hồ", "city": "Hà Nội", "lat": 21.0580, "lng": 105.8190}
+SAIGON = {"street": "1 Lê Lợi", "ward": "Phường Sài Gòn", "city": "TP. Hồ Chí Minh", "lat": 10.7769, "lng": 106.7009}
 
 
-def job_payload(latlng=HOAN_KIEM, start="2030-01-01T08:00:00+07:00", end="2030-01-01T12:00:00+07:00", **kw):
+def job_payload(loc=HOAN_KIEM, start="2030-01-01T08:00:00+07:00", end="2030-01-01T12:00:00+07:00", **kw):
     return {
         "title": "Dọn dẹp nhà",
         "description": "Dọn dẹp căn hộ 2 phòng ngủ",
-        "lat": latlng[0],
-        "lng": latlng[1],
+        **loc,
         "time_start": start,
         "time_end": end,
         "salary": 200000,
@@ -72,12 +71,17 @@ def test_owner_edits_and_closes_job(client, employer):
     assert job["id"] not in [j["id"] for j in client.get("/jobs").json()]
 
 
-def test_geo_search_filters_by_radius_and_sorts_by_distance(client, employer):
-    near = create_job(client, employer, latlng=HOAN_KIEM)
-    mid = create_job(client, employer, latlng=HO_TAY)
-    far = create_job(client, employer, latlng=SAIGON)
+def test_job_stores_address_and_pinned_coordinates(client, employer):
+    job = create_job(client, employer, loc=HO_TAY)
+    assert {k: job[k] for k in HO_TAY} == HO_TAY
 
-    res = client.get("/jobs", params={"lat": HOAN_KIEM[0], "lng": HOAN_KIEM[1], "radius_km": 10})
+
+def test_geo_search_filters_by_radius_and_sorts_by_distance(client, employer):
+    near = create_job(client, employer, loc=HOAN_KIEM)
+    mid = create_job(client, employer, loc=HO_TAY)
+    far = create_job(client, employer, loc=SAIGON)
+
+    res = client.get("/jobs", params={"lat": HOAN_KIEM["lat"], "lng": HOAN_KIEM["lng"], "radius_km": 10})
     ids = [j["id"] for j in res.json()]
     assert far["id"] not in ids
     assert ids.index(near["id"]) < ids.index(mid["id"])

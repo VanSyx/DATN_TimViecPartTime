@@ -80,6 +80,9 @@ function send<T>(method: string, path: string, data?: unknown) {
 export type JobInput = {
   title: string
   description: string
+  street: string
+  ward: string
+  city: string
   lat: number
   lng: number
   time_start: string
@@ -108,7 +111,13 @@ export type Application = {
 
 export type Interval = { id: string; start_time: string; end_time: string }
 
-export type JobSearch = { lat?: string; lng?: string; radius_km?: string; start?: string; end?: string }
+export type JobSearch = {
+  lat?: string
+  lng?: string
+  radius_km?: string
+  start?: string
+  end?: string
+}
 
 export const api = {
   register: (data: { email: string; password: string; role: Role; phone?: string }) =>

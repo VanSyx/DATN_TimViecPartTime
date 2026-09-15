@@ -38,14 +38,21 @@ Branch: `feat/week3-jobs` (tách từ `feat/week2-auth`, chưa merge). Ảnh min
 
 ## Chưa làm / giới hạn đã biết
 - **Chưa deploy lên Render** — cần merge (Tuần 2 + 3) để Render build; lần deploy này sẽ chạy migration bật PostGIS trên Postgres managed, cần kiểm tra thủ công sau deploy.
-- Nhập vị trí bằng lat/lng hoặc GPS trình duyệt; chưa có chọn trên bản đồ / nhập địa chỉ (cần API geocoding ngoài — xác nhận trước nếu muốn thêm).
 - "Mô tả tự do" của job seeker (Scope 2.1) chưa có — cần cho `semantic_score`, làm đầu Tuần 4.
 - Chưa phân trang (tối đa 100 kết quả/lần tìm); không gộp các interval rảnh chồng nhau.
 - Trạng thái `completed` (sau khi làm xong việc) chưa có transition — thuộc luồng rating tuần 6-12.
 - Admin duyệt tin (UC19) theo kế hoạch để tuần 6+, tin đăng là `open` ngay.
+- Ô địa chỉ (street/ward/city) chỉ để hiển thị, không được validate khớp với điểm ghim trên bản đồ — employer có thể gõ sai địa chỉ hiển thị dù toạ độ đúng. Chấp nhận được vì không có geocoding để đối chiếu hai chiều.
 
 ## Việc phát sinh
-- Không có thay đổi scope. Không thêm dependency mới (PostGIS dùng qua SQL functions, không cài GeoAlchemy2).
+- Không có thay đổi scope. Không thêm dependency backend mới (PostGIS dùng qua SQL functions, không cài GeoAlchemy2).
+- **Đổi cách chọn vị trí (theo yêu cầu người thực hiện, sau khi xong bản đầu Tuần 3):**
+  - Thử **Goong Maps API** để geocode địa chỉ → toạ độ, nhưng tài khoản cá nhân cần admin duyệt mới cấp key — không khả thi cho đồ án cá nhân.
+  - Thử **OpenStreetMap Nominatim** (miễn phí, không cần key) — bị chặn ngay ở mức chính sách sử dụng cho IP server/cloud (403 Access denied), không chỉ riêng mạng máy dev; không dùng được cho production dù local có gọi được.
+  - **Chốt phương án:** bỏ hẳn geocoding qua API bên thứ 3. Ô địa chỉ (số nhà+đường / phường-xã / tỉnh-thành phố, theo địa giới 2 cấp từ 1/7/2025) chỉ để hiển thị; toạ độ `lat`/`lng` lấy từ việc **người dùng tự bấm ghép ghim trên bản đồ** (thư viện `leaflet`, tile OpenStreetMap — chỉ hiển thị ảnh bản đồ, không gọi API tìm kiếm nên không bị chặn) hoặc nút "Dùng vị trí hiện tại" (GPS trình duyệt). Không cần tài khoản/API key nào.
+  - Migration `ffbf3dd8cc02` (thêm cột địa chỉ) giữ nguyên. `backend/app/jobs.py` không có logic geocode — `JobIn` nhận `lat`/`lng` trực tiếp từ frontend như thiết kế gốc.
+  - Đã chạy thử trên UI thật (Edge headless, giả lập GPS qua CDP): đăng tin → bấm ghim trên bản đồ → lưu → toạ độ đúng như đã chọn; mở lại để sửa thì ghim hiện đúng vị trí cũ; tìm việc cũng bấm ghim tương tự. Ảnh 16-20 (tile bản đồ không hiện trong ảnh vì mạng sandbox lúc chạy test chặn `tile.openstreetmap.org`, không phải lỗi code — máy thật của người dùng truy cập bình thường).
+  - `pytest`: **36/36 pass** (bỏ 6 test liên quan Goong, không thêm test mới vì lat/lng lại là input trực tiếp như thiết kế FR2/FR3 gốc).
 
 ## Tiếp theo: Tuần 4 — AI Service MVP
 Scaffold `ai-service` (FastAPI riêng, thêm vào compose), thêm mô tả tự do cho job seeker, cài `semantic` (TF-IDF), `time_feasibility`, `geo` score + unit test, chốt contract `POST /score` trả breakdown.

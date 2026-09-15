@@ -1,6 +1,12 @@
-import { useCallback, useEffect, useState } from 'react'
+import L from 'leaflet'
+import 'leaflet/dist/leaflet.css'
+import { useCallback, useEffect, useRef, useState } from 'react'
 import { api, type Application, type Interval, type Job, type JobInput, type JobSearch } from '../api'
 import { useSubmit } from './AuthPages'
+
+// Trung tâm Đà Nẵng làm điểm khởi đầu khi chưa chọn vị trí nào
+const VN_CENTER: [number, number] = [16.047079, 108.20623]
+const pinIcon = L.divIcon({ className: 'map-pin', html: '📍', iconSize: [28, 28], iconAnchor: [14, 28] })
 
 const statusLabel: Record<string, string> = {
   open: 'Đang mở',
@@ -36,42 +42,81 @@ function useLoad<T>(load: () => Promise<T>, initial: T) {
   return { data, error, reload }
 }
 
-function LocationFields({ lat = '', lng = '', required = false }: { lat?: string; lng?: string; required?: boolean }) {
-  const [value, setValue] = useState({ lat, lng })
+/**
+ * Bản đồ OSM (chỉ hiển thị tile, không gọi API tìm kiếm địa chỉ nào) để bấm ghép ghim lấy lat/lng.
+ * Không dùng geocoding bên thứ 3 (Goong cần admin duyệt key, Nominatim chặn IP server) — xem CLAUDE.md mục 5.
+ * Tự quản state, xuất toạ độ qua 2 input ẩn name="lat"/"lng" để form cha đọc qua FormData.
+ */
+function LocationPicker({ initialLat, initialLng, height = 240 }: { initialLat?: number; initialLng?: number; height?: number }) {
+  const mapEl = useRef<HTMLDivElement>(null)
+  const mapApi = useRef<{ map: L.Map; setMarker: (lat: number, lng: number) => void }>(undefined)
+  const [coords, setCoords] = useState(initialLat != null && initialLng != null ? { lat: initialLat, lng: initialLng } : null)
   const [error, setError] = useState('')
 
-  function fillCurrent() {
+  useEffect(() => {
+    if (!mapEl.current) return
+    const map = L.map(mapEl.current).setView(coords ? [coords.lat, coords.lng] : VN_CENTER, coords ? 15 : 6)
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+      attribution: '&copy; OpenStreetMap',
+      maxZoom: 19,
+    }).addTo(map)
+
+    let marker: L.Marker | null = null
+    function setMarker(lat: number, lng: number) {
+      if (marker) marker.setLatLng([lat, lng])
+      else marker = L.marker([lat, lng], { icon: pinIcon }).addTo(map)
+    }
+    if (coords) setMarker(coords.lat, coords.lng)
+    map.on('click', (e) => {
+      setMarker(e.latlng.lat, e.latlng.lng)
+      setCoords({ lat: e.latlng.lat, lng: e.latlng.lng })
+    })
+
+    mapApi.current = { map, setMarker }
+    return () => { map.remove() }
+    // eslint-disable-next-line -- chỉ tạo map 1 lần lúc mount; đổi initial thì remount qua key ở nơi gọi
+  }, [])
+
+  function locateMe() {
+    setError('')
     navigator.geolocation.getCurrentPosition(
-      (p) => setValue({ lat: p.coords.latitude.toFixed(6), lng: p.coords.longitude.toFixed(6) }),
+      (p) => {
+        const { latitude: lat, longitude: lng } = p.coords
+        mapApi.current?.map.setView([lat, lng], 15)
+        mapApi.current?.setMarker(lat, lng)
+        setCoords({ lat, lng })
+      },
       () => setError('Không lấy được vị trí hiện tại'),
     )
   }
 
   return (
-    <>
-      <label>
-        Vĩ độ (lat)
-        <input name="lat" type="number" step="any" min={-90} max={90} required={required}
-          value={value.lat} onChange={(e) => setValue({ ...value, lat: e.target.value })} />
-      </label>
-      <label>
-        Kinh độ (lng)
-        <input name="lng" type="number" step="any" min={-180} max={180} required={required}
-          value={value.lng} onChange={(e) => setValue({ ...value, lng: e.target.value })} />
-      </label>
-      <button type="button" className="secondary" onClick={fillCurrent}>Dùng vị trí hiện tại</button>
-      {error && <p className="error wide">{error}</p>}
-    </>
+    <div className="wide">
+      <div className="actions">
+        <span className="meta">Bấm vào bản đồ để chọn vị trí</span>
+        <button type="button" className="secondary" onClick={locateMe}>Dùng vị trí hiện tại</button>
+        {coords && <span className="meta">Đã chọn: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>}
+      </div>
+      <div ref={mapEl} className="map-picker" style={{ height }} />
+      <input type="hidden" name="lat" value={coords?.lat ?? ''} />
+      <input type="hidden" name="lng" value={coords?.lng ?? ''} />
+      {error && <p className="error">{error}</p>}
+    </div>
   )
 }
+
+const fullAddress = (job: Job) => [job.street, job.ward, job.city].filter(Boolean).join(', ')
 
 function JobInfo({ job }: { job: Job }) {
   return (
     <>
       <h3>{job.title}</h3>
       <p className="meta">
-        {fmtRange(job.time_start, job.time_end)} · {job.salary.toLocaleString('vi-VN')} đ
+        {fullAddress(job)}
         {job.distance_km !== null && ` · cách ${job.distance_km} km`}
+      </p>
+      <p className="meta">
+        {fmtRange(job.time_start, job.time_end)} · {job.salary.toLocaleString('vi-VN')} đ
       </p>
       <p>{job.description}</p>
     </>
@@ -113,7 +158,7 @@ export function SearchJobsPage() {
     <div className="page">
       <h1>Tìm việc</h1>
       <form className="panel" onSubmit={search}>
-        <LocationFields />
+        <LocationPicker />
         <label>Bán kính (km)<input name="radius_km" type="number" min={1} max={100} defaultValue={10} /></label>
         <label>Rảnh từ<input name="start" type="datetime-local" /></label>
         <label>Đến<input name="end" type="datetime-local" /></label>
@@ -196,11 +241,17 @@ function JobForm({ job, onSaved, onCancel }: { job: Job | null; onSaved: () => v
   const { error, busy, wrap } = useSubmit()
 
   const save = wrap(async (f) => {
+    const lat = f.get('lat')
+    const lng = f.get('lng')
+    if (!lat || !lng) throw new Error('Vui lòng chọn vị trí trên bản đồ')
     const data: JobInput = {
       title: String(f.get('title')),
       description: String(f.get('description')),
-      lat: Number(f.get('lat')),
-      lng: Number(f.get('lng')),
+      street: String(f.get('street')).trim(),
+      ward: String(f.get('ward')).trim(),
+      city: String(f.get('city')).trim(),
+      lat: Number(lat),
+      lng: Number(lng),
       time_start: toIso(f.get('time_start')),
       time_end: toIso(f.get('time_end')),
       salary: Number(f.get('salary')),
@@ -217,7 +268,19 @@ function JobForm({ job, onSaved, onCancel }: { job: Job | null; onSaved: () => v
         Mô tả công việc
         <textarea name="description" required rows={3} maxLength={5000} defaultValue={job?.description} />
       </label>
-      <LocationFields lat={job ? String(job.lat) : ''} lng={job ? String(job.lng) : ''} required />
+      <label>
+        Số nhà, tên đường
+        <input name="street" required minLength={2} maxLength={200} placeholder="70 Phan Huy Ôn" defaultValue={job?.street} />
+      </label>
+      <label>
+        Phường/Xã
+        <input name="ward" required minLength={2} maxLength={100} placeholder="Phường Hải Châu" defaultValue={job?.ward} />
+      </label>
+      <label>
+        Tỉnh/Thành phố
+        <input name="city" required minLength={2} maxLength={100} placeholder="Đà Nẵng" defaultValue={job?.city} />
+      </label>
+      <LocationPicker initialLat={job?.lat} initialLng={job?.lng} />
       <label>Bắt đầu<input name="time_start" type="datetime-local" required defaultValue={job ? toLocalInput(job.time_start) : undefined} /></label>
       <label>Kết thúc<input name="time_end" type="datetime-local" required defaultValue={job ? toLocalInput(job.time_end) : undefined} /></label>
       <label>Lương (VND)<input name="salary" type="number" min={0} step={1000} required defaultValue={job?.salary} /></label>

@@ -1,0 +1,22 @@
+# Database
+
+PostgreSQL 15+. Extension bắt buộc: **PostGIS** (geo query), **pgvector** (semantic search — chỉ dùng từ tuần 6+ khi nâng cấp AI lên embedding; tuần 1-5 semantic dùng TF-IDF, không cần pgvector để hoạt động).
+
+## Entities chính
+
+| Entity | Nội dung | Cần từ |
+|---|---|---|
+| `users` | role (`job_seeker` / `employer` / `admin`), thông tin xác minh (SĐT/email) | Tuần 1-5 |
+| `jobs` | vị trí (geo point), khung giờ cần, lương, mô tả tự do, vector embedding, `employer_id` | Tuần 1-5 (cột embedding chỉ dùng từ tuần 6+) |
+| `availability_intervals` | lịch rảnh dạng interval thời gian thực của job seeker — **không phải ca cố định (sáng/chiều/tối)** | Tuần 1-5 |
+| `applications` | trạng thái đơn ứng tuyển, liên kết user–job | Tuần 1-5 |
+| `ratings` | đánh giá hai chiều (điểm + nhận xét) sau khi hoàn thành job | Tuần 6-12 |
+| `reports` | báo cáo vi phạm, trạng thái xử lý bởi admin | Tuần 6-12 |
+
+## Ràng buộc quan trọng
+- `availability_intervals` phải lưu dạng khoảng thời gian thực (start/end datetime hoặc time-of-day range), **không** dùng enum ca cố định — đây là điểm khác biệt cốt lõi so với job site thông thường, đừng đơn giản hóa lại thành enum.
+- Cột vector embedding trên `jobs` chỉ có ý nghĩa sau khi pgvector được bật (tuần 6+); trước đó semantic score tính runtime bằng TF-IDF, không cần lưu vector trong DB.
+- `ratings` tác động vào `trust_modifier` của công thức AI (xem `ai_scoring.md`) — mặc định trung lập (1.0) khi chưa có rating nào.
+
+## Nguồn tham khảo
+Chi tiết đầy đủ: `docs/PROJECT_PLAN.md` mục 4.3.

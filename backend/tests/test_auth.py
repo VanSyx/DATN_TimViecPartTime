@@ -1,7 +1,9 @@
 import uuid
 
 import pytest
+from fastapi import HTTPException
 
+from app.auth import Role, require_role
 from app.models import User
 from app.security import hash_secret
 
@@ -21,6 +23,10 @@ def test_register_creates_unverified_user(client, codes):
     assert body["email_verified"] is False
     assert "password_hash" not in body
     assert len(codes) == 1 and len(codes[0]) == 6
+
+
+def test_register_as_admin_rejected(client, codes):
+    assert register(client, role="admin").status_code == 422
 
 
 def test_register_duplicate_email_rejected(client, codes):
@@ -113,3 +119,31 @@ def test_access_token_rejected_as_refresh_token(client, codes):
     assert client.post(
         "/auth/refresh", json={"refresh_token": tokens["access_token"]}
     ).status_code == 401
+
+
+def test_require_role_allows_matching_role():
+    checker = require_role(Role.EMPLOYER)
+    user = User(role="employer")
+    assert checker(user=user) is user
+
+
+def test_require_role_blocks_other_role():
+    checker = require_role(Role.EMPLOYER)
+    user = User(role="job_seeker")
+    with pytest.raises(HTTPException) as exc_info:
+        checker(user=user)
+    assert exc_info.value.status_code == 403
+
+
+def test_register_rate_limited_after_5_per_minute(client, codes):
+    for i in range(5):
+        register(client, email=f"rl{i}@example.com")
+    assert register(client, email="rl-over@example.com").status_code == 429
+
+
+def test_login_rate_limited_after_5_per_minute(client, codes):
+    register(client)
+    for _ in range(5):
+        client.post("/auth/login", json={"email": "js@example.com", "password": "wrong"})
+    res = client.post("/auth/login", json={"email": "js@example.com", "password": "secret123"})
+    assert res.status_code == 429

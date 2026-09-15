@@ -11,11 +11,19 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from app.db import Base, engine, get_db  # noqa: E402
 from app.main import app  # noqa: E402
+from app.security import limiter  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
 def _create_tables():
     Base.metadata.create_all(engine)
+
+
+@pytest.fixture(autouse=True)
+def _reset_rate_limits():
+    """Limiter dùng storage in-process, sống suốt cả test session — reset để test
+    không cộng dồn số lần gọi /auth/login|register giữa các test khác nhau."""
+    limiter.reset()
 
 
 @pytest.fixture

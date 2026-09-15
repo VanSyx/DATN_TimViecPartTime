@@ -166,7 +166,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | — | **Việc quan trọng:** xác nhận với GVHD "mốc 70% có tính AI không" trước khi qua tuần 2 |
 
 **Deliverable:** ERD/use case/sequence diagram, OpenAPI spec khung, Hello World chạy trên production, CI/CD xanh.
-**Milestone M1 (cuối tuần 1):** Deploy Hello World thành công + thiết kế hoàn tất.
+**Milestone M1 (cuối tuần 1): ✅ Đạt.** Deploy Hello World thành công (mục 9.4) + thiết kế hoàn tất (`docs/design/`). Còn lại: xác nhận GVHD về phạm vi 70%.
 
 ### Tuần 2 — Auth & RBAC, Frontend skeleton
 | Ngày | Công việc |
@@ -296,13 +296,26 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Kiểm tra logging/error tracking hoạt động (Sentry hoặc structured log tối thiểu)
 - Việc nhập secret/credential và phê duyệt deploy lần đầu lên production cần xác nhận thủ công, không để agent/tự động hóa tự ý thực hiện
 
-## 9.4 Setup Render lần đầu (thủ công — cần tài khoản Render của người thực hiện)
+## 9.4 Production URLs (✅ đã deploy — Tuần 1 ngày 5)
+| Service | URL | Trạng thái |
+|---|---|---|
+| Backend (`timviec-backend`) | https://timviec-backend.onrender.com | ✅ `/health` → `200 {"status":"ok"}` |
+| Frontend (`datn-timviecparttime`) | https://datn-timviecparttime.onrender.com | ✅ `200`, HTML phục vụ được |
+| Database (`timviec-db`) | quản lý qua Render dashboard, connection string inject vào `DATABASE_URL` của backend | Tạo cùng lúc backend qua Blueprint |
+
+**Việc còn lại trước khi dùng thật ở Tuần 2 (không chặn M1):**
+- [ ] Xác nhận `CORS_ORIGINS` trên `timviec-backend` đã trỏ đúng `https://datn-timviecparttime.onrender.com` (backend hiện chưa có middleware CORS — thêm khi làm auth ở Tuần 2, lúc đó điền biến này mới có tác dụng)
+- [ ] Ghi lại ngày tạo `timviec-db` để theo dõi mốc hết hạn free tier 90 ngày (mục 8 — Risk)
+
+<details>
+<summary>Các bước đã thực hiện (tham khảo khi cần deploy lại/tạo môi trường mới)</summary>
+
 1. Đăng nhập [render.com](https://render.com) bằng GitHub, cấp quyền truy cập repo `VanSyx/DATN_TimViecPartTime`
 2. **New → Blueprint** → chọn repo này → Render tự đọc `render.yaml` ở root → tạo `timviec-backend` (web service) + `timviec-db` (Postgres)
-3. Điền tay các biến `sync: false` trong dashboard của `timviec-backend`: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL` (tạm để trống hoặc placeholder tới tuần 4), `CORS_ORIGINS` (điền URL frontend sau khi có ở bước 5)
-4. Đợi build xong, verify `https://timviec-backend.onrender.com/health` trả `{"status":"ok"}`
-5. **New → Static Site** (tạo tay qua dashboard, không nằm trong `render.yaml`) → chọn cùng repo → Root Directory: `frontend`, Build Command: `npm ci && npm run build`, Publish Directory: `dist` — Render tự nhận diện Vite
-6. Ghi lại URL thật (backend + frontend) vào mục này sau khi deploy xong; cập nhật `CORS_ORIGINS` ở bước 3 trỏ đúng URL frontend
+3. Điền tay các biến `sync: false` trong dashboard của `timviec-backend`: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `CORS_ORIGINS`
+4. Verify `https://timviec-backend.onrender.com/health` trả `{"status":"ok"}`
+5. **New → Static Site** (tạo tay qua dashboard, không nằm trong `render.yaml`) → chọn cùng repo → Root Directory: `frontend`, Build Command: `npm ci && npm run build`, Publish Directory: `dist`
+</details>
 
 ---
 

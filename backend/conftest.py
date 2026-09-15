@@ -1,4 +1,5 @@
 import os
+import uuid
 
 # Phải set trước khi import app.config (module đọc env ngay lúc import)
 os.environ.setdefault("DATABASE_URL", "postgresql://postgres:postgres@localhost:5433/timviec")
@@ -11,7 +12,8 @@ from sqlalchemy.orm import Session  # noqa: E402
 
 from app.db import Base, engine, get_db  # noqa: E402
 from app.main import app  # noqa: E402
-from app.security import limiter  # noqa: E402
+from app.models import User  # noqa: E402
+from app.security import create_access_token, limiter  # noqa: E402
 
 
 @pytest.fixture(scope="session", autouse=True)
@@ -49,6 +51,19 @@ def client(db):
     app.dependency_overrides[get_db] = lambda: db
     yield TestClient(app)
     app.dependency_overrides.clear()
+
+
+@pytest.fixture
+def auth_headers(db):
+    """Tạo user thẳng trong DB (bỏ qua register/rate limit), trả header Bearer của user đó."""
+
+    def make(role: str = "job_seeker") -> dict:
+        user = User(email=f"{uuid.uuid4().hex}@example.com", role=role, password_hash="x")
+        db.add(user)
+        db.commit()
+        return {"Authorization": f"Bearer {create_access_token(user.id, role)}"}
+
+    return make
 
 
 @pytest.fixture

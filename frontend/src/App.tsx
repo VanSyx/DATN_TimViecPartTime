@@ -1,13 +1,19 @@
+import type { ReactNode } from 'react'
 import { createBrowserRouter, Navigate, NavLink, Outlet, RouterProvider } from 'react-router-dom'
 import { roleHome, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
 import { LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
+import { AvailabilityPage, EmployerJobsPage, MyApplicationsPage, SearchJobsPage } from './pages/JobPages'
 
-// Menu theo role; các trang đích (job, lịch rảnh, duyệt tin...) làm từ Tuần 3
-const navByRole: Record<Role, { to: string; label: string }[]> = {
-  job_seeker: [{ to: '/seeker', label: 'Việc gợi ý' }],
-  employer: [{ to: '/employer', label: 'Tin đã đăng' }],
-  admin: [{ to: '/admin', label: 'Quản trị' }],
+// Trang theo role — menu sinh từ chính danh sách này. Trang gợi ý AI thêm ở Tuần 5.
+const pagesByRole: Record<Role, { path: string; label: string; element: ReactNode }[]> = {
+  job_seeker: [
+    { path: '/seeker', label: 'Tìm việc', element: <SearchJobsPage /> },
+    { path: '/seeker/availability', label: 'Lịch rảnh', element: <AvailabilityPage /> },
+    { path: '/seeker/applications', label: 'Đơn ứng tuyển', element: <MyApplicationsPage /> },
+  ],
+  employer: [{ path: '/employer', label: 'Tin đã đăng', element: <EmployerJobsPage /> }],
+  admin: [{ path: '/admin', label: 'Quản trị', element: <h1>Trang quản trị</h1> }],
 }
 
 const roleLabel: Record<Role, string> = {
@@ -24,8 +30,8 @@ function AppLayout() {
       <header className="app-header">
         <strong>TimViecPartTime</strong>
         <nav>
-          {navByRole[user.role].map((item) => (
-            <NavLink key={item.to} to={item.to}>{item.label}</NavLink>
+          {pagesByRole[user.role].map((item) => (
+            <NavLink key={item.path} to={item.path} end>{item.label}</NavLink>
           ))}
         </nav>
         <span>{user.email} · {roleLabel[user.role]}</span>
@@ -39,10 +45,6 @@ function AppLayout() {
   )
 }
 
-function Placeholder({ title }: { title: string }) {
-  return <h1>{title}</h1>
-}
-
 function RootRedirect() {
   const { user, loading } = useAuth()
   if (loading) return <p>Đang tải...</p>
@@ -54,13 +56,9 @@ const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/verify', element: <VerifyPage /> },
-  ...([
-    ['job_seeker', '/seeker', 'Việc gợi ý cho bạn'],
-    ['employer', '/employer', 'Tin tuyển dụng của bạn'],
-    ['admin', '/admin', 'Trang quản trị'],
-  ] as const).map(([role, path, title]) => ({
+  ...(Object.entries(pagesByRole) as [Role, (typeof pagesByRole)[Role]][]).map(([role, pages]) => ({
     element: <RequireRole roles={[role]} />,
-    children: [{ element: <AppLayout />, children: [{ path, element: <Placeholder title={title} /> }] }],
+    children: [{ element: <AppLayout />, children: pages.map(({ path, element }) => ({ path, element })) }],
   })),
   { path: '*', element: <Navigate to="/" replace /> },
 ])

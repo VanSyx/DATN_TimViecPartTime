@@ -7,6 +7,7 @@ from slowapi.errors import RateLimitExceeded
 
 from app.auth import router as auth_router
 from app.config import CORS_ORIGINS
+from app.jobs import router as jobs_router
 from app.security import limiter
 
 # Uvicorn chỉ cấu hình logger của chính nó; không bật INFO ở root thì log của app bị nuốt
@@ -24,6 +25,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 app.include_router(auth_router)
+app.include_router(jobs_router)
 
 
 @app.get("/health")

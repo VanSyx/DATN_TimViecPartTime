@@ -50,9 +50,11 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 - Endpoint gợi ý AI luôn phải trả breakdown điểm (explainable), không chỉ 1 số `final_score`.
 - `availability_intervals` là interval thời gian thực, không phải enum ca cố định — đừng đơn giản hóa lại.
 - **Mọi bước cài đặt môi trường/công cụ triển khai** (cài Docker, setup DB, tạo service trên Render, cấu hình CI/CD, cài tool mới...) **phải chụp màn hình + ghi chú lại ngay lúc làm**, không dồn về sau — phục vụ chương Cài đặt/Triển khai trong báo cáo tốt nghiệp. Khi hướng dẫn hoặc thực hiện các bước này, nhắc người thực hiện chụp và ghi vào `docs/setup-log.md` (ảnh lưu ở `docs/screenshots/`) trước khi coi bước đó là xong.
+- **Kết thúc mỗi tuần phải có báo cáo tiến độ** trước khi bắt đầu tuần kế tiếp: đối chiếu deliverable/task đã hoàn thành so với kế hoạch (`docs/PROJECT_PLAN.md` mục 5.1/6.2), nêu việc phát sinh ngoài kế hoạch, việc chưa xong/rủi ro, và việc cần làm ở tuần sau. Lưu vào `docs/progress-reports/tuan-<N>.md` và trình bày lại trong hội thoại trước khi code tuần mới.
 
 ## 6. Additional Documentation
 - `docs/PROJECT_PLAN.md` — nguồn tham chiếu chính: Scope, Requirements, Timeline 5 tuần, Testing, Risk, Deployment, Definition of Done.
+- `docs/progress-reports/` — báo cáo tiến độ cuối mỗi tuần (xem mục 5).
 - `.claude/docs/architecture.md` — kiến trúc microservice, API contract backend ↔ AI service.
 - `.claude/docs/database.md` — entity, PostGIS/pgvector.
 - `.claude/docs/ai_scoring.md` — công thức AI đầy đủ, business rules.

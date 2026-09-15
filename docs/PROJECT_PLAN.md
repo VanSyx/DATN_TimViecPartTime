@@ -125,7 +125,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | AI Service | Python FastAPI (microservice riêng) | Model chạy local, không gọi API ngoài |
 | Database | PostgreSQL 15+ + PostGIS + pgvector | PostGIS cho geo query, pgvector cho semantic search (từ tuần 6+) |
 | Auth | JWT + refresh token | Hashing bcrypt/argon2 |
-| CI/CD & Deploy | Docker + Docker Compose + GitHub Actions + VPS/Render | |
+| CI/CD & Deploy | Docker + Docker Compose + GitHub Actions + Render (Blueprint) | |
 
 ## 4.3 Database — các entity chính
 - `users` (role: job_seeker/employer/admin, thông tin xác minh)
@@ -162,7 +162,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 |---|---|
 | 1-2 | Setup monorepo (frontend/backend/ai-service/docs), Docker Compose local (Postgres+PostGIS+pgvector), khởi tạo GitHub repo + Actions cơ bản |
 | 3-4 | Thiết kế ERD, use case diagram, sequence diagram cho luồng chính; viết OpenAPI spec khung |
-| 5 | Deploy "Hello World" (FE + BE trả response đơn giản) lên production (VPS/Render), xác nhận CI/CD chạy được |
+| 5 | Deploy "Hello World" (FE + BE trả response đơn giản) lên production (Render), xác nhận CI/CD chạy được |
 | — | **Việc quan trọng:** xác nhận với GVHD "mốc 70% có tính AI không" trước khi qua tuần 2 |
 
 **Deliverable:** ERD/use case/sequence diagram, OpenAPI spec khung, Hello World chạy trên production, CI/CD xanh.
@@ -274,6 +274,8 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Report bị code "ăn" hết thời gian ở tuần 6-12 | Không giữ kỷ luật chia thời gian code/report | Trung bình | Bám lịch xen kẽ ngày code/ngày report mỗi tuần (mục 5.2) |
 | Không đủ dữ liệu pilot test thật để phân tích | Không ưu tiên thời gian tuyển pilot tester (đã xác nhận với người thực hiện) | Chấp nhận được nếu minh bạch | Nêu rõ giới hạn này trong báo cáo, không phóng đại kết luận (mục 7.1) |
 | Deploy lỗi ở phút chót | Dồn việc deploy về cuối dự án | Trung bình | Deploy Hello World từ tuần 1, deploy lại mỗi tuần để phát hiện lỗi hạ tầng sớm |
+| Render free Postgres bị xóa giữa dự án | Free tier chỉ giữ DB 90 ngày kể từ lúc tạo — ~tuần 13 tính từ tuần 1, sát mốc nộp báo cáo tuần 12 | Cao | Ghi lại ngày tạo DB; nâng lên plan trả phí (~$7/tháng) trước ngày hết hạn nếu cần production sống qua tuần 12; hoặc export/backup dữ liệu định kỳ từ tuần 9+ đề phòng |
+| Render free web service cold start chậm | Service free tier ngủ sau 15 phút không có traffic, request đầu tiên mất 30-50s để dậy | Thấp, ảnh hưởng lúc demo | "Đánh thức" service vài phút trước khi demo/báo cáo trực tiếp; nêu rõ giới hạn free tier nếu GVHD hỏi vì sao chậm lần đầu |
 
 ---
 
@@ -281,17 +283,26 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 
 ## 9.1 Environment
 - **Local:** Docker Compose (`db` Postgres+PostGIS, `backend`; `ai-service` thêm từ tuần 4; pgvector thêm từ tuần 6) + frontend chạy ngoài compose bằng Vite dev server
-- **Production:** VPS hoặc Render
-- **Biến môi trường cần thiết:** `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `EMBEDDING_MODEL_PATH`, `CORS_ORIGINS` — không commit vào git, quản lý qua `.env`
+- **Production:** Render — backend deploy bằng Docker (Blueprint `render.yaml` ở root), Postgres dùng managed database của Render (free tier, xem rủi ro mục 8)
+- **Biến môi trường cần thiết:** `DATABASE_URL` (Render tự inject từ managed DB), `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `EMBEDDING_MODEL_PATH`, `CORS_ORIGINS` — không commit vào git; các biến secret khai trong `render.yaml` với `sync: false` để Render bắt buộc nhập tay qua dashboard, không tự động hóa
 
 ## 9.2 CI/CD
-- GitHub Actions: chạy lint + test tự động khi push lên `main` / mở PR
+- GitHub Actions: chạy lint + test tự động khi push lên `main` / mở PR (không gate việc deploy — Render tự build/deploy song song khi push vào `main`, độc lập với CI)
+- Render Blueprint tự động build lại và deploy khi có commit mới vào `main` (auto-deploy), không cần bước deploy thủ công sau lần setup đầu
 - Deploy "Hello World" ngay từ tuần 1 để xác nhận pipeline hoạt động, tránh dồn rủi ro hạ tầng về cuối
 
 ## 9.3 Production checklist (sau mỗi lần deploy)
 - Chạy smoke test kiểm tra endpoint chính còn sống (auth, job list, AI recommend)
 - Kiểm tra logging/error tracking hoạt động (Sentry hoặc structured log tối thiểu)
 - Việc nhập secret/credential và phê duyệt deploy lần đầu lên production cần xác nhận thủ công, không để agent/tự động hóa tự ý thực hiện
+
+## 9.4 Setup Render lần đầu (thủ công — cần tài khoản Render của người thực hiện)
+1. Đăng nhập [render.com](https://render.com) bằng GitHub, cấp quyền truy cập repo `VanSyx/DATN_TimViecPartTime`
+2. **New → Blueprint** → chọn repo này → Render tự đọc `render.yaml` ở root → tạo `timviec-backend` (web service) + `timviec-db` (Postgres)
+3. Điền tay các biến `sync: false` trong dashboard của `timviec-backend`: `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL` (tạm để trống hoặc placeholder tới tuần 4), `CORS_ORIGINS` (điền URL frontend sau khi có ở bước 5)
+4. Đợi build xong, verify `https://timviec-backend.onrender.com/health` trả `{"status":"ok"}`
+5. **New → Static Site** (tạo tay qua dashboard, không nằm trong `render.yaml`) → chọn cùng repo → Root Directory: `frontend`, Build Command: `npm ci && npm run build`, Publish Directory: `dist` — Render tự nhận diện Vite
+6. Ghi lại URL thật (backend + frontend) vào mục này sau khi deploy xong; cập nhật `CORS_ORIGINS` ở bước 3 trỏ đúng URL frontend
 
 ---
 

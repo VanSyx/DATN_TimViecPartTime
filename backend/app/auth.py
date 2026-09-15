@@ -3,9 +3,10 @@ import secrets
 import uuid
 from datetime import datetime, timedelta, timezone
 from enum import StrEnum
+from typing import Literal
 
 import jwt
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
@@ -19,6 +20,7 @@ from app.security import (
     create_refresh_token,
     decode_token,
     hash_secret,
+    limiter,
     verify_secret,
 )
 
@@ -37,7 +39,8 @@ class RegisterIn(BaseModel):
     email: EmailStr
     # bcrypt cắt cụt input quá 72 byte — chặn ở boundary thay vì để hash sai âm thầm
     password: str = Field(min_length=8, max_length=72)
-    role: Role
+    # Không cho tự đăng ký admin qua API công khai — admin tạo thẳng trong DB
+    role: Literal[Role.JOB_SEEKER, Role.EMPLOYER]
     phone: str | None = Field(default=None, max_length=20)
 
 
@@ -92,8 +95,20 @@ def get_current_user(
     return user
 
 
+def require_role(*roles: Role):
+    """Dependency factory cho RBAC per-route, vd `Depends(require_role(Role.EMPLOYER))`."""
+
+    def check(user: User = Depends(get_current_user)) -> User:
+        if user.role not in roles:
+            raise HTTPException(status.HTTP_403_FORBIDDEN, "Không có quyền truy cập")
+        return user
+
+    return check
+
+
 @router.post("/register", response_model=UserOut, status_code=status.HTTP_201_CREATED)
-def register(body: RegisterIn, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def register(request: Request, body: RegisterIn, db: Session = Depends(get_db)):
     if db.scalar(select(User).where(User.email == body.email)):
         raise HTTPException(status.HTTP_409_CONFLICT, "Email đã được đăng ký")
 
@@ -136,7 +151,8 @@ def verify(body: VerifyIn, db: Session = Depends(get_db)):
 
 
 @router.post("/login", response_model=TokenOut)
-def login(body: LoginIn, db: Session = Depends(get_db)):
+@limiter.limit("5/minute")
+def login(request: Request, body: LoginIn, db: Session = Depends(get_db)):
     user = db.scalar(select(User).where(User.email == body.email))
     if user is None or not verify_secret(body.password, user.password_hash):
         raise HTTPException(status.HTTP_401_UNAUTHORIZED, "Email hoặc mật khẩu không đúng")

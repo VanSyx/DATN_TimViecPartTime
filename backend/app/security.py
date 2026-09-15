@@ -3,6 +3,8 @@ from datetime import datetime, timedelta, timezone
 
 import bcrypt
 import jwt
+from slowapi import Limiter
+from slowapi.util import get_remote_address
 
 from app.config import (
     ACCESS_TOKEN_MINUTES,
@@ -12,6 +14,9 @@ from app.config import (
 )
 
 ALGORITHM = "HS256"
+# Dùng chung giữa main.py (đăng ký exception handler) và auth.py (decorator @limiter.limit)
+# để tránh vòng import — module này không phụ thuộc ngược lại vào auth/main.
+limiter = Limiter(key_func=get_remote_address)
 
 
 def hash_secret(value: str) -> str:

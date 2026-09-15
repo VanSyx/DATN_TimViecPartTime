@@ -19,11 +19,21 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 ## 3. Dev Commands
 ```
 docker compose up -d                          # db (postgis) + backend → http://localhost:8000/health
-cd backend && .venv/Scripts/python -m pytest  # test backend
+cd backend && .venv/Scripts/python -m pytest  # test backend (cần db đang chạy)
 cd frontend && npm run dev                    # frontend → http://localhost:5173
 cd frontend && npm run build                  # build production
 ```
 Lần đầu setup backend ngoài Docker: `cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt`
+
+**Migration (Alembic)** — chạy từ `backend/`, cần `DATABASE_URL` trỏ host port **5433**:
+```
+DATABASE_URL="postgresql://postgres:postgres@localhost:5433/timviec" JWT_SECRET=dev JWT_REFRESH_SECRET=dev \
+  .venv/Scripts/python -m alembic revision --autogenerate -m "mô tả"
+DATABASE_URL="..." ... .venv/Scripts/python -m alembic upgrade head
+```
+Container tự chạy `alembic upgrade head` khi khởi động, không cần upgrade tay sau khi `docker compose up`.
+
+**Lưu ý cổng DB:** máy dev đã có PostgreSQL cài sẵn chiếm 5432, nên compose map host port **5433** → `db:5432`. Nối từ host (alembic, psql, test) dùng 5433; service trong compose vẫn dùng `db:5432`.
 
 **Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chỉ chứa db + backend. `ai-service` chưa scaffold, sẽ thêm ở Tuần 4.
 

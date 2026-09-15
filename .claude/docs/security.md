@@ -1,8 +1,11 @@
 # Security
 
 ## Auth
-- JWT + refresh token cho phiên đăng nhập.
+- JWT + refresh token cho phiên đăng nhập. Access token và refresh token ký bằng **hai secret khác nhau** (`JWT_SECRET` / `JWT_REFRESH_SECRET`), và mỗi token mang claim `type` (`access`/`refresh`) — chặn việc dùng refresh token thay access token.
+- **Secret phải dài ≥ 32 byte** (HS256): PyJWT cảnh báo nếu ngắn hơn. Sinh bằng `python -c "import secrets; print(secrets.token_urlsafe(48))"`.
+- Refresh token hiện **stateless** (không lưu DB) nên không thu hồi được trước hạn — chấp nhận trong scope tuần 1-5, thêm bảng `refresh_tokens` khi cần "đăng xuất mọi thiết bị".
 - Password hashing: bcrypt hoặc argon2. Không tự nghĩ ra scheme hash khác.
+- Mật khẩu giới hạn tối đa 72 byte ở tầng schema — bcrypt cắt cụt input dài hơn, không chặn ở boundary thì hash sai âm thầm.
 
 ## RBAC
 - 3 role: `job_seeker`, `employer`, `admin`.

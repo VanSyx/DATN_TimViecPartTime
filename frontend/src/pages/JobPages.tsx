@@ -42,21 +42,53 @@ function useLoad<T>(load: () => Promise<T>, initial: T) {
   return { data, error, reload }
 }
 
+type GeoHit = { label: string; lat: number; lng: number }
+
 /**
- * Bản đồ OSM (chỉ hiển thị tile, không gọi API tìm kiếm địa chỉ nào) để bấm ghép ghim lấy lat/lng.
- * Không dùng geocoding bên thứ 3 (Goong cần admin duyệt key, Nominatim chặn IP server) — xem CLAUDE.md mục 5.
+ * Tra địa chỉ → toạ độ qua Photon (OSM, miễn phí, không cần API key), gọi thẳng từ trình duyệt
+ * nên không dính lý do Nominatim bị chặn IP server — xem CLAUDE.md mục 5.
+ * Chỉ tới mức tên đường/địa danh: OSM Việt Nam thiếu dữ liệu số nhà, nên trả nhiều kết quả cho
+ * người dùng tự chọn thay vì ghim bừa theo kết quả đầu (địa chỉ không tồn tại vẫn ra match sai).
+ */
+async function geocode(q: string, near: L.LatLng): Promise<GeoHit[]> {
+  const url = `https://photon.komoot.io/api/?limit=5&lang=default&lat=${near.lat}&lon=${near.lng}&q=${encodeURIComponent(q)}`
+  const res = await fetch(url)
+  if (!res.ok) throw new Error('Không tra được địa chỉ, hãy bấm ghim thủ công trên bản đồ')
+  const data = await res.json()
+  const hits: GeoHit[] = (data.features ?? []).map((f: any) => ({
+    label: [f.properties.name, f.properties.street, f.properties.district, f.properties.city]
+      .filter(Boolean)
+      .join(', '),
+    lat: f.geometry.coordinates[1],
+    lng: f.geometry.coordinates[0],
+  }))
+  if (!hits.length) throw new Error('Không tìm thấy địa chỉ này, hãy bấm ghim thủ công trên bản đồ')
+  return hits
+}
+
+/** Địa chỉ để tra: ưu tiên 3 ô street/ward/city của form đăng tin, không có thì lấy ô riêng của picker. */
+function readAddress(form: HTMLFormElement): string {
+  const val = (name: string) => (form.elements.namedItem(name) as HTMLInputElement | null)?.value.trim() ?? ''
+  return [val('street'), val('ward'), val('city')].filter(Boolean).join(', ') || val('address_q')
+}
+
+/**
+ * Bản đồ OSM để bấm/kéo ghim lấy lat/lng, kèm tra địa chỉ để nhảy ghim tới đúng khu vực.
  * Tự quản state, xuất toạ độ qua 2 input ẩn name="lat"/"lng" để form cha đọc qua FormData.
  */
-function LocationPicker({ initialLat, initialLng, height = 240 }: { initialLat?: number; initialLng?: number; height?: number }) {
+function LocationPicker({ initialLat, initialLng, height = 240, showAddressInput }: { initialLat?: number; initialLng?: number; height?: number; showAddressInput?: boolean }) {
   const mapEl = useRef<HTMLDivElement>(null)
   const mapApi = useRef<{ map: L.Map; setMarker: (lat: number, lng: number) => void }>(undefined)
   const [coords, setCoords] = useState(initialLat != null && initialLng != null ? { lat: initialLat, lng: initialLng } : null)
   const [error, setError] = useState('')
+  const [hits, setHits] = useState<GeoHit[] | null>(null)
+  const [searching, setSearching] = useState(false)
 
   useEffect(() => {
     if (!mapEl.current) return
     const map = L.map(mapEl.current).setView(coords ? [coords.lat, coords.lng] : VN_CENTER, coords ? 15 : 6)
-    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    // tile.openstreetmap.org (server chính) hay bị chặn/timeout tuỳ mạng — dùng mirror Đức, cùng dữ liệu OSM, không cần key
+    L.tileLayer('https://{s}.tile.openstreetmap.de/{z}/{x}/{y}.png', {
       attribution: '&copy; OpenStreetMap',
       maxZoom: 19,
     }).addTo(map)
@@ -64,39 +96,94 @@ function LocationPicker({ initialLat, initialLng, height = 240 }: { initialLat?:
     let marker: L.Marker | null = null
     function setMarker(lat: number, lng: number) {
       if (marker) marker.setLatLng([lat, lng])
-      else marker = L.marker([lat, lng], { icon: pinIcon }).addTo(map)
+      else marker = L.marker([lat, lng], { icon: pinIcon, draggable: true }).addTo(map).on('dragend', () => {
+        const p = marker!.getLatLng()
+        updateCoords(p.lat, p.lng)
+      })
+    }
+    function updateCoords(lat: number, lng: number) {
+      setMarker(lat, lng)
+      setCoords({ lat, lng })
     }
     if (coords) setMarker(coords.lat, coords.lng)
-    map.on('click', (e) => {
-      setMarker(e.latlng.lat, e.latlng.lng)
-      setCoords({ lat: e.latlng.lat, lng: e.latlng.lng })
-    })
+    else {
+      // Chưa có toạ độ (form mới, không phải sửa job có sẵn) → thử định vị GPS để zoom gần
+      // vị trí thật thay vì giữ nguyên view Đà Nẵng zoom 6 (tải nhiều tile, xa vị trí thật user).
+      navigator.geolocation.getCurrentPosition(
+        (p) => {
+          map.setView([p.coords.latitude, p.coords.longitude], 15)
+          updateCoords(p.coords.latitude, p.coords.longitude)
+        },
+        () => {}, // từ chối/không hỗ trợ → giữ fallback Đà Nẵng, không báo lỗi (khác nút chủ động bên dưới)
+      )
+    }
+    map.on('click', (e) => updateCoords(e.latlng.lat, e.latlng.lng))
 
     mapApi.current = { map, setMarker }
     return () => { map.remove() }
     // eslint-disable-next-line -- chỉ tạo map 1 lần lúc mount; đổi initial thì remount qua key ở nơi gọi
   }, [])
 
+  function goTo(lat: number, lng: number, zoom: number) {
+    mapApi.current?.map.setView([lat, lng], zoom)
+    mapApi.current?.setMarker(lat, lng)
+    setCoords({ lat, lng })
+  }
+
   function locateMe() {
     setError('')
+    setHits(null)
     navigator.geolocation.getCurrentPosition(
-      (p) => {
-        const { latitude: lat, longitude: lng } = p.coords
-        mapApi.current?.map.setView([lat, lng], 15)
-        mapApi.current?.setMarker(lat, lng)
-        setCoords({ lat, lng })
-      },
+      (p) => goTo(p.coords.latitude, p.coords.longitude, 15),
       () => setError('Không lấy được vị trí hiện tại'),
     )
   }
 
+  async function searchAddress(e: React.MouseEvent<HTMLButtonElement>) {
+    const form = e.currentTarget.form
+    const map = mapApi.current?.map
+    if (!form || !map) return
+    const q = readAddress(form)
+    setError('')
+    setHits(null)
+    if (!q) {
+      setError('Hãy nhập địa chỉ trước khi định vị')
+      return
+    }
+    setSearching(true)
+    try {
+      setHits(await geocode(q, map.getCenter()))
+    } catch (err) {
+      setError((err as Error).message)
+    } finally {
+      setSearching(false)
+    }
+  }
+
   return (
     <div className="wide">
+      {showAddressInput && (
+        <label>Địa chỉ<input name="address_q" placeholder="Ví dụ: Hồ Gươm, Hà Nội" /></label>
+      )}
       <div className="actions">
-        <span className="meta">Bấm vào bản đồ để chọn vị trí</span>
+        <button type="button" className="secondary" onClick={searchAddress} disabled={searching}>
+          {searching ? 'Đang tra...' : 'Định vị trên bản đồ'}
+        </button>
         <button type="button" className="secondary" onClick={locateMe}>Dùng vị trí hiện tại</button>
         {coords && <span className="meta">Đã chọn: {coords.lat.toFixed(5)}, {coords.lng.toFixed(5)}</span>}
       </div>
+      <p className="meta">Tra địa chỉ chỉ tới mức tên đường — bấm vào bản đồ hoặc kéo ghim để chỉnh đúng số nhà.</p>
+      {hits && (
+        <ul className="geo-hits">
+          {hits.map((hit) => (
+            <li key={`${hit.lat},${hit.lng}`}>
+              <button type="button" onClick={() => { goTo(hit.lat, hit.lng, 17); setHits(null) }}>
+                {hit.label}
+              </button>
+            </li>
+          ))}
+        </ul>
+      )}
       <div ref={mapEl} className="map-picker" style={{ height }} />
       <input type="hidden" name="lat" value={coords?.lat ?? ''} />
       <input type="hidden" name="lng" value={coords?.lng ?? ''} />
@@ -158,7 +245,7 @@ export function SearchJobsPage() {
     <div className="page">
       <h1>Tìm việc</h1>
       <form className="panel" onSubmit={search}>
-        <LocationPicker />
+        <LocationPicker showAddressInput />
         <label>Bán kính (km)<input name="radius_km" type="number" min={1} max={100} defaultValue={10} /></label>
         <label>Rảnh từ<input name="start" type="datetime-local" /></label>
         <label>Đến<input name="end" type="datetime-local" /></label>

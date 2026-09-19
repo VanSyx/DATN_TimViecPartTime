@@ -10,7 +10,7 @@ Branch: `feat/week4-ai` (tách từ `feat/week3-jobs`). Ảnh minh chứng: `doc
 | 2 | `semantic_score`: TF-IDF + cosine | ✅ Đạt |
 | 3 | `time_feasibility_score`: interval overlap + trừ thời gian di chuyển (Haversine) | ✅ Đạt |
 | 4 | `geo_score` + `trust_modifier` (mặc định 1.0) | ✅ Đạt (geo dùng Haversine, xem "Việc phát sinh") |
-| 5 | Ghép `final_score`, trả breakdown; unit test từng hàm | ✅ Đạt — 20 test |
+| 5 | Ghép `final_score`, trả breakdown; unit test từng hàm | ✅ Đạt — 21 test |
 
 **Deliverable "AI service chạy độc lập, trả kết quả gợi ý kèm breakdown, có unit test cho interval overlap/Haversine/TF-IDF": đạt.**
 
@@ -32,8 +32,8 @@ Branch: `feat/week4-ai` (tách từ `feat/week3-jobs`). Ảnh minh chứng: `doc
 **Hạ tầng**: `ai-service` trong `docker-compose.yml` (ảnh 02), Swagger ở `:8001/docs` (ảnh 03), thêm job CI `ai-service`.
 
 **Kiểm thử**
-- `ai-service`: **20/20 pass** (ảnh 06) — Haversine (1° vĩ độ = 111.195 km, Hà Nội–TP.HCM ≈ 1.140 km), gộp interval, rảnh trọn/không rảnh/thời gian đi làm giảm điểm/khoảng rảnh chồng nhau không đếm trùng/rảnh rời rạc, geo tuyến tính, TF-IDF (job liên quan xếp trên, giống hệt = 1, không chung từ = 0, mô tả trống = 0, NFC), endpoint (xếp hạng + đủ 4 thành phần breakdown, khung giờ ngược → 422, danh sách rỗng).
-- Backend: **38/38 pass** (ảnh 07; thêm 2 test mô tả tự do + RBAC).
+- `ai-service`: **21/21 pass** (ảnh 06 chụp lúc 20/20, trước khi thêm test gõ không dấu) — Haversine (1° vĩ độ = 111.195 km, Hà Nội–TP.HCM ≈ 1.140 km), gộp interval, rảnh trọn/không rảnh/thời gian đi làm giảm điểm/khoảng rảnh chồng nhau không đếm trùng/rảnh rời rạc, geo tuyến tính, TF-IDF (job liên quan xếp trên, giống hệt = 1, không chung từ = 0, mô tả trống = 0, NFC), endpoint (xếp hạng + đủ 4 thành phần breakdown, khung giờ ngược → 422, danh sách rỗng).
+- Backend: **40/40 pass** (ảnh 07 chụp lúc 38/38; sau đó thêm 2 test ẩn tin quá hạn/chặn ứng tuyển tin đã kết thúc).
 - `npm run lint` + `npm run build` pass; `alembic check` không lệch model.
 
 ## Việc phát sinh

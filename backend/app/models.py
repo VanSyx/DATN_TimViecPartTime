@@ -64,7 +64,7 @@ class Job(Base):
     street: Mapped[str] = mapped_column(String(200))
     ward: Mapped[str] = mapped_column(String(100))
     city: Mapped[str] = mapped_column(String(100))
-    # lat/lng do backend geocode từ địa chỉ (Goong); location do Postgres tự sinh cho GiST index + ST_DWithin
+    # lat/lng do người dùng chốt bằng ghim bản đồ ở frontend; location do Postgres tự sinh cho GiST index + ST_DWithin
     lat: Mapped[float] = mapped_column(Float)
     lng: Mapped[float] = mapped_column(Float)
     location = mapped_column(

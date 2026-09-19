@@ -37,7 +37,7 @@ Branch: `feat/week3-jobs` (tách từ `feat/week2-auth`, chưa merge). Ảnh min
 - `npm run lint` + `npm run build` pass; `alembic check` không lệch models
 
 ## Chưa làm / giới hạn đã biết
-- **Chưa deploy lên Render** — cần merge (Tuần 2 + 3) để Render build; lần deploy này sẽ chạy migration bật PostGIS trên Postgres managed, cần kiểm tra thủ công sau deploy.
+- ~~Chưa deploy lên Render~~ — **đã deploy** qua PR #9, #10. Kiểm tra 2026-09-19: `/health` 200, `openapi.json` có đủ route jobs/availability/applications, `GET /jobs?lat=21.03&lng=105.85` 200 → migration bật PostGIS chạy được trên Postgres managed. Riêng commit `f9c9964` (tra địa chỉ Photon + đổi tile) chỉ đổi frontend/docs, lên production khi merge PR tiếp theo.
 - "Mô tả tự do" của job seeker (Scope 2.1) chưa có — cần cho `semantic_score`, làm đầu Tuần 4.
 - Chưa phân trang (tối đa 100 kết quả/lần tìm); không gộp các interval rảnh chồng nhau.
 - Trạng thái `completed` (sau khi làm xong việc) chưa có transition — thuộc luồng rating tuần 6-12.

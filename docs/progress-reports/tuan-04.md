@@ -44,6 +44,13 @@ Branch: `feat/week4-ai` (tách từ `feat/week3-jobs`). Ảnh minh chứng: `doc
 - **Bỏ cột `USERS.location` khỏi ERD**: vị trí job seeker lấy theo từng lần tìm (GPS/ghim bản đồ), như luồng tìm việc Tuần 3 đang làm.
 - `source: "ai" | "fallback"` chuyển sang cho backend gắn (sequence diagram mục 6 đã sửa), vì chỉ backend biết mình có đang chạy fallback hay không.
 
+- **Dữ liệu mẫu kiểu người dùng thật** (`backend/seed.py`, theo yêu cầu người thực hiện): 9 người tìm việc + 10 chủ nhà/cơ sở với hoàn cảnh riêng (sinh viên, tài xế chỉ rảnh sáng sớm, cô nghỉ hưu chỉ nhận việc gần, dân văn phòng rảnh tối, người gõ không dấu, người cần việc gấp viết lan man, tài khoản mới chưa điền gì), 14 tin viết văn nói (có tin đã đóng, tin quá hạn chủ quên đóng, tin xa ~12 km), 12 đơn đủ trạng thái (2 người tranh 1 việc, rút đơn, đơn treo vì tin bị đóng). Chạy thử từng nhân vật qua `/jobs` + `POST /score` lộ ra:
+  - **`semantic` gần như không ảnh hưởng thứ hạng**: việc khớp rõ vẫn chỉ được 0.02–0.20 (Lan "dọn dẹp, rửa bát, giặt ủi" vs "Dọn nhà sáng thứ 7" = 0.07), nên xếp hạng thực tế ≈ geo + time — "Phụ bếp tiệc cưới" đứng trên "Dọn nhà" chỉ vì gần hơn. Nguyên nhân: mô tả văn nói nhiều từ đệm ("em", "được", "với", "ạ") + bigram làm loãng vector.
+  - **Gõ không dấu → `semantic = 0` với mọi job** ("don nha, khuan do" không khớp "dọn nhà").
+  - **Tài khoản chưa khai lịch rảnh → `time_feasibility = 0` mọi job**, gợi ý chỉ còn theo khoảng cách — UI tuần 5 cần nhắc khai lịch rảnh.
+  - **Tin quá hạn vẫn hiện khi tìm không chọn khung giờ** (`GET /jobs` chỉ lọc thời gian khi có `start`) → vẫn ứng tuyển được vào việc đã qua.
+  - Rate limit đăng nhập 5 lần/phút **theo IP**: nhiều người dùng chung wifi (ký túc xá, quán cafe) đăng nhập cùng lúc sẽ bị chặn nhau.
+
 ## Chưa làm / giới hạn đã biết
 - Backend chưa gọi AI service, chưa có `GET /recommendations` + fallback, chưa có UI gợi ý — đúng kế hoạch Tuần 5.
 - `ai-service` chưa có trên Render — thêm vào `render.yaml` ở Tuần 5 (tạo service mới trên Render là bước thủ công của người thực hiện, cần chụp màn hình).

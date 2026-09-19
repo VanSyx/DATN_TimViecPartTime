@@ -21,6 +21,7 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 docker compose up -d                          # db (postgis) + backend :8000 + ai-service :8001 (/health, /docs)
 cd backend && .venv/Scripts/python -m pytest  # test backend (cần db đang chạy)
 cd ai-service && .venv/Scripts/python -m pytest  # unit test AI scoring (không cần db)
+docker compose exec backend python seed.py    # dữ liệu mẫu kiểu người dùng thật (19 tài khoản, mật khẩu matkhau123), chạy lại được
 cd frontend && npm run dev                    # frontend → http://localhost:5173
 cd frontend && npm run build                  # build production
 ```

@@ -20,11 +20,19 @@ def haversine_km(lat1: float, lng1: float, lat2: float, lng2: float) -> float:
     return 2 * EARTH_RADIUS_KM * math.asin(math.sqrt(a))
 
 
+def _unaccent(text: str) -> str:
+    text = unicodedata.normalize("NFD", text.replace("đ", "d").replace("Đ", "D"))
+    return "".join(c for c in text if unicodedata.category(c) != "Mn")
+
+
 def _terms(text: str) -> list[str]:
     # NFC: cùng chữ có dấu nhưng khác cách mã hoá (tổ hợp/dựng sẵn) phải ra cùng token.
     # Thêm bigram âm tiết vì từ tiếng Việt thường gồm 2 âm tiết ("dọn dẹp", "trông trẻ").
     syllables = re.findall(r"\w+", unicodedata.normalize("NFC", text).lower())
-    return syllables + [f"{a} {b}" for a, b in zip(syllables, syllables[1:])]
+    terms = syllables + [f"{a} {b}" for a, b in zip(syllables, syllables[1:])]
+    # Thêm bản không dấu để người gõ "don nha" vẫn khớp tin "dọn nhà".
+    # ponytail: gộp nhầm vài từ khác nghĩa (chợ/chó → cho), hết khi lên embedding tuần 6
+    return terms + [_unaccent(t) for t in terms]
 
 
 def semantic_scores(query: str, docs: list[str]) -> list[float]:

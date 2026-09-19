@@ -86,6 +86,11 @@ def test_semantic_empty_description_scores_zero():
     assert scoring.semantic_scores("", ["dọn nhà"]) == [0]
 
 
+def test_semantic_matches_text_typed_without_accents():
+    scores = scoring.semantic_scores("don nha, giat do", ["Dọn nhà, giặt đồ", "Trông trẻ buổi tối"])
+    assert scores[0] > 0.3 and scores[1] == 0
+
+
 def test_semantic_ignores_unicode_composition():
     decomposed = unicodedata.normalize("NFD", "dọn dẹp")
     assert scoring.semantic_scores(decomposed, ["dọn dẹp", "trông trẻ"])[0] == pytest.approx(1)

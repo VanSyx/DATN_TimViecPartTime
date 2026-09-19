@@ -47,7 +47,7 @@ Branch: `feat/week4-ai` (tách từ `feat/week3-jobs`). Ảnh minh chứng: `doc
 - **Dữ liệu mẫu kiểu người dùng thật** (`backend/seed.py`, theo yêu cầu người thực hiện): 9 người tìm việc + 10 chủ nhà/cơ sở với hoàn cảnh riêng (sinh viên, tài xế chỉ rảnh sáng sớm, cô nghỉ hưu chỉ nhận việc gần, dân văn phòng rảnh tối, người gõ không dấu, người cần việc gấp viết lan man, tài khoản mới chưa điền gì), 14 tin viết văn nói (có tin đã đóng, tin quá hạn chủ quên đóng, tin xa ~12 km), 12 đơn đủ trạng thái (2 người tranh 1 việc, rút đơn, đơn treo vì tin bị đóng). Chạy thử từng nhân vật qua `/jobs` + `POST /score` lộ ra:
   - **`semantic` gần như không ảnh hưởng thứ hạng**: việc khớp rõ vẫn chỉ được 0.02–0.20 (Lan "dọn dẹp, rửa bát, giặt ủi" vs "Dọn nhà sáng thứ 7" = 0.07), nên xếp hạng thực tế ≈ geo + time — "Phụ bếp tiệc cưới" đứng trên "Dọn nhà" chỉ vì gần hơn.
   - **Gõ không dấu → `semantic = 0` với mọi job** ("don nha, khuan do" không khớp "dọn nhà").
-  - **Thí nghiệm cách tách từ** (chưa áp dụng, chờ người thực hiện quyết định): đo trên 8 nhân vật × 13 tin còn mở, "việc đúng người" gán tay, chỉ số P@3 = tỉ lệ việc đúng trong 3 việc có `semantic` cao nhất:
+  - **Thí nghiệm cách tách từ** — người thực hiện đã duyệt, **đã áp dụng phương án "giữ có dấu + thêm bản không dấu"** (`_terms` trong `ai-service/app/scoring.py`, thêm 1 test, ai-service 21/21): đo trên 8 nhân vật × 13 tin còn mở, "việc đúng người" gán tay, chỉ số P@3 = tỉ lệ việc đúng trong 3 việc có `semantic` cao nhất:
 
     | Cách tách từ | P@3 | TB `semantic` việc đúng / sai | Người gõ không dấu (top 3) |
     |---|---|---|---|

@@ -45,10 +45,20 @@ Branch: `feat/week4-ai` (tách từ `feat/week3-jobs`). Ảnh minh chứng: `doc
 - `source: "ai" | "fallback"` chuyển sang cho backend gắn (sequence diagram mục 6 đã sửa), vì chỉ backend biết mình có đang chạy fallback hay không.
 
 - **Dữ liệu mẫu kiểu người dùng thật** (`backend/seed.py`, theo yêu cầu người thực hiện): 9 người tìm việc + 10 chủ nhà/cơ sở với hoàn cảnh riêng (sinh viên, tài xế chỉ rảnh sáng sớm, cô nghỉ hưu chỉ nhận việc gần, dân văn phòng rảnh tối, người gõ không dấu, người cần việc gấp viết lan man, tài khoản mới chưa điền gì), 14 tin viết văn nói (có tin đã đóng, tin quá hạn chủ quên đóng, tin xa ~12 km), 12 đơn đủ trạng thái (2 người tranh 1 việc, rút đơn, đơn treo vì tin bị đóng). Chạy thử từng nhân vật qua `/jobs` + `POST /score` lộ ra:
-  - **`semantic` gần như không ảnh hưởng thứ hạng**: việc khớp rõ vẫn chỉ được 0.02–0.20 (Lan "dọn dẹp, rửa bát, giặt ủi" vs "Dọn nhà sáng thứ 7" = 0.07), nên xếp hạng thực tế ≈ geo + time — "Phụ bếp tiệc cưới" đứng trên "Dọn nhà" chỉ vì gần hơn. Nguyên nhân: mô tả văn nói nhiều từ đệm ("em", "được", "với", "ạ") + bigram làm loãng vector.
+  - **`semantic` gần như không ảnh hưởng thứ hạng**: việc khớp rõ vẫn chỉ được 0.02–0.20 (Lan "dọn dẹp, rửa bát, giặt ủi" vs "Dọn nhà sáng thứ 7" = 0.07), nên xếp hạng thực tế ≈ geo + time — "Phụ bếp tiệc cưới" đứng trên "Dọn nhà" chỉ vì gần hơn.
   - **Gõ không dấu → `semantic = 0` với mọi job** ("don nha, khuan do" không khớp "dọn nhà").
-  - **Tài khoản chưa khai lịch rảnh → `time_feasibility = 0` mọi job**, gợi ý chỉ còn theo khoảng cách — UI tuần 5 cần nhắc khai lịch rảnh.
-  - **Tin quá hạn vẫn hiện khi tìm không chọn khung giờ** (`GET /jobs` chỉ lọc thời gian khi có `start`) → vẫn ứng tuyển được vào việc đã qua.
+  - **Thí nghiệm cách tách từ** (chưa áp dụng, chờ người thực hiện quyết định): đo trên 8 nhân vật × 13 tin còn mở, "việc đúng người" gán tay, chỉ số P@3 = tỉ lệ việc đúng trong 3 việc có `semantic` cao nhất:
+
+    | Cách tách từ | P@3 | TB `semantic` việc đúng / sai | Người gõ không dấu (top 3) |
+    |---|---|---|---|
+    | Hiện tại | 0.71 | 0.099 / 0.024 | 1/3 đúng |
+    | Bỏ từ đệm | 0.62 | 0.110 / 0.026 | 0/3 đúng |
+    | Bỏ dấu hoàn toàn | 0.79 | 0.114 / 0.035 | 3/3 đúng |
+    | **Giữ có dấu + thêm bản không dấu** | **0.79** | 0.104 / 0.031 | **3/3 đúng** |
+
+    Kết luận: **bỏ từ đệm làm kết quả tệ đi** (giả thuyết ban đầu "từ đệm làm loãng vector" là sai — loại). Thêm bản không dấu sửa được người gõ không dấu và tăng P@3, đổi lại gộp ~40 cặp từ khác nghĩa trong dữ liệu seed (trông/trong, chợ/chó/cho, cuối/cưới, dọn/đơn, bé/bê) — giữ song song bản có dấu thì đỡ nhiễu hơn bỏ dấu hoàn toàn. **Không cách nào nâng được độ lớn `semantic`** (vẫn ~0.1): nguyên nhân thật là TF-IDF chỉ khớp đúng chữ ("tổng vệ sinh" ≠ "dọn dẹp"), đúng giới hạn mà bản embedding tuần 6 sẽ giải quyết.
+  - **Tài khoản chưa khai lịch rảnh → `time_feasibility = 0` mọi job**, gợi ý chỉ còn theo khoảng cách → **đưa vào Tuần 5**: trang "Gợi ý cho tôi" nhắc khai mô tả + lịch rảnh khi còn trống.
+  - **Tin quá hạn vẫn hiện khi tìm không chọn khung giờ** → **đã sửa**: `GET /jobs` luôn ẩn tin có `time_end` đã qua (chủ nhà vẫn thấy trong "Tin của tôi"), `POST /applications` chặn ứng tuyển tin đã kết thúc (400). Thêm 2 test, backend 40/40.
   - Rate limit đăng nhập 5 lần/phút **theo IP**: nhiều người dùng chung wifi (ký túc xá, quán cafe) đăng nhập cùng lúc sẽ bị chặn nhau.
 
 ## Chưa làm / giới hạn đã biết
@@ -60,4 +70,4 @@ Branch: `feat/week4-ai` (tách từ `feat/week3-jobs`). Ảnh minh chứng: `doc
 - PR `feat/week3-jobs` → `main` (commit `f9c9964`, `944b418`) cần người thực hiện mở và merge (máy chưa cài `gh`).
 
 ## Tiếp theo: Tuần 5 — Tích hợp AI, chốt mốc 70%
-Backend `GET /recommendations` gọi `POST /score` (timeout ngắn + fallback theo geo), UI "Gợi ý cho tôi" hiển thị breakdown, regression test luồng chính, thêm `ai-service` vào Render và deploy bản 70%.
+Backend `GET /recommendations` gọi `POST /score` (timeout ngắn + fallback theo geo), UI "Gợi ý cho tôi" hiển thị breakdown (nhắc khai mô tả/lịch rảnh nếu còn trống), regression test luồng chính, thêm `ai-service` vào Render và deploy bản 70%.

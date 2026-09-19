@@ -6,7 +6,7 @@ PostgreSQL 15+. Extension bắt buộc: **PostGIS** (geo query), **pgvector** (s
 
 | Entity | Nội dung | Cần từ |
 |---|---|---|
-| `users` | role (`job_seeker` / `employer` / `admin`), thông tin xác minh (SĐT/email) | Tuần 1-5 |
+| `users` | role (`job_seeker` / `employer` / `admin`), thông tin xác minh (SĐT/email), `description` (mô tả tự do của job seeker — đầu vào `semantic_score`) | Tuần 1-5 |
 | `jobs` | địa chỉ (`street`/`ward`/`city`, hiển thị) + toạ độ chọn trên bản đồ (`lat`/`lng`, cột `location` geography sinh tự động), khung giờ cần, lương, mô tả tự do, vector embedding, `employer_id` | Tuần 1-5 (cột embedding chỉ dùng từ tuần 6+) |
 | `availability_intervals` | lịch rảnh dạng interval thời gian thực của job seeker — **không phải ca cố định (sáng/chiều/tối)** | Tuần 1-5 |
 | `applications` | trạng thái đơn ứng tuyển, liên kết user–job | Tuần 1-5 |

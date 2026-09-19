@@ -100,7 +100,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - **Khả năng kiểm thử:** Có unit/integration test cho các luồng chính (auth, job CRUD, AI scoring)
 
 ## 3.3 Business Rules
-- `final_score = w1×semantic_score + w2×time_feasibility_score + w3×geo_score + w4×trust_modifier`, tất cả thành phần chuẩn hóa [0,1] (min-max) trước khi nhân trọng số
+- `final_score = w1×semantic_score + w2×time_feasibility_score + w3×geo_score + w4×trust_modifier`, tất cả thành phần chuẩn hóa [0,1] (min-max với cận cố định, không theo từng lô job) trước khi nhân trọng số — chi tiết từng thành phần: `.claude/docs/ai_scoring.md`
 - Giai đoạn 1 (mốc 70%, tuần 5): `semantic_score` dùng TF-IDF + cosine similarity; Giai đoạn 2 (tuần 6+): nâng cấp embedding (`sentence-transformers`) + pgvector
 - `trust_modifier` mặc định trung lập (1.0) khi chưa có dữ liệu rating
 - Không triển khai Collaborative Filtering
@@ -193,7 +193,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | 1 | Setup AI service riêng (FastAPI), định nghĩa contract API với backend chính |
 | 2 | Cài `semantic_score`: TF-IDF + cosine similarity trên mô tả job/nhu cầu |
 | 3 | Cài `time_feasibility_score`: interval overlap + trừ thời gian di chuyển (Haversine) |
-| 4 | Cài `geo_score` (chuẩn hóa khoảng cách PostGIS) + `trust_modifier` (mặc định 1.0) |
+| 4 | Cài `geo_score` (chuẩn hóa khoảng cách — cài đặt dùng Haversine, PostGIS giữ vai trò lọc trước ở backend) + `trust_modifier` (mặc định 1.0) |
 | 5 | Ghép công thức `final_score`, trả breakdown; viết unit test cho từng hàm tính điểm |
 
 **Deliverable:** AI service chạy độc lập, trả kết quả gợi ý kèm breakdown, có unit test cho interval overlap/Haversine/TF-IDF scoring.

@@ -46,6 +46,8 @@ class User(Base):
         DateTime(timezone=True), default=None
     )
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
+    # Mô tả tự do của job seeker (kỹ năng/nhu cầu) cho semantic_score; employer để trống
+    description: Mapped[str | None] = mapped_column(Text, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 

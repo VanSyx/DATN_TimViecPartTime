@@ -14,6 +14,7 @@ export type User = {
   role: Role
   email_verified: boolean
   phone_verified: boolean
+  description: string | null
 }
 
 type Tokens = { access_token: string; refresh_token: string }
@@ -125,6 +126,7 @@ export const api = {
   verify: (user_id: string, code: string) => post<User>('/auth/verify', { user_id, code }),
   login: (email: string, password: string) => post<Tokens>('/auth/login', { email, password }),
   me: () => request<User>('/auth/me'),
+  updateProfile: (description: string) => send<User>('PATCH', '/auth/me', { description }),
 
   searchJobs: (params: JobSearch) => {
     const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][])

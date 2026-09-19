@@ -162,14 +162,15 @@ sequenceDiagram
     participant DB as PostgreSQL
 
     U->>FE: Mở trang "Gợi ý cho tôi"
-    FE->>BE: GET /recommendations
-    BE->>DB: Lấy availability_intervals + location của user
+    FE->>BE: GET /recommendations?lat&lng&radius_km (vị trí hiện tại: GPS/ghim bản đồ)
+    BE->>DB: Lấy availability_intervals + description của user
     BE->>DB: Lấy danh sách jobs ứng viên (lọc geo/status=open trước)
-    BE->>AI: POST /score { user, jobs[] }
+    BE->>AI: POST /score { seeker, jobs[], radius_km }
 
     alt AI service phản hồi bình thường
         AI->>AI: Tính semantic + time_feasibility + geo + trust cho từng job
-        AI-->>BE: [{ job_id, final_score, breakdown, source: "ai" }]
+        AI-->>BE: [{ job_id, final_score, breakdown }]
+        Note over BE: gắn source: "ai"
     else AI service down / timeout
         BE->>BE: Fallback: xếp hạng theo geo_score + content-based cơ bản
         Note over BE: source: "fallback" — không giả vờ là kết quả AI đầy đủ

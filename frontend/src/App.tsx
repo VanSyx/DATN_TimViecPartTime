@@ -9,7 +9,7 @@ import { AvailabilityPage, EmployerJobsPage, MyApplicationsPage, SearchJobsPage 
 const pagesByRole: Record<Role, { path: string; label: string; element: ReactNode }[]> = {
   job_seeker: [
     { path: '/seeker', label: 'Tìm việc', element: <SearchJobsPage /> },
-    { path: '/seeker/availability', label: 'Lịch rảnh', element: <AvailabilityPage /> },
+    { path: '/seeker/availability', label: 'Hồ sơ & lịch rảnh', element: <AvailabilityPage /> },
     { path: '/seeker/applications', label: 'Đơn ứng tuyển', element: <MyApplicationsPage /> },
   ],
   employer: [{ path: '/employer', label: 'Tin đã đăng', element: <EmployerJobsPage /> }],

@@ -18,12 +18,13 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 
 ## 3. Dev Commands
 ```
-docker compose up -d                          # db (postgis) + backend → http://localhost:8000/health
+docker compose up -d                          # db (postgis) + backend :8000 + ai-service :8001 (/health, /docs)
 cd backend && .venv/Scripts/python -m pytest  # test backend (cần db đang chạy)
+cd ai-service && .venv/Scripts/python -m pytest  # unit test AI scoring (không cần db)
 cd frontend && npm run dev                    # frontend → http://localhost:5173
 cd frontend && npm run build                  # build production
 ```
-Lần đầu setup backend ngoài Docker: `cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt`
+Lần đầu setup ngoài Docker (lặp lại cho `ai-service/`): `cd backend && python -m venv .venv && .venv/Scripts/python -m pip install -r requirements.txt`
 
 **Migration (Alembic)** — chạy từ `backend/`, cần `DATABASE_URL` trỏ host port **5433**:
 ```
@@ -35,10 +36,10 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 
 **Lưu ý cổng DB:** máy dev đã có PostgreSQL cài sẵn chiếm 5432, nên compose map host port **5433** → `db:5432`. Nối từ host (alembic, psql, test) dùng 5433; service trong compose vẫn dùng `db:5432`.
 
-**Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chỉ chứa db + backend. `ai-service` chưa scaffold, sẽ thêm ở Tuần 4.
+**Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chứa db + backend + ai-service. `ai-service` chưa có trên Render — thêm vào `render.yaml` ở Tuần 5 khi backend bắt đầu gọi nó.
 
 ## 4. Core Logic Summary
-Điểm gợi ý job = tổ hợp có trọng số của 4 thành phần: `semantic_score` (khớp mô tả), `time_feasibility_score` (chồng lấp lịch rảnh, trừ thời gian di chuyển), `geo_score` (khoảng cách), `trust_modifier` (rating). Chi tiết công thức, business rules, lộ trình nâng cấp: **`.claude/docs/ai_scoring.md`**.
+Điểm gợi ý job = tổ hợp có trọng số của 4 thành phần: `semantic_score` (khớp mô tả), `time_feasibility_score` (chồng lấp lịch rảnh, trừ thời gian di chuyển), `geo_score` (khoảng cách), `trust_modifier` (rating). Cài đặt ở `ai-service/app/scoring.py` (TF-IDF tự cài, không dùng thư viện ML — tuần 6 mới thêm `sentence-transformers`). Chi tiết công thức, business rules, lộ trình nâng cấp: **`.claude/docs/ai_scoring.md`**.
 
 ## 5. Key Constraints
 - **Không code tính năng ngoài Scope đã chốt** (`docs/PROJECT_PLAN.md` mục 2) mà không xác nhận trước với người thực hiện.

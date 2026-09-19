@@ -121,6 +121,16 @@ def test_availability_rejects_reversed_range(client, seeker):
     assert client.post("/availability", json=body, headers=seeker).status_code == 422
 
 
+def test_seeker_sets_free_text_description(client, seeker):
+    r = client.patch("/auth/me", json={"description": "Dọn dẹp, nấu ăn"}, headers=seeker)
+    assert r.status_code == 200
+    assert client.get("/auth/me", headers=seeker).json()["description"] == "Dọn dẹp, nấu ăn"
+
+
+def test_employer_cannot_set_seeker_description(client, employer):
+    assert client.patch("/auth/me", json={"description": "x"}, headers=employer).status_code == 403
+
+
 def test_employer_cannot_declare_availability(client, employer):
     assert client.get("/availability", headers=employer).status_code == 403
 

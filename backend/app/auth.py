@@ -64,8 +64,13 @@ class UserOut(BaseModel):
     role: Role
     email_verified: bool
     phone_verified: bool
+    description: str | None
 
     model_config = {"from_attributes": True}
+
+
+class ProfileIn(BaseModel):
+    description: str = Field(max_length=2000)
 
 
 class TokenOut(BaseModel):
@@ -185,4 +190,15 @@ def refresh(body: RefreshIn, db: Session = Depends(get_db)):
 
 @router.get("/me", response_model=UserOut)
 def me(user: User = Depends(get_current_user)):
+    return user
+
+
+@router.patch("/me", response_model=UserOut)
+def update_profile(
+    body: ProfileIn, user: User = Depends(require_role(Role.JOB_SEEKER)), db: Session = Depends(get_db)
+):
+    """Mô tả tự do của job seeker — đầu vào của semantic_score."""
+    user.description = body.description
+    db.commit()
+    db.refresh(user)
     return user

@@ -213,6 +213,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 ## 5.2 Tóm tắt tuần 6-12 (ngoài phạm vi chi tiết của tài liệu này)
 - Nhịp độ đề xuất mỗi tuần: xen kẽ ngày code / ngày viết báo cáo (ví dụ 3 ngày code – 3 ngày report), không dồn báo cáo về cuối
 - **Code song song:** hoàn thiện 30% chức năng còn lại (FR6-FR10), nâng cấp `semantic_score` sang embedding + pgvector (khóa thiết kế sau tuần 6), security hardening, fix bug phát sinh
+- **Thiết kế lại UI (TailwindCSS), tuần 6-7, song song với AI**: brief `docs/design/ui-redesign-brief.md` → mockup → code lại frontend (chỉ thay giao diện, backend không đổi). Việc AI (đánh giá offline + embedding) vẫn ưu tiên trước vì thiết kế AI khoá sau tuần 6
 - **Report:** viết các chương báo cáo theo template của trường (cần bổ sung khi có template cụ thể — xem mục 10)
 - **Testing:** không ưu tiên pilot test người dùng thật quy mô lớn do giới hạn thời gian — xem chi tiết mục 7
 - Tuần 11-12: sửa theo góp ý GVHD, hoàn thiện nộp

@@ -8,7 +8,7 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 ## 2. Tech Stack
 | Thành phần | Công nghệ |
 |---|---|
-| Frontend | React (Vite) + TailwindCSS |
+| Frontend | React (Vite) + TailwindCSS — **Tailwind chưa cài**, UI hiện dùng CSS thuần (`frontend/src/index.css`); cài ở đợt thiết kế lại UI tuần 6-7 theo `docs/design/ui-redesign-brief.md` |
 | Backend chính | Python FastAPI |
 | AI Service | Python FastAPI (microservice riêng, tách khỏi backend chính) |
 | Database | PostgreSQL 15+ + PostGIS + pgvector |

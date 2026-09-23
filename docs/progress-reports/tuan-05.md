@@ -9,9 +9,9 @@ Branch: `feat/week5-integration` (tách từ `main` sau khi merge PR #12 Tuần 
 | 1-2 | Backend gọi AI service, có fallback khi AI service down | ✅ Đạt: `GET /recommendations`, fallback theo khoảng cách |
 | 3 | Frontend: danh sách gợi ý + breakdown điểm (explainable UI) | ✅ Đạt: trang "Gợi ý cho tôi" |
 | 4 | Regression test toàn bộ luồng chính, fix bug | ✅ Đạt: 8 bước chạy trên UI thật, không phát sinh bug |
-| 5 | Deploy bản 70% lên production, smoke test, rà DoD mốc tuần 5 | 🟡 Đã khai `timviec-ai` trong `render.yaml`. **Chờ người thực hiện** merge PR, tạo service trên Render và điền `AI_SERVICE_URL` (xem mục "Người thực hiện cần làm") |
+| 5 | Deploy bản 70% lên production, smoke test, rà DoD mốc tuần 5 | ⏸ **Hoãn deploy theo quyết định người thực hiện (2026-09-24)**. Đã khai `timviec-ai` trong `render.yaml`, các bước còn lại để sẵn ở mục "Khi deploy" |
 
-**Deliverable "luồng chính end-to-end, AI gợi ý có breakdown, test xanh": đạt ở local. Phần "trên production" chờ bước deploy.**
+**Deliverable "luồng chính end-to-end, AI gợi ý có breakdown, test xanh": đạt ở local. Phần "trên production" hoãn lại.**
 
 ## Chi tiết đã làm
 
@@ -77,10 +77,10 @@ Branch: `feat/week5-integration` (tách từ `main` sau khi merge PR #12 Tuần 
 | Rate limit + bcrypt | ✅ |
 | Fallback khi AI down | ✅ |
 | Test xanh luồng chính | ✅ backend 44, ai-service 21, regression UI 8 bước |
-| CI/CD xanh + deploy + smoke test | 🟡 Chờ merge PR + tạo `timviec-ai` trên Render |
+| CI/CD xanh + deploy + smoke test | ⏸ Hoãn: CI/test xanh; chưa merge PR, chưa tạo `timviec-ai` trên Render |
 | Xác nhận GVHD phạm vi 70% | ✅ |
 
-## Người thực hiện cần làm (bước deploy, agent không tự làm)
+## Khi deploy (đang hoãn, người thực hiện làm tay, agent không tự làm)
 
 1. Mở PR `feat/week5-integration` → `main`, chờ CI xanh rồi merge.
 2. Render dashboard → Blueprint → **Sync** để tạo `timviec-ai` từ `render.yaml`. Chờ `https://timviec-ai.onrender.com/health` trả `{"status":"ok"}`.
@@ -91,13 +91,15 @@ Branch: `feat/week5-integration` (tách từ `main` sau khi merge PR #12 Tuần 
 
 ## Chưa làm / rủi ro
 
-- Production vẫn chạy bản Tuần 4 cho tới khi xong mục trên.
+- Production vẫn chạy bản Tuần 4 cho tới khi deploy.
 - **Service free ngủ sau 15 phút**: lần gọi đầu tới `timviec-ai` có thể vượt 5s và rơi vào fallback. Đây là hành vi đúng. Trước khi demo, mở `/health` của `timviec-ai` để đánh thức.
 - Render free có **750 giờ chạy/tháng dùng chung cho cả workspace**. 2 web service mà cùng thức 24/7 thì sẽ vượt, nhưng dùng cho demo thì service ngủ phần lớn thời gian nên không sao.
 - `semantic` vẫn thấp với mô tả dùng từ khác nhau (giới hạn của TF-IDF), trọng số vẫn chọn tay. **Cần đánh giá offline (P@k, NDCG@k) trước khi khoá thiết kế AI ở tuần 6.**
 - Regression UI chưa có trong CI (cần Vite + docker + trình duyệt). Chạy lại bằng tay trước mỗi lần deploy lớn.
 
 ## Tiếp theo: Tuần 6
+
+0. **Thiết kế lại giao diện** (quyết định 2026-09-24, song song tuần 6-7): brief `docs/design/ui-redesign-brief.md` → mockup (agent khác, lưu ở `docs/design/mockups/`) → duyệt → code lại frontend bằng Tailwind. Rà soát UI hiện tại cho thấy Tailwind có trong stack đã chốt nhưng **chưa được cài**; breakdown AI hiện dạng % khó hiểu (vd "Khớp mô tả 4%"); lịch rảnh nhập bằng `datetime-local`, khó dùng trên điện thoại.
 
 1. Đánh giá offline trên dữ liệu `seed.py` (P@k, NDCG@k so với baseline sắp theo khoảng cách), rồi chốt trọng số.
 2. Embedding (`sentence-transformers`) + pgvector. Kiểm tra RAM của Render free trước khi chọn model. **Khoá thiết kế AI sau tuần 6.**

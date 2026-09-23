@@ -304,7 +304,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Database (`timviec-db`) | quản lý qua Render dashboard, connection string inject vào `DATABASE_URL` của backend | Tạo cùng lúc backend qua Blueprint |
 
 **Việc còn lại trước khi dùng thật ở Tuần 2 (không chặn M1):**
-- [ ] Xác nhận `CORS_ORIGINS` trên `timviec-backend` đã trỏ đúng `https://datn-timviecparttime.onrender.com` (backend hiện chưa có middleware CORS — thêm khi làm auth ở Tuần 2, lúc đó điền biến này mới có tác dụng)
+- [x] Xác nhận `CORS_ORIGINS` trên `timviec-backend` đã trỏ đúng `https://datn-timviecparttime.onrender.com` — middleware CORS có từ Tuần 2; kiểm tra 2026-09-23: preflight từ frontend production trả `access-control-allow-origin: https://datn-timviecparttime.onrender.com`
 - [ ] Ghi lại ngày tạo `timviec-db` để theo dõi mốc hết hạn free tier 90 ngày (mục 8 — Risk)
 
 <details>
@@ -324,10 +324,10 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Tài liệu | Trạng thái / Ghi chú |
 |---|---|
 | `PROJECT_PLAN.md` (tài liệu này) | Nguồn tham chiếu chính cho giai đoạn 5 tuần đầu |
-| `docs/de-cuong.md` | Mô tả chi tiết đề tài, gửi GVHD duyệt tuần 1 — cần tạo |
+| `docs/de-cuong.md` | Mô tả chi tiết đề tài, gửi GVHD duyệt tuần 1 — chưa tạo (phạm vi 70% đã được GVHD xác nhận trực tiếp; nội dung lấy từ mục 1-2 tài liệu này) |
 | `docs/design/erd.md`, `docs/design/use-case.md`, `docs/design/sequence-diagram.md` | Thiết kế hệ thống (Mermaid, render sẵn trên GitHub) — ✅ đã tạo |
 | API spec (OpenAPI/Swagger) | Hoàn thành khung tuần 1, cập nhật liên tục khi có thay đổi endpoint |
-| `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — cần tạo |
+| `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — ✅ đã tạo, cập nhật theo từng tuần |
 | Báo cáo tốt nghiệp (các chương) | **Cần template của trường:** người thực hiện xác nhận trường có template riêng nhưng chưa cung cấp chi tiết. Khi có, bổ sung cấu trúc chương cụ thể vào đây trước khi bắt đầu viết ở tuần 6. Tạm thời áp dụng cấu trúc phổ biến (Mở đầu, Cơ sở lý thuyết, Phân tích thiết kế, Cài đặt, Kiểm thử & đánh giá, Kết luận) làm khung nháp nếu cần viết sớm |
 
 ---

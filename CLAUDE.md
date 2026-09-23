@@ -72,4 +72,4 @@ Cập nhật CLAUDE.md ngay khi có bất kỳ thay đổi nào trong số sau �
 - Thêm/bớt entity database chính
 - Đổi công thức hoặc thành phần AI scoring
 - Chuyển giai đoạn milestone (vd: qua mốc tuần 5, khóa thiết kế AI ở tuần 6)
-- Dev Commands có lệnh thật sau khi scaffold xong Tuần 1
+- Thêm/đổi lệnh chạy, test, migration, seed (mục 3)

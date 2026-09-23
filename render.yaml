@@ -20,6 +20,16 @@ services:
       - key: CORS_ORIGINS
         sync: false
 
+  # Backend gọi qua URL public (AI_SERVICE_URL=https://timviec-ai.onrender.com): service free
+  # không nhận được request qua private network của Render. Không cần secret/biến môi trường.
+  - type: web
+    name: timviec-ai
+    runtime: docker
+    dockerfilePath: ./ai-service/Dockerfile
+    dockerContext: ./ai-service
+    plan: free
+    healthCheckPath: /health
+
 databases:
   # ponytail: free Postgres bị Render xóa sau 90 ngày — ~tuần 13 kể từ lúc tạo.
   # Sát mốc nộp báo cáo tuần 12. Theo dõi ngày tạo, nâng lên plan trả phí ($7/mo)

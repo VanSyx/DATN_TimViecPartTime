@@ -94,7 +94,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 ## 3.2 Non-functional Requirements
 - **Hiệu năng:** Model embedding/TF-IDF chạy local, không phụ thuộc API ngoài — tránh độ trễ mạng và chi phí khi demo
 - **Bảo mật:** JWT + refresh token, hashing password (bcrypt/argon2), RBAC enforce ở backend (không chỉ ẩn/hiện UI), rate limiting cho endpoint nhạy cảm
-- **Độ tin cậy:** Có cơ chế fallback nếu AI service down (chỉ dùng geo/content-based nếu AI service không phản hồi)
+- **Độ tin cậy:** Có cơ chế fallback nếu AI service down (xếp theo khoảng cách nếu AI service không phản hồi, timeout 5s — đã làm Tuần 5)
 - **Khả năng vận hành:** Logging/error tracking trên production (Sentry hoặc structured log tối thiểu)
 - **Khả năng giải thích:** Mọi kết quả gợi ý AI phải hiển thị lý do (explainable AI), không phải hộp đen
 - **Khả năng kiểm thử:** Có unit/integration test cho các luồng chính (auth, job CRUD, AI scoring)
@@ -202,7 +202,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 ### Tuần 5 — Tích hợp AI vào luồng chính, chốt mốc 70%
 | Ngày | Công việc |
 |---|---|
-| 1-2 | Backend gọi AI service, có fallback (dùng geo/content-based cơ bản nếu AI service down) |
+| 1-2 | Backend gọi AI service, có fallback (xếp theo khoảng cách nếu AI service down) |
 | 3 | Frontend: hiển thị danh sách gợi ý + breakdown điểm (explainable UI) |
 | 4 | Regression test toàn bộ luồng chính (auth → đăng tin → tìm việc → gợi ý AI → ứng tuyển), fix bug |
 | 5 | Deploy bản 70% lên production, smoke test, rà soát lại Definition of Done mốc tuần 5 (mục 11.1) |
@@ -268,7 +268,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 |---|---|---|---|
 | AI service trễ tiến độ | Chỉ có 1 tuần (tuần 4) cho toàn bộ AI, khối lượng lớn cho 1 người | Trung bình (giảm nhờ scope đã rõ) | Dùng TF-IDF đơn giản; phạm vi đã chốt chỉ cần `semantic + time_feasibility + geo` (`trust_modifier` mặc định 1.0 sẵn), nên không còn phải "cắt" gì thêm nếu trễ — chỉ cần 3 thành phần đó đúng hạn |
 | Nhầm lẫn phạm vi "70% cơ bản" | GVHD và người thực hiện hiểu khác nhau về việc AI có tính vào 70% không | ✅ Đã xử lý (tuần 1) | Đã xác nhận với GVHD: có tính AI, nhưng chỉ bắt buộc `semantic + time_feasibility + geo`; `trust_modifier` mặc định 1.0 là đủ (mục 3.1 FR4) |
-| AI service down ảnh hưởng luồng chính | Phụ thuộc cứng giữa backend và AI service | Trung bình | Cơ chế fallback (dùng geo/content-based cơ bản) khi AI service không phản hồi |
+| AI service down ảnh hưởng luồng chính | Phụ thuộc cứng giữa backend và AI service | Trung bình | Cơ chế fallback xếp theo khoảng cách khi AI service không phản hồi (Tuần 5, `GET /recommendations`) |
 | Dữ liệu offline evaluation mang tính circular | Dữ liệu mô phỏng sinh ra từ chính công thức đang được đánh giá | Trung bình | Minh bạch trong báo cáo cách sinh dữ liệu mô phỏng (mục 7.1) |
 | Collaborative Filtering không chứng minh được hoạt động | Dữ liệu tương tác thưa, vòng đời job ngắn | Đã loại bỏ | Không triển khai CF; dùng semantic + time-feasibility thay thế |
 | Report bị code "ăn" hết thời gian ở tuần 6-12 | Không giữ kỷ luật chia thời gian code/report | Trung bình | Bám lịch xen kẽ ngày code/ngày report mỗi tuần (mục 5.2) |

@@ -172,11 +172,11 @@ sequenceDiagram
         AI-->>BE: [{ job_id, final_score, breakdown }]
         Note over BE: gắn source: "ai"
     else AI service down / timeout
-        BE->>BE: Fallback: xếp hạng theo geo_score + content-based cơ bản
+        BE->>BE: Fallback: xếp theo khoảng cách (final_score = 1 − d/R), breakdown = null
         Note over BE: source: "fallback" — không giả vờ là kết quả AI đầy đủ
     end
 
-    BE-->>FE: Danh sách job đã xếp hạng + breakdown
+    BE-->>FE: { source, items: [{ job, final_score, breakdown | null, travel_minutes }] }
     FE-->>U: Hiển thị list + lý do gợi ý (explainable AI)
 ```
 

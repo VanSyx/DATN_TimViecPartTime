@@ -14,6 +14,9 @@ DATABASE_URL = _normalize_db_url(os.environ["DATABASE_URL"])
 JWT_SECRET = os.environ["JWT_SECRET"]
 JWT_REFRESH_SECRET = os.environ["JWT_REFRESH_SECRET"]
 CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5173").split(",") if o.strip()]
+AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8001")
+# Render free ngủ sau 15 phút, lần gọi đầu có thể quá 5s → rơi vào fallback, đó là hành vi đúng
+AI_TIMEOUT_SECONDS = 5
 
 ACCESS_TOKEN_MINUTES = 15
 REFRESH_TOKEN_DAYS = 7

@@ -205,3 +205,57 @@ def test_cannot_apply_to_expired_job(client, employer, seeker):
     job = create_job(client, employer, **PAST)
     res = apply(client, seeker, job)
     assert res.status_code == 400 and "kết thúc" in res.json()["detail"]
+
+
+# ---------- Gợi ý AI ----------
+
+# Cần Thơ: seed.py không có job ở đây nên DB dev không lẫn vào kết quả
+CAN_THO = {"street": "1 Hai Bà Trưng", "ward": "Phường Ninh Kiều", "city": "Cần Thơ", "lat": 10.0452, "lng": 105.7469}
+CAN_THO_3KM = {**CAN_THO, "street": "30 Trần Hưng Đạo", "lat": 10.0300, "lng": 105.7700}
+AT_CAN_THO = {"lat": CAN_THO["lat"], "lng": CAN_THO["lng"], "radius_km": 10}
+
+
+def test_recommendations_fallback_by_distance_when_ai_down(client, employer, seeker, monkeypatch):
+    monkeypatch.setattr("app.config.AI_SERVICE_URL", "http://127.0.0.1:9")  # cổng không có ai nghe
+    far = create_job(client, employer, loc=CAN_THO_3KM)
+    near = create_job(client, employer, loc=CAN_THO)
+
+    body = client.get("/recommendations", params=AT_CAN_THO, headers=seeker).json()
+    assert body["source"] == "fallback"
+    assert [i["job"]["id"] for i in body["items"]] == [near["id"], far["id"]]
+    assert body["items"][0]["final_score"] == 1 and body["items"][0]["breakdown"] is None
+
+
+def test_recommendations_use_ai_order_and_breakdown(client, employer, seeker, monkeypatch):
+    client.patch("/auth/me", json={"description": "Dọn nhà"}, headers=seeker)
+    client.post("/availability", json={"start_time": "2030-01-01T07:00:00+07:00", "end_time": "2030-01-01T13:00:00+07:00"}, headers=seeker)
+    near = create_job(client, employer, loc=CAN_THO)
+    far = create_job(client, employer, loc=CAN_THO_3KM)
+
+    sent = {}
+    def fake_ai(payload):
+        sent.update(payload)
+        # AI xếp job xa lên đầu (vd. khớp mô tả hơn) — backend phải giữ thứ tự này, không sắp lại theo khoảng cách
+        return [
+            {"job_id": far["id"], "final_score": 0.9, "breakdown": {"semantic": 1, "time_feasibility": 1, "geo": 0.7, "trust": 1}, "distance_km": 3, "travel_minutes": 9},
+            {"job_id": near["id"], "final_score": 0.5, "breakdown": {"semantic": 0, "time_feasibility": 1, "geo": 1, "trust": 1}, "distance_km": 0, "travel_minutes": 0},
+        ]
+    monkeypatch.setattr("app.jobs.score_jobs", fake_ai)
+
+    body = client.get("/recommendations", params=AT_CAN_THO, headers=seeker).json()
+    assert body["source"] == "ai"
+    assert [i["job"]["id"] for i in body["items"]] == [far["id"], near["id"]]
+    assert body["items"][0]["breakdown"]["semantic"] == 1 and body["items"][0]["travel_minutes"] == 9
+    assert sent["seeker"]["description"] == "Dọn nhà" and len(sent["seeker"]["availability"]) == 1
+    assert {j["id"] for j in sent["jobs"]} == {near["id"], far["id"]}
+
+
+def test_recommendations_empty_area_skips_ai(client, seeker, monkeypatch):
+    monkeypatch.setattr("app.jobs.score_jobs", lambda payload: pytest.fail("không có job thì không gọi AI"))
+    body = client.get("/recommendations", params={"lat": 5.0, "lng": 110.0}, headers=seeker).json()  # giữa Biển Đông
+    assert body == {"source": "ai", "items": []}
+
+
+def test_recommendations_job_seeker_only(client, employer):
+    assert client.get("/recommendations", params=AT_CAN_THO, headers=employer).status_code == 403
+    assert client.get("/recommendations", params=AT_CAN_THO).status_code in (401, 403)

@@ -88,3 +88,7 @@ button { background: var(--accent); color: #fff; border: none; cursor: pointer; 
 button:disabled { opacity: 0.6; cursor: default; }
 a { color: var(--accent); }
 .error { color: var(--error); }
+.scores { display: flex; flex-direction: column; gap: 4px; margin: 8px 0; }
+.score { display: grid; grid-template-columns: minmax(0, 1fr) 120px 3em; align-items: center; gap: 8px; font-size: 14px; }
+.score meter { width: 100%; }
+.score span:last-child { text-align: right; }

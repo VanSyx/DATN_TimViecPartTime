@@ -120,6 +120,17 @@ export type JobSearch = {
   end?: string
 }
 
+export type Breakdown = { semantic: number; time_feasibility: number; geo: number; trust: number }
+
+export type Recommendations = {
+  // fallback: AI không phản hồi, backend xếp theo khoảng cách, không có breakdown
+  source: 'ai' | 'fallback'
+  items: { job: Job; final_score: number; breakdown: Breakdown | null; travel_minutes: number | null }[]
+}
+
+const query = (params: JobSearch) =>
+  new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][])
+
 export const api = {
   register: (data: { email: string; password: string; role: Role; phone?: string }) =>
     post<User>('/auth/register', data),
@@ -128,10 +139,8 @@ export const api = {
   me: () => request<User>('/auth/me'),
   updateProfile: (description: string) => send<User>('PATCH', '/auth/me', { description }),
 
-  searchJobs: (params: JobSearch) => {
-    const qs = new URLSearchParams(Object.entries(params).filter(([, v]) => v) as [string, string][])
-    return request<Job[]>(`/jobs?${qs}`)
-  },
+  searchJobs: (params: JobSearch) => request<Job[]>(`/jobs?${query(params)}`),
+  recommendations: (params: JobSearch) => request<Recommendations>(`/recommendations?${query(params)}`),
   myJobs: () => request<Job[]>('/jobs/mine'),
   createJob: (data: JobInput) => post<Job>('/jobs', data),
   updateJob: (id: string, data: JobInput) => send<Job>('PUT', `/jobs/${id}`, data),

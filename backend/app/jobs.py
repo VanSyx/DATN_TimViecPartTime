@@ -1,17 +1,21 @@
+import logging
 import uuid
 from datetime import datetime, timezone
 from typing import Literal
 
+import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
 from pydantic import AwareDatetime, BaseModel, Field, model_validator
 from sqlalchemy import cast, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
+from app import config
 from app.auth import Role, require_role
 from app.db import get_db
 from app.models import Application, AvailabilityInterval, Geography, Job, User
 
+log = logging.getLogger(__name__)
 router = APIRouter()
 employer = require_role(Role.EMPLOYER)
 job_seeker = require_role(Role.JOB_SEEKER)
@@ -127,8 +131,7 @@ def search_jobs(
     if (lat is None) != (lng is None):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Cần truyền cả lat và lng")
 
-    # Chủ nhà hay quên đóng tin đã qua ngày làm — không cho người tìm việc thấy tin đã kết thúc
-    query = select(Job).where(Job.status == "open", Job.time_end > func.now())
+    query = open_jobs_query()
     # Khung giờ: giữ job có chồng lấp với [start, end] (docs/design/sequence-diagram.md mục 5)
     if start:
         query = query.where(Job.time_end > start)
@@ -136,9 +139,17 @@ def search_jobs(
         query = query.where(Job.time_start < end)
 
     if lat is None:
-        jobs = db.scalars(query.order_by(Job.created_at.desc()).limit(100)).all()
-        return jobs
+        return db.scalars(query.order_by(Job.created_at.desc()).limit(100)).all()
+    return nearby_jobs(db, query, lat, lng, radius_km)
 
+
+def open_jobs_query():
+    # Chủ nhà hay quên đóng tin đã qua ngày làm — không cho người tìm việc thấy tin đã kết thúc
+    return select(Job).where(Job.status == "open", Job.time_end > func.now())
+
+
+def nearby_jobs(db: Session, query, lat: float, lng: float, radius_km: float) -> list[Job]:
+    """Job trong bán kính, gần → xa, gắn sẵn distance_km. Dùng chung cho tìm việc và gợi ý AI."""
     point = cast(func.ST_SetSRID(func.ST_MakePoint(lng, lat), 4326), Geography())
     distance_km = func.ST_Distance(Job.location, point) / 1000
     rows = db.execute(
@@ -150,6 +161,98 @@ def search_jobs(
     for job, dist in rows:
         job.distance_km = round(dist, 2)
     return [job for job, _ in rows]
+
+
+# ---------- Gợi ý AI (FR4) ----------
+
+class RecommendationOut(BaseModel):
+    job: JobOut
+    final_score: float
+    # None khi fallback: không có AI thì không có gì để giải thích ngoài khoảng cách
+    breakdown: dict[str, float] | None
+    travel_minutes: float | None
+
+
+class RecommendationsOut(BaseModel):
+    source: Literal["ai", "fallback"]
+    items: list[RecommendationOut]
+
+
+def score_jobs(payload: dict) -> list[dict]:
+    """Gọi AI service (contract ở .claude/docs/architecture.md). Tách hàm riêng để test thay được."""
+    res = httpx.post(f"{config.AI_SERVICE_URL}/score", json=payload, timeout=config.AI_TIMEOUT_SECONDS)
+    res.raise_for_status()
+    return res.json()
+
+
+@router.get("/recommendations", response_model=RecommendationsOut, tags=["recommendations"])
+def recommendations(
+    lat: float = Query(ge=-90, le=90),
+    lng: float = Query(ge=-180, le=180),
+    radius_km: float = Query(10, gt=0, le=100),
+    user: User = Depends(job_seeker),
+    db: Session = Depends(get_db),
+):
+    """Job gần đây xếp hạng bởi AI kèm breakdown; AI không phản hồi thì xếp theo khoảng cách."""
+    jobs = nearby_jobs(db, open_jobs_query(), lat, lng, radius_km)
+    if not jobs:
+        return RecommendationsOut(source="ai", items=[])
+
+    # Khoảng rảnh đã qua không giúp gì cho job còn mở (job quá hạn đã bị lọc ở trên)
+    availability = db.scalars(
+        select(AvailabilityInterval).where(
+            AvailabilityInterval.job_seeker_id == user.id, AvailabilityInterval.end_time > func.now()
+        )
+    ).all()
+    payload = {
+        "seeker": {
+            "description": user.description or "",
+            "lat": lat,
+            "lng": lng,
+            "availability": [{"start": a.start_time.isoformat(), "end": a.end_time.isoformat()} for a in availability],
+        },
+        "jobs": [
+            {
+                "id": str(j.id),
+                "title": j.title,
+                "description": j.description,
+                "lat": j.lat,
+                "lng": j.lng,
+                "time": {"start": j.time_start.isoformat(), "end": j.time_end.isoformat()},
+            }
+            for j in jobs
+        ],
+        "radius_km": radius_km,
+    }
+    try:
+        scored = score_jobs(payload)
+    except (httpx.HTTPError, ValueError) as e:  # ValueError: AI trả body không phải JSON
+        log.warning("AI service không phản hồi, dùng fallback theo khoảng cách: %r", e)
+        return RecommendationsOut(
+            source="fallback",
+            items=[
+                RecommendationOut(
+                    # max: distance_km đã làm tròn 2 chữ số, có thể nhỉnh hơn radius một chút
+                    job=j, final_score=round(max(0.0, 1 - j.distance_km / radius_km), 4), breakdown=None,
+                    travel_minutes=None,
+                )
+                for j in jobs  # nearby_jobs đã sắp gần → xa
+            ],
+        )
+
+    by_id = {str(j.id): j for j in jobs}
+    return RecommendationsOut(
+        source="ai",
+        items=[
+            RecommendationOut(
+                job=by_id[s["job_id"]],
+                final_score=s["final_score"],
+                breakdown=s["breakdown"],
+                travel_minutes=s["travel_minutes"],
+            )
+            for s in scored  # giữ thứ tự AI trả (final_score giảm dần)
+        ],
+    )
 
 
 @router.get("/jobs/mine", response_model=list[JobOut], tags=["jobs"])

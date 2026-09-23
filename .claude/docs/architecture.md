@@ -31,8 +31,18 @@ POST /score
 ```
 Thời gian là ISO 8601 có timezone (thiếu timezone → 422). Tối đa 500 job/request. Nhãn `source: "ai" | "fallback"` do **backend** gắn (tuần 5), vì chỉ backend biết mình có phải chạy fallback hay không.
 
+## Endpoint gợi ý của backend (tuần 5, `backend/app/jobs.py`)
+```
+GET /recommendations?lat&lng&radius_km=10          (chỉ job_seeker)
+→ 200 { "source": "ai" | "fallback",
+        "items": [{ "job": JobOut (có distance_km), "final_score",
+                    "breakdown": {semantic, time_feasibility, geo, trust} | null,
+                    "travel_minutes": float | null }] }
+```
+Ứng viên lọc bằng cùng logic với `GET /jobs` (`open_jobs_query` + `nearby_jobs`: đang mở, chưa quá hạn, `ST_DWithin`, tối đa 100). Chỉ gửi khoảng rảnh chưa qua. Không có ứng viên → `items: []`, không gọi AI.
+
 ## Fallback khi AI service down
-Backend phải có fallback (dùng geo/content-based cơ bản) khi AI service không phản hồi — không được để luồng tìm/ứng tuyển job phụ thuộc cứng vào AI service.
+Gọi `POST /score` bằng `httpx`, timeout 5s (`config.AI_TIMEOUT_SECONDS`). Lỗi kết nối/timeout/status khác 2xx/body không phải JSON → `source: "fallback"`, xếp gần → xa, `final_score = 1 − d/R`, `breakdown = null`, ghi `log.warning`. Luồng tìm/ứng tuyển không phụ thuộc AI service. Service free trên Render ngủ sau 15 phút nên lần gọi đầu có thể rơi vào fallback — đúng thiết kế.
 
 ## Nguồn tham khảo
 Chi tiết đầy đủ: `docs/PROJECT_PLAN.md` mục 4 (Architecture).

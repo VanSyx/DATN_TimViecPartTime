@@ -1,7 +1,8 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type Application, type Interval, type Job, type JobInput, type JobSearch, type User } from '../api'
+import { Link } from 'react-router-dom'
+import { api, type Application, type Interval, type Job, type JobInput, type JobSearch, type Recommendations, type User } from '../api'
 import { useSubmit } from './AuthPages'
 
 // Trung tâm Đà Nẵng làm điểm khởi đầu khi chưa chọn vị trí nào
@@ -212,9 +213,18 @@ function JobInfo({ job }: { job: Job }) {
 
 // ---------- Job Seeker ----------
 
+function ApplyButton({ job }: { job: Job }) {
+  const [result, setResult] = useState('')
+  if (result) return <span className="meta">{result}</span>
+  return (
+    <button onClick={() => api.apply(job.id).then(() => setResult('Đã ứng tuyển'), (err: Error) => setResult(err.message))}>
+      Ứng tuyển
+    </button>
+  )
+}
+
 export function SearchJobsPage() {
   const [jobs, setJobs] = useState<Job[] | null>(null)
-  const [applied, setApplied] = useState<Record<string, string>>({})
   const { error, busy, wrap } = useSubmit()
 
   const search = wrap(async (f) => {
@@ -232,15 +242,6 @@ export function SearchJobsPage() {
     api.searchJobs({}).then(setJobs, () => setJobs([]))
   }, [])
 
-  async function apply(job: Job) {
-    try {
-      await api.apply(job.id)
-      setApplied((a) => ({ ...a, [job.id]: 'Đã ứng tuyển' }))
-    } catch (err) {
-      setApplied((a) => ({ ...a, [job.id]: (err as Error).message }))
-    }
-  }
-
   return (
     <div className="page">
       <h1>Tìm việc</h1>
@@ -257,9 +258,77 @@ export function SearchJobsPage() {
       {jobs?.map((job) => (
         <article className="card" key={job.id}>
           <JobInfo job={job} />
+          <div className="actions"><ApplyButton job={job} /></div>
+        </article>
+      ))}
+    </div>
+  )
+}
+
+function Score({ label, value }: { label: string; value: number }) {
+  return (
+    <label className="score">
+      <span>{label}</span>
+      <meter min={0} max={1} low={0.34} high={0.67} optimum={1} value={value} />
+      <span>{Math.round(value * 100)}%</span>
+    </label>
+  )
+}
+
+export function RecommendPage() {
+  const [result, setResult] = useState<Recommendations | null>(null)
+  const { error, busy, wrap } = useSubmit()
+  const { data: me } = useLoad<User | null>(api.me, null)
+  const { data: intervals } = useLoad<Interval[] | null>(api.availability, null)
+
+  // Thiếu mô tả → semantic = 0; không còn khoảng rảnh sắp tới → time_feasibility = 0 với mọi job
+  const missing = [
+    me && !me.description?.trim() && 'mô tả bản thân',
+    intervals && !intervals.some((i) => new Date(i.end_time) > new Date()) && 'lịch rảnh sắp tới',
+  ].filter(Boolean)
+
+  const recommend = wrap(async (f) => {
+    const lat = String(f.get('lat') ?? '')
+    const lng = String(f.get('lng') ?? '')
+    if (!lat || !lng) throw new Error('Hãy chọn vị trí của bạn trên bản đồ')
+    setResult(await api.recommendations({ lat, lng, radius_km: String(f.get('radius_km') ?? '') }))
+  })
+
+  return (
+    <div className="page">
+      <h1>Gợi ý cho tôi</h1>
+      <p className="meta">AI xếp hạng việc gần bạn theo mức khớp mô tả, giờ rảnh (tính cả thời gian đi lại) và khoảng cách.</p>
+      {missing.length > 0 && (
+        <p className="banner">
+          Bạn chưa khai {missing.join(' và ')}, gợi ý sẽ kém chính xác.{' '}
+          <Link to="/seeker/availability">Cập nhật hồ sơ & lịch rảnh</Link>
+        </p>
+      )}
+      <form className="panel" onSubmit={recommend}>
+        <LocationPicker showAddressInput />
+        <label>Bán kính (km)<input name="radius_km" type="number" min={1} max={100} defaultValue={10} /></label>
+        <button disabled={busy}>{busy ? 'Đang gợi ý...' : 'Gợi ý việc'}</button>
+        {error && <p className="error wide" role="alert">{error}</p>}
+      </form>
+
+      {result?.source === 'fallback' && (
+        <p className="banner">AI tạm thời không phản hồi — đang xếp theo khoảng cách.</p>
+      )}
+      {result?.items.length === 0 && <p className="meta">Không có việc nào đang mở trong bán kính này.</p>}
+      {result?.items.map(({ job, final_score, breakdown, travel_minutes }) => (
+        <article className="card" key={job.id}>
+          <JobInfo job={job} />
+          {breakdown && (
+            <div className="scores">
+              <Score label="Khớp mô tả" value={breakdown.semantic} />
+              <Score label={`Khớp giờ rảnh (tính cả ${travel_minutes} phút đi lại)`} value={breakdown.time_feasibility} />
+              <Score label={`Khoảng cách ${job.distance_km} km`} value={breakdown.geo} />
+              <Score label="Độ tin cậy (mặc định, chưa có đánh giá)" value={breakdown.trust} />
+            </div>
+          )}
           <div className="actions">
-            {applied[job.id] ? <span className="meta">{applied[job.id]}</span>
-              : <button onClick={() => apply(job)}>Ứng tuyển</button>}
+            <strong>Điểm phù hợp: {Math.round(final_score * 100)}%</strong>
+            <ApplyButton job={job} />
           </div>
         </article>
       ))}

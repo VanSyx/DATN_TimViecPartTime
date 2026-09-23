@@ -3,12 +3,13 @@ import { createBrowserRouter, Navigate, NavLink, Outlet, RouterProvider } from '
 import { roleHome, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
 import { LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
-import { AvailabilityPage, EmployerJobsPage, MyApplicationsPage, SearchJobsPage } from './pages/JobPages'
+import { AvailabilityPage, EmployerJobsPage, MyApplicationsPage, RecommendPage, SearchJobsPage } from './pages/JobPages'
 
-// Trang theo role — menu sinh từ chính danh sách này. Trang gợi ý AI thêm ở Tuần 5.
+// Trang theo role — menu sinh từ chính danh sách này.
 const pagesByRole: Record<Role, { path: string; label: string; element: ReactNode }[]> = {
   job_seeker: [
     { path: '/seeker', label: 'Tìm việc', element: <SearchJobsPage /> },
+    { path: '/seeker/recommend', label: 'Gợi ý cho tôi', element: <RecommendPage /> },
     { path: '/seeker/availability', label: 'Hồ sơ & lịch rảnh', element: <AvailabilityPage /> },
     { path: '/seeker/applications', label: 'Đơn ứng tuyển', element: <MyApplicationsPage /> },
   ],

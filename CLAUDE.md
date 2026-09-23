@@ -37,7 +37,7 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 
 **Lưu ý cổng DB:** máy dev đã có PostgreSQL cài sẵn chiếm 5432, nên compose map host port **5433** → `db:5432`. Nối từ host (alembic, psql, test) dùng 5433; service trong compose vẫn dùng `db:5432`.
 
-**Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chứa db + backend + ai-service. `ai-service` chưa có trên Render — thêm vào `render.yaml` ở Tuần 5 khi backend bắt đầu gọi nó.
+**Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chứa db + backend + ai-service. Backend gọi `ai-service` qua `GET /recommendations` (fallback theo khoảng cách khi AI không phản hồi). `ai-service` chưa có trên Render — thêm vào `render.yaml` ở bước deploy Tuần 5.
 
 ## 4. Core Logic Summary
 Điểm gợi ý job = tổ hợp có trọng số của 4 thành phần: `semantic_score` (khớp mô tả), `time_feasibility_score` (chồng lấp lịch rảnh, trừ thời gian di chuyển), `geo_score` (khoảng cách), `trust_modifier` (rating). Cài đặt ở `ai-service/app/scoring.py` (TF-IDF tự cài, không dùng thư viện ML — tuần 6 mới thêm `sentence-transformers`). Chi tiết công thức, business rules, lộ trình nâng cấp: **`.claude/docs/ai_scoring.md`**.

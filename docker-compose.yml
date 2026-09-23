@@ -31,12 +31,21 @@ services:
       JWT_SECRET: dev-only-not-a-real-secret-min-32-bytes
       JWT_REFRESH_SECRET: dev-only-not-a-real-refresh-secret-min-32-bytes
       CORS_ORIGINS: http://localhost:5173
+      AI_SERVICE_URL: http://ai-service:8001
     depends_on:
       db:
         condition: service_healthy
     volumes:
       - ./backend:/app
     command: sh -c "alembic upgrade head && uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload"
+
+  ai-service:
+    build: ./ai-service
+    ports:
+      - "8001:8001"
+    volumes:
+      - ./ai-service:/app
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8001 --reload
 
 volumes:
   pgdata:

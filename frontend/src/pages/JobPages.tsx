@@ -1,7 +1,7 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { api, type Application, type Interval, type Job, type JobInput, type JobSearch } from '../api'
+import { api, type Application, type Interval, type Job, type JobInput, type JobSearch, type User } from '../api'
 import { useSubmit } from './AuthPages'
 
 // Trung tâm Đà Nẵng làm điểm khởi đầu khi chưa chọn vị trí nào
@@ -271,13 +271,36 @@ export function AvailabilityPage() {
   const { data: intervals, error: loadError, reload } = useLoad<Interval[]>(api.availability, [])
   const { error, busy, wrap } = useSubmit()
 
+  const { data: me } = useLoad<User | null>(api.me, null)
+  const profile = useSubmit()
+  const [saved, setSaved] = useState(false)
+
   const add = wrap(async (f) => {
     await api.addAvailability(toIso(f.get('start')), toIso(f.get('end')))
     reload()
   })
 
+  const saveDescription = profile.wrap(async (f) => {
+    await api.updateProfile(String(f.get('description')))
+    setSaved(true)
+  })
+
   return (
     <div className="page">
+      <h1>Mô tả bản thân</h1>
+      <p className="meta">Kỹ năng, loại việc muốn làm — AI dùng để khớp với mô tả công việc.</p>
+      {me && (
+        <form className="panel" onSubmit={saveDescription} onChange={() => setSaved(false)}>
+          <label className="wide">Mô tả
+            <textarea name="description" rows={3} maxLength={2000} defaultValue={me.description ?? ''}
+              placeholder="VD: Dọn dẹp nhà cửa, nấu ăn gia đình, trông trẻ buổi tối" />
+          </label>
+          <button disabled={profile.busy}>Lưu</button>
+          {saved && <span className="meta">Đã lưu</span>}
+          {profile.error && <p className="error wide" role="alert">{profile.error}</p>}
+        </form>
+      )}
+
       <h1>Lịch rảnh</h1>
       <p className="meta">Khai báo các khoảng thời gian bạn rảnh — dùng để lọc và gợi ý việc phù hợp.</p>
       <form className="panel" onSubmit={add}>

@@ -13,3 +13,6 @@ dist/
 .DS_Store
 .idea/
 .vscode/
+
+# báo cáo Word nộp GVHD — giữ ở máy, không đưa lên git
+*.docx

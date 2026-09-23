@@ -1,5 +1,5 @@
 import uuid
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Literal
 
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
@@ -127,7 +127,8 @@ def search_jobs(
     if (lat is None) != (lng is None):
         raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Cần truyền cả lat và lng")
 
-    query = select(Job).where(Job.status == "open")
+    # Chủ nhà hay quên đóng tin đã qua ngày làm — không cho người tìm việc thấy tin đã kết thúc
+    query = select(Job).where(Job.status == "open", Job.time_end > func.now())
     # Khung giờ: giữ job có chồng lấp với [start, end] (docs/design/sequence-diagram.md mục 5)
     if start:
         query = query.where(Job.time_end > start)
@@ -239,6 +240,8 @@ def apply(body: ApplicationIn, user: User = Depends(job_seeker), db: Session = D
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy tin tuyển dụng")
     if job.status != "open":
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tin tuyển dụng đã đóng")
+    if job.time_end <= datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Công việc này đã kết thúc")
 
     application = Application(job_id=job.id, job_seeker_id=user.id)
     db.add(application)

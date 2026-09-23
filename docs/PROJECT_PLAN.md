@@ -100,7 +100,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - **Khả năng kiểm thử:** Có unit/integration test cho các luồng chính (auth, job CRUD, AI scoring)
 
 ## 3.3 Business Rules
-- `final_score = w1×semantic_score + w2×time_feasibility_score + w3×geo_score + w4×trust_modifier`, tất cả thành phần chuẩn hóa [0,1] (min-max) trước khi nhân trọng số
+- `final_score = w1×semantic_score + w2×time_feasibility_score + w3×geo_score + w4×trust_modifier`, tất cả thành phần chuẩn hóa [0,1] (min-max với cận cố định, không theo từng lô job) trước khi nhân trọng số — chi tiết từng thành phần: `.claude/docs/ai_scoring.md`
 - Giai đoạn 1 (mốc 70%, tuần 5): `semantic_score` dùng TF-IDF + cosine similarity; Giai đoạn 2 (tuần 6+): nâng cấp embedding (`sentence-transformers`) + pgvector
 - `trust_modifier` mặc định trung lập (1.0) khi chưa có dữ liệu rating
 - Không triển khai Collaborative Filtering
@@ -193,7 +193,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | 1 | Setup AI service riêng (FastAPI), định nghĩa contract API với backend chính |
 | 2 | Cài `semantic_score`: TF-IDF + cosine similarity trên mô tả job/nhu cầu |
 | 3 | Cài `time_feasibility_score`: interval overlap + trừ thời gian di chuyển (Haversine) |
-| 4 | Cài `geo_score` (chuẩn hóa khoảng cách PostGIS) + `trust_modifier` (mặc định 1.0) |
+| 4 | Cài `geo_score` (chuẩn hóa khoảng cách — cài đặt dùng Haversine, PostGIS giữ vai trò lọc trước ở backend) + `trust_modifier` (mặc định 1.0) |
 | 5 | Ghép công thức `final_score`, trả breakdown; viết unit test cho từng hàm tính điểm |
 
 **Deliverable:** AI service chạy độc lập, trả kết quả gợi ý kèm breakdown, có unit test cho interval overlap/Haversine/TF-IDF scoring.
@@ -304,7 +304,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Database (`timviec-db`) | quản lý qua Render dashboard, connection string inject vào `DATABASE_URL` của backend | Tạo cùng lúc backend qua Blueprint |
 
 **Việc còn lại trước khi dùng thật ở Tuần 2 (không chặn M1):**
-- [ ] Xác nhận `CORS_ORIGINS` trên `timviec-backend` đã trỏ đúng `https://datn-timviecparttime.onrender.com` (backend hiện chưa có middleware CORS — thêm khi làm auth ở Tuần 2, lúc đó điền biến này mới có tác dụng)
+- [x] Xác nhận `CORS_ORIGINS` trên `timviec-backend` đã trỏ đúng `https://datn-timviecparttime.onrender.com` — middleware CORS có từ Tuần 2; kiểm tra 2026-09-23: preflight từ frontend production trả `access-control-allow-origin: https://datn-timviecparttime.onrender.com`
 - [ ] Ghi lại ngày tạo `timviec-db` để theo dõi mốc hết hạn free tier 90 ngày (mục 8 — Risk)
 
 <details>
@@ -324,10 +324,10 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Tài liệu | Trạng thái / Ghi chú |
 |---|---|
 | `PROJECT_PLAN.md` (tài liệu này) | Nguồn tham chiếu chính cho giai đoạn 5 tuần đầu |
-| `docs/de-cuong.md` | Mô tả chi tiết đề tài, gửi GVHD duyệt tuần 1 — cần tạo |
+| `docs/de-cuong.md` | Mô tả chi tiết đề tài, gửi GVHD duyệt tuần 1 — chưa tạo (phạm vi 70% đã được GVHD xác nhận trực tiếp; nội dung lấy từ mục 1-2 tài liệu này) |
 | `docs/design/erd.md`, `docs/design/use-case.md`, `docs/design/sequence-diagram.md` | Thiết kế hệ thống (Mermaid, render sẵn trên GitHub) — ✅ đã tạo |
 | API spec (OpenAPI/Swagger) | Hoàn thành khung tuần 1, cập nhật liên tục khi có thay đổi endpoint |
-| `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — cần tạo |
+| `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — ✅ đã tạo, cập nhật theo từng tuần |
 | Báo cáo tốt nghiệp (các chương) | **Cần template của trường:** người thực hiện xác nhận trường có template riêng nhưng chưa cung cấp chi tiết. Khi có, bổ sung cấu trúc chương cụ thể vào đây trước khi bắt đầu viết ở tuần 6. Tạm thời áp dụng cấu trúc phổ biến (Mở đầu, Cơ sở lý thuyết, Phân tích thiết kế, Cài đặt, Kiểm thử & đánh giá, Kết luận) làm khung nháp nếu cần viết sớm |
 
 ---

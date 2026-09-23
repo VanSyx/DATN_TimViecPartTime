@@ -121,6 +121,16 @@ def test_availability_rejects_reversed_range(client, seeker):
     assert client.post("/availability", json=body, headers=seeker).status_code == 422
 
 
+def test_seeker_sets_free_text_description(client, seeker):
+    r = client.patch("/auth/me", json={"description": "Dọn dẹp, nấu ăn"}, headers=seeker)
+    assert r.status_code == 200
+    assert client.get("/auth/me", headers=seeker).json()["description"] == "Dọn dẹp, nấu ăn"
+
+
+def test_employer_cannot_set_seeker_description(client, employer):
+    assert client.patch("/auth/me", json={"description": "x"}, headers=employer).status_code == 403
+
+
 def test_employer_cannot_declare_availability(client, employer):
     assert client.get("/availability", headers=employer).status_code == 403
 
@@ -178,3 +188,20 @@ def test_cannot_apply_to_closed_job(client, employer, seeker):
     job = create_job(client, employer)
     client.delete(f"/jobs/{job['id']}", headers=employer)
     assert apply(client, seeker, job).status_code == 400
+
+
+PAST = {"start": "2020-01-01T08:00:00+07:00", "end": "2020-01-01T12:00:00+07:00"}
+
+
+def test_expired_job_hidden_from_search_but_kept_for_employer(client, employer):
+    expired = create_job(client, employer, title="Tin quá hạn", **PAST)
+    create_job(client, employer, title="Tin còn hạn")
+    titles = [j["title"] for j in client.get("/jobs", params={"lat": 21.0285, "lng": 105.8542}).json()]
+    assert "Tin còn hạn" in titles and "Tin quá hạn" not in titles
+    assert expired["id"] in [j["id"] for j in client.get("/jobs/mine", headers=employer).json()]
+
+
+def test_cannot_apply_to_expired_job(client, employer, seeker):
+    job = create_job(client, employer, **PAST)
+    res = apply(client, seeker, job)
+    assert res.status_code == 400 and "kết thúc" in res.json()["detail"]

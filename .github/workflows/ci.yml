@@ -33,6 +33,19 @@ jobs:
       - run: pip install -r requirements.txt
       - run: pytest -q
 
+  ai-service:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: ai-service
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+      - run: pip install -r requirements.txt
+      - run: python -m pytest -q
+
   frontend:
     runs-on: ubuntu-latest
     defaults:

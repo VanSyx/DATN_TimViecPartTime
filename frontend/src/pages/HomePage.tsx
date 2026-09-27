@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Job } from '../api'
 import { ApplyButton, JobCard, JobDetailModal, PlaceSearch, type Detail, type Place } from '../job-ui'
-import { AppStatusBadge, EmptyState, HeroArt, Icon, Logo, Segmented, type IconName } from '../ui'
+import { AppStatusBadge, CardSkeleton, EmptyState, HeroArt, Icon, Logo, Segmented, type IconName } from '../ui'
 
 const KINDS: [IconName, string, boolean][] = [
   ['home', 'Dọn dẹp nhà', false], ['baby', 'Trông trẻ', true], ['chef', 'Nấu ăn', false],
@@ -66,7 +66,7 @@ export function HomePage() {
           </p>
           <div className="card flex flex-col gap-3 p-5 shadow-sm">
             <span className="label">Bạn ở đâu?</span>
-            <PlaceSearch onPick={goSearch} buttonLabel="Tìm việc quanh đây" primary stacked />
+            <PlaceSearch onPick={goSearch} buttonLabel="Tìm việc quanh đây" hero />
           </div>
           <Link to="/register?role=employer" className="w-fit font-semibold no-underline">Bạn cần tuyển người? Đăng tin miễn phí →</Link>
         </div>
@@ -86,14 +86,7 @@ export function HomePage() {
           {!!jobs?.length && <Link to="/tim-viec" className="font-semibold no-underline">Xem tất cả việc →</Link>}
         </div>
         {!jobs && (
-          <div className="grid grid-cols-3 gap-5" aria-busy="true">
-            {[1, 2, 3].map((i) => (
-              <div key={i} className="card flex h-60 flex-col gap-3 p-5">
-                <div className="h-5 w-4/5 rounded-md bg-stone-200" /><div className="h-5 w-1/2 rounded-md bg-stone-200" />
-                <div className="mt-1.5 h-4 w-2/3 rounded-md bg-stone-100" /><div className="h-4 w-1/2 rounded-md bg-stone-100" />
-              </div>
-            ))}
-          </div>
+          <div className="grid grid-cols-3 gap-5" aria-busy="true">{[1, 2, 3].map((i) => <CardSkeleton key={i} />)}</div>
         )}
         {jobs?.length === 0 && (
           <EmptyState icon="calendarPlus" title="Chưa có việc nào đang mở"
@@ -227,7 +220,6 @@ export function HomePage() {
             <div className="flex flex-col gap-3">
               <div className="font-semibold text-white">Người đăng tin</div>
               <Link to="/register?role=employer" className="text-stone-300 no-underline hover:text-white">Đăng tin</Link>
-              <Link to="/register?role=employer" className="text-stone-300 no-underline hover:text-white">Đăng ký</Link>
             </div>
           </div>
           <div className="border-t border-stone-700 pt-5 text-sm text-stone-400">Đồ án tốt nghiệp · 2026</div>

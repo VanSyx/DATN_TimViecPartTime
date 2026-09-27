@@ -1,15 +1,15 @@
 import L from 'leaflet'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api, type Application, type ApplicationStatus, type Interval, type Job, type Recommendations, type User } from '../api'
+import { api, type Application, type ApplicationStatus, type Interval, type Job, type Recommendations } from '../api'
 import { useAuth } from '../auth'
 import {
   ApplyButton, createMap, hoursFrom, JobCard, JobDetailModal, PlaceSearch, spanStyle, upcomingByDay, VN_CENTER,
   type Detail, type Place,
 } from '../job-ui'
 import {
-  AppStatusBadge, Banner, dateInput, EmptyState, FieldError, fmtDay, fmtHM, fmtMoney, fmtNum, fmtSlot, hm, Icon, IconLine,
-  Modal, ModalHeader, Segmented, Spinner, toIso, useLoad, useSubmit, useToast,
+  AppStatusBadge, Banner, CardSkeleton, ConfirmModal, dateInput, EmptyState, FieldError, fmtDay, fmtHM, fmtMoney, fmtNum, fmtSlot, hm,
+  Icon, IconLine, Modal, ModalHeader, Segmented, Spinner, toIso, useLoad, useSubmit, useToast,
 } from '../ui'
 
 const RADII: [number, string][] = [[2, '2 km'], [5, '5 km'], [10, '10 km']]
@@ -17,15 +17,6 @@ const RADII: [number, string][] = [[2, '2 km'], [5, '5 km'], [10, '10 km']]
 function DayLabel({ day }: { day: string }) {
   const [weekday, dm] = fmtDay(`${day}T00:00`).split(', ')
   return <div className="leading-5"><div className="font-semibold">{weekday}</div><div className="text-sm text-stone-500">{dm}</div></div>
-}
-
-function CardSkeleton() {
-  return (
-    <div className="card flex h-60 flex-col gap-3 p-5">
-      <div className="h-5 w-4/5 rounded-md bg-stone-200" /><div className="h-5 w-1/2 rounded-md bg-stone-200" />
-      <div className="mt-1.5 h-4 w-2/3 rounded-md bg-stone-100" /><div className="h-4 w-1/2 rounded-md bg-stone-100" />
-    </div>
-  )
 }
 
 // ---------- S4: Gợi ý cho tôi ----------
@@ -47,8 +38,8 @@ export function RecommendPage() {
   const [error, setError] = useState('')
   const [hideNudge, setHideNudge] = useState(false)
   const [detail, setDetail] = useState<Detail | null>(null)
-  const { data: me } = useLoad<User | null>(api.me, null)
-  const { data: intervals } = useLoad<Interval[] | null>(api.availability, null)
+  const { data: me } = useLoad(api.me)
+  const { data: intervals } = useLoad(api.availability)
 
   const load = useCallback((s: Saved) => {
     setLoading(true)
@@ -501,8 +492,8 @@ function DescriptionCard({ initial }: { initial: string }) {
 
 export function ProfilePage() {
   const toast = useToast()
-  const { data: intervals, error, reload } = useLoad<Interval[] | null>(api.availability, null)
-  const { data: me } = useLoad<User | null>(api.me, null)
+  const { data: intervals, error, reload } = useLoad(api.availability)
+  const { data: me } = useLoad(api.me)
   const [adding, setAdding] = useState<string | null>(null)
   const days = intervals ? upcomingByDay(intervals) : null
 
@@ -594,9 +585,9 @@ export function ProfilePage() {
                 <span className="text-sm text-stone-500">Email</span>
                 <div className="flex flex-wrap items-center gap-2">
                   <span>{me.email}</span>
-                  {me.email_verified
-                    ? <span className="flex h-[26px] items-center rounded-full border border-green-200 bg-green-50 px-2.5 text-[13px] font-semibold text-green-700">Đã xác minh</span>
-                    : <span className="flex h-[26px] items-center rounded-full border border-amber-200 bg-amber-50 px-2.5 text-[13px] font-semibold text-amber-800">Chưa xác minh</span>}
+                  <span className={`flex h-[26px] items-center rounded-full border px-2.5 text-[13px] font-semibold ${me.email_verified ? 'border-green-200 bg-green-50 text-green-700' : 'border-amber-200 bg-amber-50 text-amber-800'}`}>
+                    {me.email_verified ? 'Đã xác minh' : 'Chưa xác minh'}
+                  </span>
                 </div>
               </div>
             </section>
@@ -632,7 +623,7 @@ const NOTE: Record<ApplicationStatus, (a: Application) => string> = {
 
 export function MyApplicationsPage() {
   const toast = useToast()
-  const { data: apps, error, reload } = useLoad<Application[] | null>(api.myApplications, null)
+  const { data: apps, error, reload } = useLoad(api.myApplications)
   const [tab, setTab] = useState('all')
   const [cancel, setCancel] = useState<Application | null>(null)
   const [busy, setBusy] = useState(false)
@@ -698,18 +689,9 @@ export function MyApplicationsPage() {
         </>
       )}
 
-      <Modal open={!!cancel} onClose={() => setCancel(null)} className="w-[440px]">
-        {cancel && (
-          <div className="flex flex-col gap-3.5 p-6">
-            <h2 className="text-2xl leading-8 font-semibold">Hủy đơn ứng tuyển?</h2>
-            <p className="text-stone-700">Bạn sẽ rút đơn khỏi “{cancel.job.title}”. Có thể ứng tuyển lại nếu tin còn mở.</p>
-            <div className="mt-1.5 flex justify-end gap-2.5">
-              <button type="button" className="btn btn-plain" onClick={() => setCancel(null)}>Giữ đơn</button>
-              <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" disabled={busy} onClick={confirmCancel}>{busy && <Spinner />}Hủy đơn</button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <ConfirmModal open={!!cancel} title="Hủy đơn ứng tuyển?" keep="Giữ đơn" confirm="Hủy đơn" busy={busy} onConfirm={confirmCancel} onClose={() => setCancel(null)}>
+        Bạn sẽ rút đơn khỏi “{cancel?.job.title}”. Có thể ứng tuyển lại nếu tin còn mở.
+      </ConfirmModal>
       <JobDetailModal item={detail} onClose={() => setDetail(null)} canApply={false} />
     </main>
   )

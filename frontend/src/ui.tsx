@@ -83,8 +83,8 @@ export function Icon({ name, size = 20, className = '', stroke = 1.75 }: { name:
   )
 }
 
-export const Spinner = ({ size = 18 }: { size?: number }) => (
-  <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" className="shrink-0 animate-spin" aria-hidden="true">
+export const Spinner = () => (
+  <svg width={18} height={18} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth={2.25} strokeLinecap="round" className="shrink-0 animate-spin" aria-hidden="true">
     <path d="M21 12a9 9 0 1 1-6.219-8.56" />
   </svg>
 )
@@ -191,6 +191,15 @@ export function EmptyState({ icon, title, children, actions }: { icon: IconName;
   )
 }
 
+export function CardSkeleton() {
+  return (
+    <div className="card flex h-60 flex-col gap-3 p-5">
+      <div className="h-5 w-4/5 rounded-md bg-stone-200" /><div className="h-5 w-1/2 rounded-md bg-stone-200" />
+      <div className="mt-1.5 h-4 w-2/3 rounded-md bg-stone-100" /><div className="h-4 w-1/2 rounded-md bg-stone-100" />
+    </div>
+  )
+}
+
 export function Segmented<T extends string | number>({ options, value, onChange, label }: {
   options: [T, string][]; value: T; onChange: (v: T) => void; label: string
 }) {
@@ -284,6 +293,23 @@ export function ModalHeader({ title, onClose }: { title: ReactNode; onClose: () 
   )
 }
 
+export function ConfirmModal({ open, title, keep, confirm, busy, onConfirm, onClose, children }: {
+  open: boolean; title: string; keep: string; confirm: string; busy: boolean; onConfirm: () => void; onClose: () => void; children: ReactNode
+}) {
+  return (
+    <Modal open={open} onClose={onClose} className="w-[440px]">
+      <div className="flex flex-col gap-3.5 p-6">
+        <h2 className="text-2xl leading-8 font-semibold">{title}</h2>
+        <p className="text-stone-700">{children}</p>
+        <div className="mt-1.5 flex justify-end gap-2.5">
+          <button type="button" className="btn btn-plain" onClick={onClose}>{keep}</button>
+          <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" disabled={busy} onClick={onConfirm}>{busy && <Spinner />}{confirm}</button>
+        </div>
+      </div>
+    </Modal>
+  )
+}
+
 // ---------- Toast ----------
 
 type ToastMsg = { title: string; body?: ReactNode; error?: boolean }
@@ -317,8 +343,8 @@ export function ToastProvider({ children }: { children: ReactNode }) {
 // ---------- Hook tải dữ liệu / gửi form ----------
 
 /** Tải dữ liệu 1 lần + hàm reload sau khi thay đổi. */
-export function useLoad<T>(load: () => Promise<T>, initial: T) {
-  const [data, setData] = useState(initial)
+export function useLoad<T>(load: () => Promise<T>) {
+  const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState('')
   const reload = useCallback(() => {
     load().then(setData, (err: Error) => setError(err.message))
@@ -344,5 +370,5 @@ export function useSubmit() {
       }
     }
   }
-  return { error, setError, busy, wrap }
+  return { error, busy, wrap }
 }

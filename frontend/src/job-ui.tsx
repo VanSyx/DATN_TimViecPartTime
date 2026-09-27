@@ -6,7 +6,7 @@ import { api, ApiError, type Interval, type Job, type Recommendations } from './
 import { useAuth } from './auth'
 import {
   dateInput, FieldError, fmtDay, fmtHM, fmtHours, fmtMoney, fmtNum, fmtPct, fmtSlot, fullAddress, Icon, IconLine,
-  jobEnded, JobStatusBadge, Modal, ScoreRing, Spinner, useToast, type IconName,
+  jobEnded, JobStatusBadge, Modal, ModalHeader, ScoreRing, Spinner, useToast, type IconName,
 } from './ui'
 
 export type Rec = Recommendations['items'][number]
@@ -84,9 +84,9 @@ function HitList({ hits, onPick, selected }: { hits: Place[]; onPick: (p: Place)
   )
 }
 
-/** Chọn vị trí của người tìm việc: gõ địa chỉ → chọn trong danh sách kết quả, hoặc GPS. */
-export function PlaceSearch({ initial = '', onPick, buttonLabel = 'Tìm', primary = false, gpsText = true, stacked = false }: {
-  initial?: string; onPick: (p: Place) => void; buttonLabel?: string; primary?: boolean; gpsText?: boolean; stacked?: boolean
+/** Chọn vị trí của người tìm việc: gõ địa chỉ → chọn trong danh sách kết quả, hoặc GPS. `hero`: bố cục dọc, nút cam (trang chủ). */
+export function PlaceSearch({ initial = '', onPick, buttonLabel = 'Tìm', gpsText = true, hero = false }: {
+  initial?: string; onPick: (p: Place) => void; buttonLabel?: string; gpsText?: boolean; hero?: boolean
 }) {
   const [q, setQ] = useState(initial)
   const [hits, setHits] = useState<Place[] | null>(null)
@@ -120,7 +120,7 @@ export function PlaceSearch({ initial = '', onPick, buttonLabel = 'Tìm', primar
   }
 
   const input = (
-    <label className={`input flex items-center gap-2.5 ${stacked ? '' : 'flex-1'}`}>
+    <label className={`input flex items-center gap-2.5 ${hero ? '' : 'flex-1'}`}>
       <Icon name="pin" className="text-teal-700" />
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nhập số nhà, tên đường…" aria-label="Địa chỉ"
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search() } }}
@@ -136,14 +136,14 @@ export function PlaceSearch({ initial = '', onPick, buttonLabel = 'Tìm', primar
     <button type="button" className="btn btn-ghost h-12" onClick={gps}><Icon name="locate" size={18} />Dùng vị trí hiện tại</button>
   )
   const searchButton = (
-    <button type="button" onClick={search} disabled={busy} className={`btn h-12 ${primary ? 'btn-primary px-6' : 'btn-secondary'}`}>
+    <button type="button" onClick={search} disabled={busy} className={`btn h-12 ${hero ? 'btn-primary px-6' : 'btn-secondary'}`}>
       {busy ? <Spinner /> : <Icon name="search" size={18} stroke={2} />}{buttonLabel}
     </button>
   )
 
   return (
     <div className="relative flex flex-col gap-3">
-      {stacked
+      {hero
         ? <>{input}<div className="flex items-center justify-between gap-3">{gpsButton}{searchButton}</div></>
         : <div className="flex items-center gap-3">{input}{searchButton}{gpsButton}</div>}
       {hits && <div className="absolute top-full right-0 left-0 z-[1100] mt-1 shadow-lg"><HitList hits={hits} onPick={pick} /></div>}
@@ -548,11 +548,8 @@ export function ApplyButton({ job, className = '' }: { job: Job; className?: str
         {state === 'busy' ? <><Spinner />Đang gửi…</> : 'Ứng tuyển'}
       </button>
       <Modal open={askLogin} onClose={() => setAskLogin(false)} className="w-[460px]">
-        <div className="flex flex-col gap-4 p-7">
-          <div className="flex items-start justify-between gap-3">
-            <h2 className="text-2xl leading-8 font-semibold">Đăng nhập để ứng tuyển</h2>
-            <button type="button" title="Đóng" onClick={() => setAskLogin(false)} className="cursor-pointer text-stone-700"><Icon name="x" size={22} stroke={2} /></button>
-          </div>
+        <ModalHeader title="Đăng nhập để ứng tuyển" onClose={() => setAskLogin(false)} />
+        <div className="flex flex-col gap-4 px-7 pt-3 pb-7">
           <p className="text-stone-700">Bạn đang ứng tuyển <b className="font-semibold">{job.title}</b>. Sau khi đăng nhập, bạn quay lại đúng trang này.</p>
           <div className="mt-1 flex flex-col gap-2.5">
             <Link to={`/login?next=${next}`} className="btn btn-primary h-12">Đăng nhập</Link>

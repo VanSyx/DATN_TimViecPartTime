@@ -3,8 +3,8 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Application, type Job, type JobInput } from '../api'
 import { JobCard, LocationPicker } from '../job-ui'
 import {
-  AppStatusBadge, Banner, dateInput, EmptyState, FieldError, fmtHM, fmtMoney, fmtNum, fmtSlot, fmtStamp, fullAddress, hm, Icon,
-  IconLine, jobEnded, JobStatusBadge, Modal, Spinner, toIso, useLoad, useToast,
+  AppStatusBadge, Banner, ConfirmModal, dateInput, EmptyState, FieldError, fmtHM, fmtMoney, fmtNum, fmtSlot, fmtStamp, fullAddress, hm,
+  Icon, IconLine, jobEnded, JobStatusBadge, Spinner, toIso, useLoad, useToast,
 } from '../ui'
 
 // ---------- S9: Tin đã đăng ----------
@@ -18,7 +18,7 @@ function jobNote(job: Job) {
 
 export function EmployerJobsPage() {
   const toast = useToast()
-  const { data: jobs, error, reload } = useLoad<Job[] | null>(api.myJobs, null)
+  const { data: jobs, error, reload } = useLoad(api.myJobs)
   const [closing, setClosing] = useState<Job | null>(null)
   const [busy, setBusy] = useState(false)
 
@@ -71,18 +71,9 @@ export function EmployerJobsPage() {
         ))}
       </div>
 
-      <Modal open={!!closing} onClose={() => setClosing(null)} className="w-[440px]">
-        {closing && (
-          <div className="flex flex-col gap-3.5 p-6">
-            <h2 className="text-2xl leading-8 font-semibold">Đóng tin này?</h2>
-            <p className="text-stone-700">Tin “{closing.title}” sẽ không nhận thêm đơn và không hiện với người tìm việc nữa. Các đơn đã có vẫn được giữ lại.</p>
-            <div className="mt-1.5 flex justify-end gap-2.5">
-              <button type="button" className="btn btn-plain" onClick={() => setClosing(null)}>Giữ tin</button>
-              <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" disabled={busy} onClick={confirmClose}>{busy && <Spinner />}Đóng tin</button>
-            </div>
-          </div>
-        )}
-      </Modal>
+      <ConfirmModal open={!!closing} title="Đóng tin này?" keep="Giữ tin" confirm="Đóng tin" busy={busy} onConfirm={confirmClose} onClose={() => setClosing(null)}>
+        Tin “{closing?.title}” sẽ không nhận thêm đơn và không hiện với người tìm việc nữa. Các đơn đã có vẫn được giữ lại.
+      </ConfirmModal>
     </main>
   )
 }
@@ -261,7 +252,7 @@ export function JobApplicantsPage() {
   const toast = useToast()
   const [job, setJob] = useState<Job | null | undefined>(undefined)
   const load = useCallback(() => api.jobApplications(id!), [id])
-  const { data: apps, error, reload } = useLoad<Application[] | null>(load, null)
+  const { data: apps, error, reload } = useLoad(load)
   const [busyId, setBusyId] = useState<string | null>(null)
 
   useEffect(() => {

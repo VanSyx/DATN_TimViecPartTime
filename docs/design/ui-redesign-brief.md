@@ -1,6 +1,6 @@
 # Brief thiết kế lại giao diện — TimViecPartTime
 
-Soạn 2026-09-24. Tài liệu này dùng để giao cho agent/người thiết kế vẽ **mockup ảnh / Figma**. Sau khi mockup được duyệt, frontend sẽ được code lại bằng **React (Vite) + TailwindCSS** (stack đã chốt ở `docs/PROJECT_PLAN.md` mục 4.2), nên màu, chữ và kích thước nên bám theo thang của Tailwind (mục 3).
+Soạn 2026-09-24, cập nhật 2026-09-27 (thêm trang chủ giới thiệu, mục 5.1). Tài liệu này dùng để giao cho agent/người thiết kế vẽ **mockup ảnh / Figma**. Sau khi mockup được duyệt, frontend sẽ được code lại bằng **React (Vite) + TailwindCSS v4** (đã cài 2026-09-27, stack chốt ở `docs/PROJECT_PLAN.md` mục 4.2), nên màu, chữ và kích thước nên bám theo thang của Tailwind (mục 3).
 
 **Giao diện hiện tại** (chỉ để tham khảo, không phải hướng mới): `docs/screenshots/week5/`. Nên xem `01-recommend-ai-breakdown.png` (trang gợi ý), `05-employer-form-dang-tin.png` (form đăng tin) và `07-seeker-mo-ta-lich-ranh.png` (lịch rảnh).
 
@@ -60,12 +60,12 @@ Mỗi màn vẽ 2 kích thước: **điện thoại 390×844** và **desktop 144
 
 | # | Màn hình | Nội dung bắt buộc | Trạng thái cần vẽ |
 |---|---|---|---|
-| S0 | Trang giới thiệu *(đề xuất mới: chỉ là trình bày, không thêm tính năng)* | Hero "Việc làm thêm vừa với giờ rảnh của bạn", 3 bước (Khai giờ rảnh → AI gợi ý → Ứng tuyển), khối giải thích AI, CTA cho 2 vai trò | — |
+| S0 | **Trang chủ giới thiệu** (`/` khi chưa đăng nhập, **chi tiết ở mục 5.1**) | 10 khối: header, hero + ô tìm nhanh, việc mới đăng, loại việc thường gặp, cách hoạt động, gợi ý AI khác gì, an tâm khi làm việc, dải cho người đăng tin, câu hỏi thường gặp, footer | Đang tải "Việc mới đăng"; chưa có việc nào đang mở |
 | S1 | Đăng nhập | Email, mật khẩu, link đăng ký | Sai mật khẩu; bị chặn tạm vì "quá nhiều lần thử" |
 | S2 | Đăng ký | Chọn vai trò bằng **2 thẻ lớn** (Tìm việc / Tuyển người), email, mật khẩu ≥ 8 ký tự, SĐT (tuỳ chọn) | Email đã tồn tại |
 | S3 | Xác minh email | 6 ô OTP, link "Để sau, đăng nhập luôn" (chưa xác minh vẫn đăng nhập được) | Thành công; mã sai hoặc hết hạn |
 | S4 | **Gợi ý cho tôi** (màn quan trọng nhất, nên là trang chủ của người tìm việc) | Chọn vị trí + bán kính (sau lần đầu thì thu gọn thành 1 dòng), danh sách JobCard có MatchScore + 3–4 lý do + nút Ứng tuyển | Đang tải (skeleton); **nhắc khai hồ sơ** khi thiếu mô tả hoặc lịch rảnh sắp tới; **banner AI dự phòng** ("AI tạm thời không phản hồi — đang xếp theo khoảng cách", không có breakdown); không có việc trong bán kính; đã ứng tuyển; lỗi "Bạn đã ứng tuyển việc này" |
-| S5 | Tìm việc | Bộ lọc: vị trí, bán kính, khung giờ; **chuyển qua lại giữa Danh sách và Bản đồ** (ghim các việc trên bản đồ) | Không có kết quả; đang tải |
+| S5 | Tìm việc | Bộ lọc: vị trí, bán kính, khung giờ; **chuyển qua lại giữa Danh sách và Bản đồ** (ghim các việc trên bản đồ) | Không có kết quả; đang tải; **khách chưa đăng nhập** (header của S0, bấm Ứng tuyển → Đăng nhập) |
 | S6 | Chi tiết việc (bottom sheet / modal, chỉ dùng dữ liệu đã có) | Tiêu đề, địa chỉ + bản đồ nhỏ, ngày giờ, tiền công, mô tả đầy đủ, breakdown (khi mở từ S4), nút Ứng tuyển | Tin đã kết thúc → không cho ứng tuyển |
 | S7 | Hồ sơ & lịch rảnh | Mô tả bản thân (kèm gợi ý cách viết). **Lịch rảnh dạng timeline theo ngày**: các khối giờ trên trục 0–24h. Thêm khoảng rảnh qua sheet: chọn ngày + giờ bắt đầu/kết thúc, có nút nhanh "Sáng 7–11 / Chiều 13–17 / Tối 18–21" chỉ để điền sẵn giờ. Xoá khoảng rảnh | Chưa khai gì (empty state có hướng dẫn); đã lưu |
 | S8 | Đơn ứng tuyển của tôi | Tab theo trạng thái (Tất cả / Chờ duyệt / Đã nhận / Khác), JobCard + badge, nút Hủy đơn khi đơn đang chờ | Chưa có đơn |
@@ -73,6 +73,31 @@ Mỗi màn vẽ 2 kích thước: **điện thoại 390×844** và **desktop 144
 | S10 | Người đăng tin: Đăng / Sửa tin | Điện thoại: form 3 bước **Công việc** → **Địa điểm** (số nhà + đường / phường-xã / tỉnh-thành phố + LocationPicker) → **Thời gian & tiền công**. Desktop: 1 trang 2 cột kèm xem trước JobCard | Chưa ghim vị trí; giờ kết thúc trước giờ bắt đầu |
 | S11 | Người đăng tin: Đơn ứng tuyển của 1 tin | Mỗi ứng viên: avatar là chữ cái đầu của email, email, SĐT (bấm để gọi), badge, nút Nhận / Từ chối | Chưa có ai ứng tuyển; đơn đã được xử lý |
 | S12 | Quản trị | Khung trang quản trị (placeholder, nội dung xem W4) | — |
+
+### 5.1 S0 — Trang chủ giới thiệu
+
+**Ai xem**: khách chưa đăng nhập, và hội đồng ở phút đầu buổi demo. Người đã đăng nhập vào `/` vẫn được chuyển thẳng về trang chính của vai trò như hiện nay (S4 với người tìm việc).
+
+**Tham khảo bố cục**: **TopCV**, **VietnamWorks** (trang việc làm: thanh tìm kiếm ngay ở hero, khối việc làm mới, dải dành cho nhà tuyển dụng, footer nhiều cột) và **bTaskee** (giúp việc theo giờ, gần sản phẩm này nhất: các bước sử dụng, cam kết an tâm, kêu gọi cả 2 phía). Chỉ mượn **bố cục và nhịp trang**, không chép chữ, màu hay hình.
+
+Các khối, từ trên xuống:
+
+| # | Khối | Tham khảo | Nội dung | Dữ liệu |
+|---|---|---|---|---|
+| 1 | Header | TopCV | Logo chữ; link cuộn tới "Cách hoạt động", "Gợi ý AI", "Câu hỏi"; nút Đăng nhập (ghost) + Đăng ký (cam). Trên điện thoại: logo + 2 nút, các link gom vào menu ☰ | tĩnh |
+| 2 | Hero + ô tìm nhanh | TopCV (thanh tìm kiếm ở hero) | Tiêu đề "Việc làm thêm vừa với giờ rảnh của bạn", 1 câu phụ nói về AI. Ô tìm nhanh **"Bạn ở đâu?"** (ô địa chỉ + nút "Dùng vị trí hiện tại") và nút cam "Tìm việc quanh đây" → mở S5 ở chế độ khách với vị trí đã chọn. Dưới ô: link nhỏ "Bạn cần tuyển người? Đăng tin miễn phí →". Desktop: minh hoạ người làm việc nhà ở cột phải | Tìm thật qua `GET /jobs` (đã công khai, không cần đăng nhập) |
+| 3 | Việc mới đăng | TopCV "Việc làm tốt nhất" | Lưới 6 JobCard gọn (tiêu đề, phường + tỉnh/thành, `T7, 26/09 · 08:00–11:00`, tiền công) + nút "Xem tất cả việc →" (S5 chế độ khách). Bấm Ứng tuyển → Đăng nhập. **Không có vòng %** vì khách chưa có hồ sơ để AI chấm. Tiêu đề khối kèm số đếm "Đang có X việc mở" (X ≥ 100 thì hiện "100+") | **Thật**: `GET /jobs` không truyền toạ độ trả tối đa 100 tin mới nhất. Mockup dùng 3 việc ở mục 8 |
+| 4 | Loại việc thường gặp | TopCV "Top ngành nghề" | 6 ô có icon: Dọn dẹp nhà, Trông trẻ, Nấu ăn, Phụ quán / phụ bếp, Chăm người già, Giặt ủi. **Chỉ minh hoạ, không bấm để lọc** (hệ thống không có danh mục, xem mục 7) | tĩnh |
+| 5 | Cách hoạt động | bTaskee "3 bước", TopCV tách ứng viên / nhà tuyển dụng | 2 tab. **Người tìm việc**: Khai giờ rảnh & mô tả bản thân → AI gợi ý việc hợp giờ, gần nhà → Ứng tuyển và chờ nhận. **Người đăng tin**: Đăng tin kèm giờ, địa chỉ, tiền công → Nhận đơn ứng tuyển → Chọn người phù hợp | tĩnh |
+| 6 | Gợi ý AI khác gì | riêng của sản phẩm | Trái: 3 ý ngắn "Không lọc cứng theo ngành" / "Xét giờ rảnh thật, tính cả thời gian đi lại" / "Luôn nói rõ vì sao gợi ý". Phải: 1 JobCard mẫu có MatchScore 83% + 4 lý do (dòng 1 bảng dữ liệu mục 8), nhãn nhỏ "Ví dụ minh hoạ" | tĩnh |
+| 7 | An tâm khi làm việc | bTaskee "Cam kết" | 4 ý, **chỉ nói điều đã có thật**: mỗi tin ghi rõ giờ làm, địa chỉ, tiền công cả buổi; người đăng tin tự xem đơn và chọn người; trạng thái đơn minh bạch (Chờ duyệt / Đã nhận / Bị từ chối); miễn phí cho cả 2 bên. Không hứa đánh giá sao, bảo hiểm, kiểm tra lý lịch, và không lấy "đã xác minh email" làm cam kết (hiện chưa bắt buộc xác minh) | tĩnh |
+| 8 | Dải "Dành cho người đăng tin" | TopCV "Dành cho nhà tuyển dụng" | Nền teal: "Cần người giúp việc theo giờ? Đăng tin miễn phí, chọn người ở gần." + nút "Đăng tin ngay" → Đăng ký với vai trò Tuyển người chọn sẵn | tĩnh |
+| 9 | Câu hỏi thường gặp | TopCV, bTaskee | 5 câu dạng accordion (mở/đóng từng câu): Có mất phí không? · Có cần CV không? (không, chỉ cần vài câu mô tả) · Lịch rảnh khác ca làm cố định thế nào? · AI gợi ý dựa vào đâu? · Chưa xác minh email có dùng được không? (được) | tĩnh |
+| 10 | Footer | TopCV (footer nhiều cột) | Logo + 1 câu giới thiệu; cột Người tìm việc (Tìm việc, Gợi ý cho tôi, Đăng ký); cột Người đăng tin (Đăng tin, Đăng ký); dòng "Đồ án tốt nghiệp · 2026" | tĩnh |
+
+**Không lấy từ các trang tham khảo** (vi phạm mục 7 hoặc ngoài scope): tường logo công ty, lời chứng thực / đánh giá của người dùng, số liệu kiểu "X ứng viên, Y nhà tuyển dụng" (chưa có API đếm, không bịa số), banner quảng cáo, nút tải app, CV / cẩm nang / blog, lọc theo ngành, nhãn việc "hot" / "gấp".
+
+**Thay đổi code đi kèm** (chỉ frontend, backend không đổi): `/` hiện S0 thay vì chuyển sang Đăng nhập; S5 mở cho khách chưa đăng nhập; Đăng ký nhận vai trò chọn sẵn từ link.
 
 ## 6. Màn tuần 6-12, chỉ phác wireframe (không tô màu chi tiết)
 
@@ -85,7 +110,7 @@ Những chức năng này chưa làm. Vẽ trước để hệ thống thiết k
 
 ## 7. Ràng buộc bắt buộc (không được vi phạm)
 
-- **Không vẽ dữ liệu không tồn tại như thể có thật**: tên người, ảnh đại diện thật, ảnh công việc, danh mục/ngành nghề, bộ lọc theo ngành, số lượt xem, số đơn trên mỗi tin. Người dùng được định danh bằng email (+ SĐT), avatar là chữ cái đầu. Nếu muốn thêm trường nào, ghi chú **"cần thêm dữ liệu"** để xác nhận sau.
+- **Không vẽ dữ liệu không tồn tại như thể có thật**: tên người, ảnh đại diện thật, ảnh công việc, danh mục/ngành nghề, bộ lọc theo ngành, số lượt xem, số đơn trên mỗi tin, logo công ty, lời chứng thực của người dùng, số liệu thống kê tổng. Người dùng được định danh bằng email (+ SĐT), avatar là chữ cái đầu. Nếu muốn thêm trường nào, ghi chú **"cần thêm dữ liệu"** để xác nhận sau.
 - **Không có**: chat, thanh toán, CV builder, lịch lặp hàng tuần (lịch rảnh là các khoảng **theo ngày cụ thể**), gợi ý "khẩn cấp" real-time.
 - Lịch rảnh là **khoảng thời gian tự do** (vd 07:15–11:40), **không** gom về ca cố định Sáng/Chiều/Tối. Nút nhanh chỉ để điền sẵn giờ.
 - **Luôn hiện lý do gợi ý** (explainable AI). Trạng thái AI dự phòng phải trông khác hẳn: không có vòng %, chỉ có khoảng cách, kèm banner.
@@ -123,4 +148,4 @@ Những chức năng này chưa làm. Vẽ trước để hệ thống thiết k
 
 ## 10. Prompt mẫu để giao cho agent thiết kế
 
-> Bạn là product designer. Đọc toàn bộ `docs/design/ui-redesign-brief.md` và thiết kế mockup theo đúng mục 3–9. Tuân thủ tuyệt đối mục 7 (ràng buộc về dữ liệu và bản đồ). Phong cách ấm áp, gần gũi, teal + cam, font Be Vietnam Pro, thiết kế cho điện thoại trước. Màn quan trọng nhất là S4 "Gợi ý cho tôi": phần giải thích AI phải dễ hiểu và nổi bật. Dùng dữ liệu mẫu ở mục 8, toàn bộ chữ bằng tiếng Việt.
+> Bạn là product designer. Đọc toàn bộ `docs/design/ui-redesign-brief.md` và thiết kế mockup theo đúng mục 3–9. Tuân thủ tuyệt đối mục 7 (ràng buộc về dữ liệu và bản đồ). Phong cách ấm áp, gần gũi, teal + cam, font Be Vietnam Pro, thiết kế cho điện thoại trước. Màn quan trọng nhất là S4 "Gợi ý cho tôi": phần giải thích AI phải dễ hiểu và nổi bật. Trang chủ S0 (mục 5.1) là màn mở đầu buổi demo: tham khảo bố cục TopCV / VietnamWorks / bTaskee nhưng không vẽ logo công ty, lời chứng thực hay số liệu bịa. Dùng dữ liệu mẫu ở mục 8, toàn bộ chữ bằng tiếng Việt.

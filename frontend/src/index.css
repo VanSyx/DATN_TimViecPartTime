@@ -1,3 +1,9 @@
+/* ponytail: chưa bật preflight vì nó reset h1/list của các trang CSS thuần bên dưới.
+   Thay 2 dòng import bằng `@import "tailwindcss";` khi code lại xong UI và xoá CSS cũ. */
+@layer theme, base, components, utilities;
+@import "tailwindcss/theme.css" layer(theme);
+@import "tailwindcss/utilities.css" layer(utilities);
+
 :root {
   --text: #1f2937;
   --muted: #6b7280;

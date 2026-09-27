@@ -85,7 +85,7 @@ Branch: `feat/week5-integration` (tách từ `main` sau khi merge PR #12 Tuần 
 1. Mở PR `feat/week5-integration` → `main`, chờ CI xanh rồi merge.
 2. Render dashboard → Blueprint → **Sync** để tạo `timviec-ai` từ `render.yaml`. Chờ `https://timviec-ai.onrender.com/health` trả `{"status":"ok"}`.
 3. `timviec-backend` → Environment → `AI_SERVICE_URL=https://timviec-ai.onrender.com` → Save (backend tự deploy lại).
-4. **Chụp màn hình** các bước 2–3 (che các secret khác nếu có), ghi vào `docs/setup-log.md` **dòng #14**, ảnh lưu ở `docs/screenshots/week5/`.
+4. **Chụp màn hình** các bước 2–3 (che các secret khác nếu có), ghi vào `docs/setup-log.md` **dòng kế tiếp** (#14 đã dùng cho Tailwind), ảnh lưu ở `docs/screenshots/week5/`.
 5. Báo lại để agent chạy smoke test production: `/health` của 2 service, đăng nhập, `GET /jobs`, `GET /recommendations` (có `source: "ai"`).
 6. Ghi ngày tạo `timviec-db` (hạn 90 ngày của free tier, còn treo từ Tuần 1).
 

@@ -27,9 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return me
   }
 
+  // Tải lại trang chủ thay vì setUser(null): trang đang mở (RequireRole) sẽ kịp đẩy sang /login
+  // trước khi điều hướng xong; tải lại cũng xoá sạch dữ liệu của phiên cũ trong bộ nhớ
   function logout() {
     tokens.clear()
-    setUser(null)
+    window.location.assign('/')
   }
 
   return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>

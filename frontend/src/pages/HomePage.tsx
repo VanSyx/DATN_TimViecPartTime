@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { api, type Job } from '../api'
-import { ApplyButton, JobCard, JobDetailModal, PlaceSearch, type Detail, type Place } from '../job-ui'
+import { JobCard, JobDetailModal, PlaceSearch, useApplyButton, type Detail, type Place } from '../job-ui'
 import { AppStatusBadge, CardSkeleton, EmptyState, HeroArt, Icon, Logo, Segmented, type IconName } from '../ui'
 
 const KINDS: [IconName, string, boolean][] = [
@@ -25,7 +25,7 @@ const STEPS = {
 const FAQ = [
   ['Có mất phí không?', 'Không. TimViecPartTime miễn phí cho cả người tìm việc và người đăng tin.'],
   ['Có cần CV không?', 'Không cần. Bạn chỉ cần viết vài câu mô tả bản thân: việc bạn làm được, kinh nghiệm, điều bạn mong muốn.'],
-  ['Lịch rảnh khác ca làm cố định thế nào?', 'Bạn khai các khoảng rảnh theo từng ngày cụ thể, giờ nào cũng được (ví dụ 07:15–11:40), không bị gò vào ca Sáng/Chiều/Tối. Một việc chỉ được coi là hợp khi nằm trọn trong khoảng đó, đã tính thời gian đi lại.'],
+  ['Lịch rảnh khác ca làm cố định thế nào?', 'Bạn khai các khoảng rảnh theo từng ngày cụ thể, giờ nào cũng được (ví dụ 07:15–11:40), không bị gò vào ca Sáng/Chiều/Tối. Việc nằm trọn trong khoảng đó (đã tính thời gian đi lại) được điểm giờ rảnh cao nhất, trùng một phần thì được điểm theo tỉ lệ.'],
   ['AI gợi ý dựa vào đâu?', 'Dựa trên 4 yếu tố: mức khớp mô tả (35%), giờ rảnh (35%), khoảng cách (20%) và độ tin cậy (10%). Gợi ý nào cũng kèm lý do.'],
   ['Chưa xác minh email có dùng được không?', 'Được. Bạn vẫn đăng nhập và dùng bình thường, có thể xác minh sau.'],
 ]
@@ -47,6 +47,7 @@ export function HomePage() {
   const [jobs, setJobs] = useState<Job[] | null>(null)
   const [tab, setTab] = useState<'seeker' | 'employer'>('seeker')
   const [detail, setDetail] = useState<Detail | null>(null)
+  const applyButton = useApplyButton(false) // trang chủ chỉ dành cho khách: bấm Ứng tuyển → hỏi đăng nhập
 
   useEffect(() => {
     api.searchJobs({}).then(setJobs, () => setJobs([]))
@@ -97,7 +98,7 @@ export function HomePage() {
         {!!jobs?.length && (
           <div className="grid grid-cols-3 gap-5">
             {jobs.slice(0, 6).map((job) => (
-              <JobCard key={job.id} job={job} onDetail={() => setDetail({ job })} action={<ApplyButton job={job} className="h-10" />} />
+              <JobCard key={job.id} job={job} onDetail={() => setDetail({ job })} action={applyButton(job, 'h-10')} />
             ))}
           </div>
         )}
@@ -143,7 +144,7 @@ export function HomePage() {
             </div>
             {([
               ['file', 'Không lọc cứng theo ngành', 'AI đọc mô tả của bạn và của công việc để so khớp, bạn không cần chọn ngành nghề.'],
-              ['clock', 'Xét giờ rảnh thật, tính cả thời gian đi lại', 'Việc phải nằm trọn trong khoảng bạn rảnh, sau khi cộng thời gian đi tới nơi.'],
+              ['clock', 'Xét giờ rảnh thật, tính cả thời gian đi lại', 'Việc nằm trọn trong khoảng bạn rảnh, sau khi cộng thời gian đi lại, được xếp lên trước.'],
               ['sparkles', 'Luôn nói rõ vì sao gợi ý', 'Mỗi việc kèm 3–4 lý do ngắn. Muốn xem kỹ, bấm “Xem cách tính điểm”.'],
             ] as [IconName, string, string][]).map(([icon, title, desc]) => (
               <div key={title} className="flex gap-3.5">
@@ -226,7 +227,7 @@ export function HomePage() {
         </div>
       </footer>
 
-      <JobDetailModal item={detail} onClose={() => setDetail(null)} />
+      <JobDetailModal item={detail} onClose={() => setDetail(null)} action={detail && applyButton(detail.job, 'h-12 px-7')} />
     </>
   )
 }

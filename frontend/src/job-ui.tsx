@@ -1,12 +1,12 @@
 import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
-import { useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
+import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { api, ApiError, type Interval, type Job, type Recommendations } from './api'
+import { api, ApiError, type ApplicationStatus, type Interval, type Job, type Recommendations } from './api'
 import { useAuth } from './auth'
 import {
-  dateInput, FieldError, fmtDay, fmtHM, fmtHours, fmtMoney, fmtNum, fmtPct, fmtSlot, fullAddress, Icon, IconLine,
-  jobEnded, JobStatusBadge, Modal, ModalHeader, ScoreRing, Spinner, useToast, type IconName,
+  AppStatusBadge, dateInput, FieldError, fmtDay, fmtHM, fmtHours, fmtMoney, fmtNum, fmtPct, fmtSlot, fullAddress, Icon, IconLine,
+  jobEnded, JobStatusBadge, Modal, ModalHeader, ScoreRing, Spinner, useLoad, useToast, type IconName,
 } from './ui'
 
 export type Rec = Recommendations['items'][number]
@@ -384,7 +384,7 @@ export function JobCard({ job, rec, intervals = [], radius, onDetail, action, de
           <IconLine icon="pin">{job.ward}, {job.city}{job.distance_km != null && ` · ${fmtNum(job.distance_km)} km`}</IconLine>
           <IconLine icon="clock">{fmtSlot(job.time_start, job.time_end)}</IconLine>
         </div>
-        <div className="mt-auto flex items-center justify-between gap-3 border-t border-stone-100 pt-3.5">{money}{action}</div>
+        <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3.5">{money}{action}</div>
       </article>
     )
   }
@@ -440,7 +440,7 @@ function Tile({ label, main, sub }: { label: string; main: string; sub: string }
   )
 }
 
-export function JobDetailModal({ item, onClose, canApply = true }: { item: Detail | null; onClose: () => void; canApply?: boolean }) {
+export function JobDetailModal({ item, onClose, action }: { item: Detail | null; onClose: () => void; action?: ReactNode }) {
   const job = item?.job
   const rec = item?.rec
   const ended = job ? jobEnded(job) : false
@@ -489,18 +489,10 @@ export function JobDetailModal({ item, onClose, canApply = true }: { item: Detai
             )}
           </div>
           <div className="flex items-center gap-3 border-t border-stone-200 px-7 py-4">
-            {ended ? (
-              <>
-                <div className="flex flex-1 items-center gap-2 text-stone-700"><Icon name="info" className="text-stone-600" />Tin đã kết thúc — không nhận thêm đơn ứng tuyển.</div>
-                {canApply && <button type="button" className="btn h-12 px-6" disabled>Ứng tuyển</button>}
-              </>
-            ) : (
-              <>
-                <div className="flex-1" />
-                <button type="button" className="btn btn-plain h-12" onClick={onClose}>Đóng</button>
-                {canApply && <ApplyButton job={job} className="h-12 px-7" />}
-              </>
-            )}
+            {ended
+              ? <div className="flex flex-1 items-center gap-2 text-stone-700"><Icon name="info" className="text-stone-600" />Tin đã kết thúc — không nhận thêm đơn ứng tuyển.</div>
+              : <><div className="flex-1" /><button type="button" className="btn btn-plain h-12" onClick={onClose}>Đóng</button></>}
+            {action}
           </div>
         </div>
       )}
@@ -510,7 +502,19 @@ export function JobDetailModal({ item, onClose, canApply = true }: { item: Detai
 
 // ---------- Ứng tuyển (khách → hỏi đăng nhập; employer/admin → ẩn) ----------
 
-export function ApplyButton({ job, className = '' }: { job: Job; className?: string }) {
+/** Nút Ứng tuyển kèm trạng thái đơn đã có của seeker (đơn đã huỷ thì được ứng tuyển lại). */
+export function useApplyButton(enabled = true) {
+  const load = useCallback(() => (enabled ? api.myApplications() : Promise.resolve([])), [enabled])
+  const { data: apps, reload } = useLoad(load)
+  return (job: Job, className?: string) => (
+    <ApplyButton job={job} className={className} onApplied={reload}
+      status={apps?.find((a) => a.job.id === job.id && a.status !== 'cancelled')?.status} />
+  )
+}
+
+function ApplyButton({ job, status, onApplied, className = '' }: {
+  job: Job; status?: ApplicationStatus; onApplied?: () => void; className?: string
+}) {
   const { user } = useAuth()
   const toast = useToast()
   const location = useLocation()
@@ -518,13 +522,15 @@ export function ApplyButton({ job, className = '' }: { job: Job; className?: str
   const [askLogin, setAskLogin] = useState(false)
 
   if (user && user.role !== 'job_seeker') return null
-  if (state === 'done') {
+  const shown = status ?? (state === 'done' ? 'pending' : undefined)
+  if (shown === 'pending') {
     return (
       <span className="inline-flex h-11 shrink-0 items-center gap-2 rounded-full border border-amber-200 bg-amber-50 px-4 font-semibold text-amber-800">
         <Icon name="hourglass" size={18} className="text-amber-700" />Đã ứng tuyển · Chờ duyệt
       </span>
     )
   }
+  if (shown) return <AppStatusBadge status={shown} />
 
   async function apply() {
     if (!user) return setAskLogin(true)
@@ -539,6 +545,7 @@ export function ApplyButton({ job, className = '' }: { job: Job; className?: str
       setState(dup ? 'done' : 'idle')
       toast({ error: true, title: dup ? 'Bạn đã ứng tuyển việc này' : (err as Error).message, body: dup ? track : undefined })
     }
+    onApplied?.()
   }
 
   const next = encodeURIComponent(location.pathname + location.search)

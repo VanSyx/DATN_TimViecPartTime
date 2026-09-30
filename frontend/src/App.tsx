@@ -1,4 +1,4 @@
-import { createBrowserRouter, Link, Navigate, NavLink, Outlet, RouterProvider, useNavigate } from 'react-router-dom'
+import { createBrowserRouter, Link, Navigate, NavLink, Outlet, RouterProvider } from 'react-router-dom'
 import { roleHome, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
 import { LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
@@ -20,7 +20,6 @@ const navIdle = `${navItem} font-medium text-stone-600 hover:bg-stone-100 hover:
 
 function AccountMenu() {
   const { user, logout } = useAuth()
-  const navigate = useNavigate()
   if (!user) return null
   return (
     <details className="relative shrink-0">
@@ -33,7 +32,7 @@ function AccountMenu() {
       <div className="card absolute right-0 z-[1100] mt-2 flex w-60 flex-col p-1.5 shadow-md" onClick={(e) => { (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
         <div className="px-3 py-2 text-sm text-stone-500">{roleLabel[user.role]}</div>
         {user.role === 'job_seeker' && <Link to="/seeker/profile" className="menu-item">Hồ sơ & lịch rảnh</Link>}
-        <button type="button" className="menu-item text-red-700" onClick={() => { logout(); navigate('/') }}>Đăng xuất</button>
+        <button type="button" className="menu-item text-red-700" onClick={logout}>Đăng xuất</button>
       </div>
     </details>
   )

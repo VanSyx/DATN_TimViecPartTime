@@ -4,8 +4,8 @@ import { api, ApiError, roleHome, type Role, type User } from '../api'
 import { useAuth } from '../auth'
 import { Banner, FieldError, HeroArt, Icon, Logo, Spinner } from '../ui'
 
-// Chỉ nhận đường dẫn nội bộ: "//evil.com" cũng bắt đầu bằng "/" nhưng là URL ngoài
-const safeNext = (next: string | null) => (next?.startsWith('/') && !next.startsWith('//') ? next : null)
+// Chỉ nhận đường dẫn nội bộ: "//evil.com" và "/\evil.com" (trình duyệt đổi \ thành /) đều là URL ngoài
+const safeNext = (next: string | null) => (next && /^\/(?![/\\])/.test(next) ? next : null)
 const asApiError = (err: unknown) => (err instanceof ApiError ? err : new ApiError(0, 'Không kết nối được máy chủ, vui lòng thử lại sau.'))
 
 function AuthLayout({ children }: { children: ReactNode }) {

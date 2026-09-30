@@ -275,7 +275,8 @@ export function Modal({ open, onClose, className = '', children }: { open: boole
     setShown(open)
   }, [open])
   return (
-    <dialog ref={ref} onClose={onClose} onClick={(e) => e.target === e.currentTarget && onClose()}
+    // React cho sự kiện close của dialog con nổi bọt lên dialog cha: chỉ nhận close của chính nó
+    <dialog ref={ref} onClose={(e) => e.target === e.currentTarget && onClose()} onClick={(e) => e.target === e.currentTarget && onClose()}
       className={`m-auto max-h-[calc(100vh-48px)] max-w-[calc(100vw-48px)] overflow-hidden rounded-2xl bg-white p-0 text-stone-900 shadow-[0_24px_60px_rgba(28,25,23,0.28)] backdrop:bg-stone-900/50 ${className}`}>
       {shown && children}
     </dialog>
@@ -347,7 +348,7 @@ export function useLoad<T>(load: () => Promise<T>) {
   const [data, setData] = useState<T | null>(null)
   const [error, setError] = useState('')
   const reload = useCallback(() => {
-    load().then(setData, (err: Error) => setError(err.message))
+    load().then((d) => { setData(d); setError('') }, (err: Error) => setError(err.message))
   }, [load])
   useEffect(reload, [reload])
   return { data, error, reload }

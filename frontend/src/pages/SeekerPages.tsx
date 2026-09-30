@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api, type Application, type ApplicationStatus, type Interval, type Job, type Recommendations } from '../api'
 import { useAuth } from '../auth'
 import {
-  ApplyButton, createMap, hoursFrom, JobCard, JobDetailModal, PlaceSearch, spanStyle, upcomingByDay, VN_CENTER,
+  createMap, hoursFrom, JobCard, JobDetailModal, PlaceSearch, spanStyle, upcomingByDay, useApplyButton, VN_CENTER,
   type Detail, type Place,
 } from '../job-ui'
 import {
@@ -40,6 +40,7 @@ export function RecommendPage() {
   const [detail, setDetail] = useState<Detail | null>(null)
   const { data: me } = useLoad(api.me)
   const { data: intervals } = useLoad(api.availability)
+  const applyButton = useApplyButton()
 
   const load = useCallback((s: Saved) => {
     setLoading(true)
@@ -155,7 +156,7 @@ export function RecommendPage() {
               </div>
               {result.items.map((rec, i) => (
                 <JobCard key={rec.job.id} job={rec.job} rec={rec} intervals={intervals ?? []} radius={saved.radius} defaultExpanded={i === 0 && !fallback}
-                  onDetail={() => setDetail({ job: rec.job, rec })} action={<ApplyButton job={rec.job} />} />
+                  onDetail={() => setDetail({ job: rec.job, rec })} action={applyButton(rec.job)} />
               ))}
             </>
           )}
@@ -188,7 +189,7 @@ export function RecommendPage() {
         </aside>
       </div>
 
-      <JobDetailModal item={detail} onClose={() => setDetail(null)} />
+      <JobDetailModal item={detail} onClose={() => setDetail(null)} action={detail && applyButton(detail.job, 'h-12 px-7')} />
     </main>
   )
 }
@@ -250,6 +251,7 @@ export function SearchPage() {
   const [error, setError] = useState('')
   const [selected, setSelected] = useState<string | null>(null)
   const [detail, setDetail] = useState<Detail | null>(null)
+  const applyButton = useApplyButton(user?.role === 'job_seeker')
 
   function set(patch: Record<string, string | null>) {
     const next = new URLSearchParams(params)
@@ -357,7 +359,7 @@ export function SearchPage() {
       {!!jobs?.length && view === 'list' && (
         <>
           <div className="grid grid-cols-3 gap-5">
-            {jobs.map((job) => <JobCard key={job.id} job={job} onDetail={() => setDetail({ job })} action={<ApplyButton job={job} className="h-10" />} />)}
+            {jobs.map((job) => <JobCard key={job.id} job={job} onDetail={() => setDetail({ job })} action={applyButton(job, 'h-10')} />)}
           </div>
           <div className="pt-2 text-center text-sm text-stone-500">{place ? 'Đã hiện tất cả việc trong bán kính' : 'Đã hiện các việc mới nhất'}</div>
         </>
@@ -385,11 +387,11 @@ export function SearchPage() {
               <div className="card absolute bottom-4 left-1/2 z-[1000] flex w-[340px] -translate-x-1/2 flex-col gap-2 p-4 shadow-[0_10px_30px_rgba(28,25,23,0.22)]">
                 <div className="leading-[22px] font-semibold">{sel.title}</div>
                 <div className="text-sm text-stone-600">{fmtSlot(sel.time_start, sel.time_end)}{sel.distance_km != null && ` · cách ${fmtNum(sel.distance_km)} km`}</div>
-                <div className="mt-1 flex items-center justify-between gap-2">
+                <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
                   <b className="text-lg font-semibold">{fmtMoney(sel.salary)}</b>
-                  <div className="flex gap-2">
+                  <div className="flex flex-wrap justify-end gap-2">
                     <button type="button" className="btn btn-secondary h-10 px-3 text-sm" onClick={() => setDetail({ job: sel })}>Chi tiết</button>
-                    <ApplyButton job={sel} className="h-10 px-3.5 text-sm" />
+                    {applyButton(sel, 'h-10 px-3.5 text-sm')}
                   </div>
                 </div>
               </div>
@@ -398,7 +400,7 @@ export function SearchPage() {
         </div>
       )}
 
-      <JobDetailModal item={detail} onClose={() => setDetail(null)} />
+      <JobDetailModal item={detail} onClose={() => setDetail(null)} action={detail && applyButton(detail.job, 'h-12 px-7')} />
     </main>
   )
 }
@@ -525,7 +527,7 @@ export function ProfilePage() {
               <span className="grid size-28 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-700"><Icon name="calendarPlus" size={44} stroke={1.5} /></span>
               <div className="flex flex-col gap-2.5">
                 <h3 className="text-xl leading-7 font-semibold">Bạn chưa khai giờ rảnh nào</h3>
-                <p className="text-pretty text-stone-600">AI chỉ gợi ý việc nằm trọn trong giờ bạn rảnh. Khai ít nhất một khoảng để bắt đầu nhận gợi ý.</p>
+                <p className="text-pretty text-stone-600">AI ưu tiên việc nằm trọn trong giờ bạn rảnh. Chưa khai thì mọi việc đều bị tính là ngoài giờ rảnh.</p>
                 <ol className="mt-1 flex flex-col gap-2">
                   {['Bấm “Thêm khoảng rảnh” và chọn ngày', 'Chọn giờ bắt đầu và kết thúc (vd 07:15–11:40)', 'Lưu — gợi ý sẽ cập nhật theo lịch mới'].map((s, i) => (
                     <li key={s} className="flex items-center gap-2.5">
@@ -570,7 +572,7 @@ export function ProfilePage() {
               </div>
               <div className="flex items-center gap-2 rounded-[10px] bg-teal-50 px-3.5 py-3 text-sm leading-5 text-teal-800">
                 <Icon name="info" size={18} className="text-teal-700" />
-                Một việc chỉ được coi là hợp khi nằm trọn trong một khoảng rảnh, đã tính thời gian đi lại. Rê chuột lên khoảng rảnh để xoá.
+                Việc nằm trọn trong giờ rảnh (đã tính thời gian đi lại) được điểm giờ rảnh cao nhất, trùng một phần thì được điểm theo tỉ lệ. Rê chuột lên khoảng rảnh để xoá.
               </div>
             </>
           )}
@@ -692,7 +694,7 @@ export function MyApplicationsPage() {
       <ConfirmModal open={!!cancel} title="Hủy đơn ứng tuyển?" keep="Giữ đơn" confirm="Hủy đơn" busy={busy} onConfirm={confirmCancel} onClose={() => setCancel(null)}>
         Bạn sẽ rút đơn khỏi “{cancel?.job.title}”. Có thể ứng tuyển lại nếu tin còn mở.
       </ConfirmModal>
-      <JobDetailModal item={detail} onClose={() => setDetail(null)} canApply={false} />
+      <JobDetailModal item={detail} onClose={() => setDetail(null)} />
     </main>
   )
 }

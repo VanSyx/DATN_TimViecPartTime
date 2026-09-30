@@ -8,7 +8,7 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 ## 2. Tech Stack
 | Thành phần | Công nghệ |
 |---|---|
-| Frontend | React (Vite) + TailwindCSS |
+| Frontend | React (Vite) + TailwindCSS v4 (plugin `@tailwindcss/vite`, cấu hình trong `src/index.css`). Giao diện chỉ cho laptop/máy tính, theo mockup Claude Design (`docs/design/mockups/README.md`): component dùng chung ở `src/ui.tsx` (icon Lucide inline, modal `<dialog>`, toast) và `src/job-ui.tsx` (JobCard, chi tiết việc, bản đồ) |
 | Backend chính | Python FastAPI |
 | AI Service | Python FastAPI (microservice riêng, tách khỏi backend chính) |
 | Database | PostgreSQL 15+ + PostGIS + pgvector |
@@ -37,7 +37,7 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 
 **Lưu ý cổng DB:** máy dev đã có PostgreSQL cài sẵn chiếm 5432, nên compose map host port **5433** → `db:5432`. Nối từ host (alembic, psql, test) dùng 5433; service trong compose vẫn dùng `db:5432`.
 
-**Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chứa db + backend + ai-service. Backend gọi `ai-service` qua `GET /recommendations` (fallback theo khoảng cách khi AI không phản hồi). `ai-service` chưa có trên Render — thêm vào `render.yaml` ở bước deploy Tuần 5.
+**Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chứa db + backend + ai-service. Backend gọi `ai-service` qua `GET /recommendations` (fallback theo khoảng cách khi AI không phản hồi). Trên Render, `ai-service` là service `timviec-ai` (khai trong `render.yaml`, tự tạo khi merge PR #13); backend gọi qua URL public trong biến `AI_SERVICE_URL`.
 
 ## 4. Core Logic Summary
 Điểm gợi ý job = tổ hợp có trọng số của 4 thành phần: `semantic_score` (khớp mô tả), `time_feasibility_score` (chồng lấp lịch rảnh, trừ thời gian di chuyển), `geo_score` (khoảng cách), `trust_modifier` (rating). Cài đặt ở `ai-service/app/scoring.py` (TF-IDF tự cài, không dùng thư viện ML — tuần 6 mới thêm `sentence-transformers`). Chi tiết công thức, business rules, lộ trình nâng cấp: **`.claude/docs/ai_scoring.md`**.

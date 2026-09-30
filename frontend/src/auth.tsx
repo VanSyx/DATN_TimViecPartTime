@@ -1,5 +1,5 @@
 import { createContext, useContext, useEffect, useState, type ReactNode } from 'react'
-import { Navigate, Outlet } from 'react-router-dom'
+import { Navigate, Outlet, useLocation } from 'react-router-dom'
 import { api, roleHome, tokens, type Role, type User } from './api'
 
 type AuthState = {
@@ -27,9 +27,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return me
   }
 
+  // Tải lại trang chủ thay vì setUser(null): trang đang mở (RequireRole) sẽ kịp đẩy sang /login
+  // trước khi điều hướng xong; tải lại cũng xoá sạch dữ liệu của phiên cũ trong bộ nhớ
   function logout() {
     tokens.clear()
-    setUser(null)
+    window.location.assign('/')
   }
 
   return <AuthContext.Provider value={{ user, loading, login, logout }}>{children}</AuthContext.Provider>
@@ -44,8 +46,9 @@ export function useAuth() {
 // Chỉ để điều hướng UI — quyền thật do backend enforce (require_role)
 export function RequireRole({ roles }: { roles: Role[] }) {
   const { user, loading } = useAuth()
-  if (loading) return <p>Đang tải...</p>
-  if (!user) return <Navigate to="/login" replace />
+  const location = useLocation()
+  if (loading) return <p className="page text-stone-500">Đang tải…</p>
+  if (!user) return <Navigate to={`/login?next=${encodeURIComponent(location.pathname)}`} replace />
   if (!roles.includes(user.role)) return <Navigate to={roleHome[user.role]} replace />
   return <Outlet />
 }

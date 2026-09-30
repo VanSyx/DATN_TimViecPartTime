@@ -22,6 +22,7 @@ docker compose up -d                          # db (postgis) + backend :8000 + a
 cd backend && .venv/Scripts/python -m pytest  # test backend (cần db đang chạy)
 cd ai-service && .venv/Scripts/python -m pytest  # unit test AI scoring (không cần db)
 docker compose exec backend python seed.py    # dữ liệu mẫu kiểu người dùng thật (19 tài khoản, mật khẩu matkhau123), chạy lại được
+docker compose exec backend python offline_eval.py  # đánh giá offline P@k/R@k/NDCG@k trên seed (chạy seed trước)
 cd frontend && npm run dev                    # frontend → http://localhost:5173
 cd frontend && npm run build                  # build production
 ```

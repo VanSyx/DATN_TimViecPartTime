@@ -359,7 +359,7 @@ Merge = deploy. Production **không có dữ liệu seed**, dùng tài khoản t
 | PROD-03 | P1 | Tải lại ở đường dẫn sâu | Mở thẳng `…/tim-viec` và `…/seeker/profile`, nhấn F5 | Không bị 404 (Static Site cần rule Rewrite `/*` → `/index.html`) | Đạt |
 | PROD-04 | P1 | CORS | Đăng ký 1 tài khoản test trên production | Thành công, tab Console không có lỗi CORS | Đạt |
 | PROD-05 | P1 | Luồng chính | Tài khoản người đăng tin test đăng 1 tin → tài khoản người tìm việc test khai lịch rảnh, xem gợi ý, ứng tuyển → người đăng tin nhận | Đi hết không lỗi | Đạt |
-| PROD-06 | P1 | AI thật, không phải dự phòng | Trang Gợi ý sau khi đã đặt `AI_SERVICE_URL` | Có vòng % và lý do, **không** có banner "AI tạm thời không phản hồi". Nếu còn banner: kiểm biến `AI_SERVICE_URL` trên `timviec-backend` | Lỗi #3 |
+| PROD-06 | P1 | AI thật, không phải dự phòng | Trang Gợi ý sau khi đã đặt `AI_SERVICE_URL` | Có vòng % và lý do, **không** có banner "AI tạm thời không phản hồi". Nếu còn banner: kiểm biến `AI_SERVICE_URL` trên `timviec-backend` | Đạt (lần 2, sau khi sửa Bug #3) |
 | PROD-07 | P2 | Dọn dẹp | Đóng tin test | Tin không còn hiện với người khác | Đạt |
 
 ---
@@ -397,20 +397,20 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 14. Quản trị | 2 | 2 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
-| 17. Production | 7 | 6 | 1 | 0 |
-| **Tổng** | **213** | **212** | **1** | **0** |
+| 17. Production | 7 | 7 | 0 | 0 |
+| **Tổng** | **213** | **213** | **0** | **0** |
 
 ## 20. Kết quả chạy 2026-09-30 (trước khi merge `feat/week6-ui`)
 
 - **Cách chạy**: mục 1–15 tự động hoá bằng `playwright-core` điều khiển Edge headless (1440×900, múi giờ Asia/Ho_Chi_Minh, quyền vị trí đặt tại Bạch Mai), cài ngoài dự án như setup-log #15. Mục 16 chạy lệnh trực tiếp. Dữ liệu seed lại trước mỗi nhóm.
-- **Kết quả**: mục 1–16 đạt **206/206** (AUTO-05 = CI trên `main` sau merge). Mục 17 (production, sau merge `f37e738`): **6/7**, PROD-06 lỗi do cấu hình (Bug #3). Sau khi sửa lỗi đã chạy lại toàn bộ 201 case mục 1–15 trên bản code cuối: 201/201 đạt, không có lỗi Console.
+- **Kết quả**: mục 1–16 đạt **206/206** (AUTO-05 = CI trên `main` sau merge). Mục 17 (production, sau merge `f37e738`): lần 1 **6/7** (PROD-06 lỗi do cấu hình, Bug #3); sau khi đặt `AI_SERVICE_URL` chạy lại PROD-05/06/07: đạt, tổng **213/213**. Sau khi sửa lỗi đã chạy lại toàn bộ 201 case mục 1–15 trên bản code cuối: 201/201 đạt, không có lỗi Console.
 - Mục 17 để lại trên production 2 tài khoản test `qa-prod-1790765974015-emp@example.org`, `qa-prod-1790765974015-seek@example.org` (chưa có API xoá tài khoản); tin test đã đóng.
 - Mã xác minh ở mục 2 được đặt qua DB (hash bcrypt) thay vì đọc log, vì log Docker Desktop bị luân chuyển; luồng đọc log đã kiểm riêng ở REG-01.
 
 | Bug | Case phát hiện | Mức độ | Mô tả | Xử lý |
 |---|---|---|---|---|
 | #1 | LOGIN-11 | Cao | Bấm "Đăng xuất" về `/` rồi bị đẩy tiếp sang `/login?next=%2Fseeker`, vì trang đang mở (RequireRole) thấy mất user trước khi điều hướng xong | `logout()` xoá token rồi tải lại trang chủ (`window.location.assign('/')`) |
-| #3 | PROD-06 | Cao | Trang gợi ý trên production luôn ở chế độ AI dự phòng dù `timviec-ai` `/health` 200: `timviec-backend` chưa có biến `AI_SERVICE_URL` nên gọi mặc định `localhost:8001` | **Chưa xử lý** — người thực hiện đặt `AI_SERVICE_URL=https://timviec-ai.onrender.com` trên Render (chụp màn hình vào setup-log), rồi chạy lại PROD-06 |
+| #3 | PROD-06 | Cao | Trang gợi ý trên production luôn ở chế độ AI dự phòng dù `timviec-ai` `/health` 200: `timviec-backend` chưa có biến `AI_SERVICE_URL` nên gọi mặc định `localhost:8001` | Người thực hiện đặt `AI_SERVICE_URL=https://timviec-ai.onrender.com` trên Render (setup-log #16), PROD-06 chạy lại đạt |
 | #2 | SRCH-16 | Trung bình | Nhãn "Đã ứng tuyển · Chờ duyệt" trong thẻ gọn 3 cột đẩy tiền công xuống 2 dòng và tràn ra ngoài thẻ; popup bản đồ cũng tràn | Cho hàng dưới thẻ và cụm nút popup tự xuống dòng (`flex-wrap`) |
 
 | Quan sát | Mô tả | Đề xuất |

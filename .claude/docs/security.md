@@ -16,7 +16,7 @@
 
 ## Secrets
 - Không commit secret/credential vào git. Quản lý qua biến môi trường `.env`.
-- Biến cần thiết: `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `EMBEDDING_MODEL_PATH`, `CORS_ORIGINS`.
+- Biến cần thiết: `DATABASE_URL`, `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `CORS_ORIGINS`.
 - **Không tự động xử lý credential production.** Việc nhập secret và phê duyệt deploy lần đầu lên production cần xác nhận thủ công từ người thực hiện — agent không tự ý thực hiện bước này.
 
 ## Nguồn tham khảo

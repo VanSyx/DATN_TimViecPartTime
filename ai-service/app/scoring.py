@@ -4,7 +4,7 @@ import unicodedata
 from collections import Counter
 from datetime import datetime, timedelta
 
-# ponytail: trọng số chọn tay, hiệu chỉnh bằng đánh giá offline (Precision@k/NDCG@k) trước mốc khóa tuần 6
+# Chọn tay, khoá 2026-09-30 sau đánh giá offline (backend/offline_eval.py): hơn 2 baseline, lưới trọng số không đáng đổi
 WEIGHTS = {"semantic": 0.35, "time_feasibility": 0.35, "geo": 0.2, "trust": 0.1}
 # ponytail: tốc độ xe máy nội thành cố định, thay bằng API định tuyến nếu cần thời gian đi thật
 TRAVEL_SPEED_KMH = 20
@@ -31,13 +31,13 @@ def _terms(text: str) -> list[str]:
     syllables = re.findall(r"\w+", unicodedata.normalize("NFC", text).lower())
     terms = syllables + [f"{a} {b}" for a, b in zip(syllables, syllables[1:])]
     # Thêm bản không dấu để người gõ "don nha" vẫn khớp tin "dọn nhà".
-    # ponytail: gộp nhầm vài từ khác nghĩa (chợ/chó → cho), hết khi lên embedding tuần 6
+    # ponytail: gộp nhầm vài từ khác nghĩa (chợ/chó → cho) — giới hạn đã chấp nhận của TF-IDF, không lên embedding
     return terms + [_unaccent(t) for t in terms]
 
 
 def semantic_scores(query: str, docs: list[str]) -> list[float]:
     """Cosine TF-IDF giữa mô tả người tìm việc và từng job; IDF tính trên chính lô job + query."""
-    # ponytail: IDF theo từng request (AI service không giữ state), đổi sang embedding + pgvector ở tuần 6
+    # ponytail: IDF theo từng request (AI service không giữ state) nên lô nhỏ thì IDF kém ổn định
     bags = [Counter(_terms(t)) for t in [query, *docs]]
     n = len(bags)
     df = Counter(term for bag in bags for term in bag)

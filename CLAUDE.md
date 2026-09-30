@@ -11,7 +11,7 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 | Frontend | React (Vite) + TailwindCSS v4 (plugin `@tailwindcss/vite`, cấu hình trong `src/index.css`). Giao diện chỉ cho laptop/máy tính, theo mockup Claude Design (`docs/design/mockups/README.md`): component dùng chung ở `src/ui.tsx` (icon Lucide inline, modal `<dialog>`, toast) và `src/job-ui.tsx` (JobCard, chi tiết việc, bản đồ) |
 | Backend chính | Python FastAPI |
 | AI Service | Python FastAPI (microservice riêng, tách khỏi backend chính) |
-| Database | PostgreSQL 15+ + PostGIS + pgvector |
+| Database | PostgreSQL 15+ + PostGIS (không dùng pgvector — giữ TF-IDF, quyết định 2026-09-30) |
 | Auth | JWT + refresh token, bcrypt/argon2 |
 | CI/CD | Docker + Docker Compose + GitHub Actions |
 | Deploy | Render (Blueprint `render.yaml`) — backend Docker web service + managed Postgres, frontend static site tạo tay qua dashboard |
@@ -41,12 +41,12 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 **Frontend không nằm trong docker-compose** — chạy trực tiếp bằng Vite dev server (nhanh hơn, và production deploy dạng static build). Compose chứa db + backend + ai-service. Backend gọi `ai-service` qua `GET /recommendations` (fallback theo khoảng cách khi AI không phản hồi). Trên Render, `ai-service` là service `timviec-ai` (khai trong `render.yaml`, tự tạo khi merge PR #13); backend gọi qua URL public trong biến `AI_SERVICE_URL`.
 
 ## 4. Core Logic Summary
-Điểm gợi ý job = tổ hợp có trọng số của 4 thành phần: `semantic_score` (khớp mô tả), `time_feasibility_score` (chồng lấp lịch rảnh, trừ thời gian di chuyển), `geo_score` (khoảng cách), `trust_modifier` (rating). Cài đặt ở `ai-service/app/scoring.py` (TF-IDF tự cài, không dùng thư viện ML — tuần 6 mới thêm `sentence-transformers`). Chi tiết công thức, business rules, lộ trình nâng cấp: **`.claude/docs/ai_scoring.md`**.
+Điểm gợi ý job = tổ hợp có trọng số của 4 thành phần: `semantic_score` (khớp mô tả), `time_feasibility_score` (chồng lấp lịch rảnh, trừ thời gian di chuyển), `geo_score` (khoảng cách), `trust_modifier` (rating). Cài đặt ở `ai-service/app/scoring.py` (TF-IDF tự cài, không dùng thư viện ML; **không** lên embedding — quyết định 2026-09-30). Chi tiết công thức, business rules, kết quả đánh giá offline: **`.claude/docs/ai_scoring.md`**.
 
 ## 5. Key Constraints
 - **Không code tính năng ngoài Scope đã chốt** (`docs/PROJECT_PLAN.md` mục 2) mà không xác nhận trước với người thực hiện.
 - **Không triển khai Collaborative Filtering** — quyết định kiến trúc đã chốt (lý do: `.claude/docs/ai_scoring.md`).
-- **Thiết kế công thức AI bị khóa sau tuần 6** — không đổi kiến trúc scoring sau mốc này.
+- **Thiết kế AI đã khoá (2026-09-30)**: TF-IDF + trọng số `0.35/0.35/0.2/0.1`, kiểm bằng đánh giá offline (`backend/offline_eval.py`, hơn cả 2 baseline). Không đổi kiến trúc scoring, không thêm embedding/pgvector.
 - **RBAC phải enforce ở backend**, không chỉ ẩn/hiện UI. Chi tiết: `.claude/docs/security.md`.
 - **Không tự động xử lý secret/credential production** — deploy lần đầu và nhập secret cần xác nhận thủ công từ người thực hiện, agent không tự ý làm.
 - **Mốc cuối tuần 5 = 70% chức năng, không phải 100%** — đừng giả định toàn bộ FR đã xong chỉ vì đang ở tuần 5.
@@ -62,7 +62,7 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 - `docs/PROJECT_PLAN.md` — nguồn tham chiếu chính: Scope, Requirements, Timeline 5 tuần, Testing, Risk, Deployment, Definition of Done.
 - `docs/progress-reports/` — báo cáo tiến độ cuối mỗi tuần (xem mục 5).
 - `.claude/docs/architecture.md` — kiến trúc microservice, API contract backend ↔ AI service.
-- `.claude/docs/database.md` — entity, PostGIS/pgvector.
+- `.claude/docs/database.md` — entity, PostGIS.
 - `.claude/docs/ai_scoring.md` — công thức AI đầy đủ, business rules.
 - `.claude/docs/security.md` — auth, RBAC, secrets.
 

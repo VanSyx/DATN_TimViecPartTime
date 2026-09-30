@@ -24,7 +24,7 @@ Xây dựng nền tảng web kết nối Job Seeker và Employer cho công việ
 final_score = w1 × semantic_score + w2 × time_feasibility_score + w3 × geo_score + w4 × trust_modifier
 ```
 
-- **Semantic matching:** so khớp ngữ nghĩa giữa mô tả công việc và nhu cầu người tìm việc (TF-IDF + cosine ở giai đoạn 1, nâng cấp embedding ở tuần 6+)
+- **Semantic matching:** so khớp ngữ nghĩa giữa mô tả công việc và nhu cầu người tìm việc (TF-IDF + cosine; quyết định 2026-09-30 giữ TF-IDF, không lên embedding)
 - **Time-feasibility scoring:** độ chồng lấp (overlap) giữa lịch rảnh dạng interval và khung giờ job, trừ thời gian di chuyển ước lượng (Haversine)
 - **Geo score:** khoảng cách địa lý (PostGIS)
 - **Trust modifier:** rating hai chiều tác động vào điểm gợi ý
@@ -58,7 +58,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Deploy production ổn định, CI/CD chạy được, có smoke test
 
 ## 2.2 Scope hoàn thiện — tuần 6-12 (không chi tiết trong tài liệu này)
-- Nâng cấp semantic_score từ TF-IDF sang embedding (sentence-transformers) + pgvector
+- ~~Nâng cấp semantic_score từ TF-IDF sang embedding (sentence-transformers) + pgvector~~ — bỏ (quyết định 2026-09-30; thay bằng đánh giá offline + khoá thiết kế AI)
 - Rating 2 chiều đầy đủ sau khi hoàn thành công việc
 - Trust & Safety đầy đủ: tích hợp provider gửi mã xác minh email/SMS thật (khung xác minh đã có từ tuần 1-5), report/block user
 - Thông báo in-app
@@ -92,7 +92,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR10 | Admin duyệt tin đăng, khóa/mở khóa tài khoản user, xử lý report | Tuần 6-12 |
 
 ## 3.2 Non-functional Requirements
-- **Hiệu năng:** Model embedding/TF-IDF chạy local, không phụ thuộc API ngoài — tránh độ trễ mạng và chi phí khi demo
+- **Hiệu năng:** TF-IDF chạy local, không phụ thuộc API ngoài — tránh độ trễ mạng và chi phí khi demo
 - **Bảo mật:** JWT + refresh token, hashing password (bcrypt/argon2), RBAC enforce ở backend (không chỉ ẩn/hiện UI), rate limiting cho endpoint nhạy cảm
 - **Độ tin cậy:** Có cơ chế fallback nếu AI service down (xếp theo khoảng cách nếu AI service không phản hồi, timeout 5s — đã làm Tuần 5)
 - **Khả năng vận hành:** Logging/error tracking trên production (Sentry hoặc structured log tối thiểu)
@@ -101,7 +101,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 
 ## 3.3 Business Rules
 - `final_score = w1×semantic_score + w2×time_feasibility_score + w3×geo_score + w4×trust_modifier`, tất cả thành phần chuẩn hóa [0,1] (min-max với cận cố định, không theo từng lô job) trước khi nhân trọng số — chi tiết từng thành phần: `.claude/docs/ai_scoring.md`
-- Giai đoạn 1 (mốc 70%, tuần 5): `semantic_score` dùng TF-IDF + cosine similarity; Giai đoạn 2 (tuần 6+): nâng cấp embedding (`sentence-transformers`) + pgvector
+- Giai đoạn 1 (mốc 70%, tuần 5): `semantic_score` dùng TF-IDF + cosine similarity; quyết định 2026-09-30: giữ TF-IDF và trọng số hiện tại, khoá thiết kế AI (kết quả đánh giá: `.claude/docs/ai_scoring.md`)
 - `trust_modifier` mặc định trung lập (1.0) khi chưa có dữ liệu rating
 - Không triển khai Collaborative Filtering
 - Thiết kế thuật toán AI bị khóa (không đổi kiến trúc) sau tuần 6 để đảm bảo tính nhất quán với báo cáo
@@ -114,7 +114,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Microservice tối giản: **Frontend (SPA) ↔ Backend chính (API) ↔ AI Service** (microservice riêng, giao tiếp qua REST API contract)
 - Monorepo: 1 repo chứa frontend, backend, ai-service, docs
 - Docker Compose chứa `db` + `backend` (+ `ai-service` từ tuần 4). Frontend không đóng container: local chạy Vite dev server, production deploy dạng static build (xem `.claude/docs/architecture.md`)
-- AI service tách riêng để cô lập model, tránh làm nặng backend chính và cho phép nâng cấp AI độc lập theo giai đoạn (TF-IDF → embedding)
+- AI service tách riêng để cô lập model, tránh làm nặng backend chính và cho phép đánh giá/kiểm thử AI độc lập
 
 ## 4.2 Technology Stack
 
@@ -123,19 +123,19 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Frontend | React (Vite) + TailwindCSS | |
 | Backend chính | Python FastAPI | Đồng bộ ngôn ngữ với AI service, giảm chi phí chuyển ngữ cảnh cho dev solo |
 | AI Service | Python FastAPI (microservice riêng) | Model chạy local, không gọi API ngoài |
-| Database | PostgreSQL 15+ + PostGIS + pgvector | PostGIS cho geo query, pgvector cho semantic search (từ tuần 6+) |
+| Database | PostgreSQL 15+ + PostGIS | PostGIS cho geo query (không dùng pgvector, quyết định 2026-09-30) |
 | Auth | JWT + refresh token | Hashing bcrypt/argon2 |
 | CI/CD & Deploy | Docker + Docker Compose + GitHub Actions + Render (Blueprint) | |
 
 ## 4.3 Database — các entity chính
 - `users` (role: job_seeker/employer/admin, thông tin xác minh)
-- `jobs` (vị trí, khung giờ cần, lương, mô tả, vector embedding, employer_id)
+- `jobs` (vị trí, khung giờ cần, lương, mô tả, employer_id)
 - `availability_intervals` (lịch rảnh dạng interval của job seeker)
 - `applications` (trạng thái đơn ứng tuyển, liên kết user-job)
 - `ratings` (đánh giá hai chiều — tuần 6-12)
 - `reports` (báo cáo vi phạm — tuần 6-12)
 - `notifications` (thông báo in-app, FR9 — tuần 6-12)
-- Extension bắt buộc: PostGIS (geo query), pgvector (semantic search, kích hoạt từ tuần 6+)
+- Extension bắt buộc: PostGIS (geo query)
 
 ## 4.4 API
 - Toàn bộ API viết theo OpenAPI/Swagger spec, xác định từ tuần 1 trước khi code
@@ -160,7 +160,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 **Mục tiêu:** Nền móng kỹ thuật sẵn sàng, thiết kế hệ thống hoàn tất, pipeline deploy hoạt động.
 | Ngày | Công việc |
 |---|---|
-| 1-2 | Setup monorepo (frontend/backend/ai-service/docs), Docker Compose local (Postgres+PostGIS+pgvector), khởi tạo GitHub repo + Actions cơ bản |
+| 1-2 | Setup monorepo (frontend/backend/ai-service/docs), Docker Compose local (Postgres+PostGIS), khởi tạo GitHub repo + Actions cơ bản |
 | 3-4 | Thiết kế ERD, use case diagram, sequence diagram cho luồng chính; viết OpenAPI spec khung |
 | 5 | Deploy "Hello World" (FE + BE trả response đơn giản) lên production (Render), xác nhận CI/CD chạy được |
 | — | ✅ **Đã xác nhận với GVHD:** mốc 70% có tính AI, chỉ bắt buộc `semantic + time_feasibility + geo` (xem mục 3.1 FR4, mục 8) |
@@ -212,8 +212,8 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 
 ## 5.2 Tóm tắt tuần 6-12 (ngoài phạm vi chi tiết của tài liệu này)
 - Nhịp độ đề xuất mỗi tuần: xen kẽ ngày code / ngày viết báo cáo (ví dụ 3 ngày code – 3 ngày report), không dồn báo cáo về cuối
-- **Code song song:** hoàn thiện 30% chức năng còn lại (FR6-FR10), nâng cấp `semantic_score` sang embedding + pgvector (khóa thiết kế sau tuần 6), security hardening, fix bug phát sinh
-- **Thiết kế lại UI (TailwindCSS), tuần 6-7, song song với AI**: brief `docs/design/ui-redesign-brief.md` → mockup → code lại frontend (chỉ thay giao diện, backend không đổi), thêm trang chủ giới thiệu S0 cho khách (quyết định 2026-09-27, tham khảo bố cục TopCV/bTaskee). Việc AI (đánh giá offline + embedding) vẫn ưu tiên trước vì thiết kế AI khoá sau tuần 6
+- **Code song song:** hoàn thiện 30% chức năng còn lại (FR6-FR10), đánh giá offline + khoá thiết kế AI (xong 2026-09-30, giữ TF-IDF), security hardening, fix bug phát sinh
+- **Thiết kế lại UI (TailwindCSS), tuần 6-7, song song với AI**: brief `docs/design/ui-redesign-brief.md` → mockup → code lại frontend (chỉ thay giao diện, backend không đổi), thêm trang chủ giới thiệu S0 cho khách (quyết định 2026-09-27, tham khảo bố cục TopCV/bTaskee). Việc AI: đánh giá offline xong và khoá thiết kế 2026-09-30 (giữ TF-IDF, không làm embedding)
 - **Report:** viết các chương báo cáo theo template của trường (cần bổ sung khi có template cụ thể — xem mục 10)
 - **Testing:** không ưu tiên pilot test người dùng thật quy mô lớn do giới hạn thời gian — xem chi tiết mục 7
 - Tuần 11-12: sửa theo góp ý GVHD, hoàn thiện nộp
@@ -283,9 +283,9 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 # 9. Deployment
 
 ## 9.1 Environment
-- **Local:** Docker Compose (`db` Postgres+PostGIS, `backend`; `ai-service` thêm từ tuần 4; pgvector thêm từ tuần 6) + frontend chạy ngoài compose bằng Vite dev server
+- **Local:** Docker Compose (`db` Postgres+PostGIS, `backend`; `ai-service` thêm từ tuần 4) + frontend chạy ngoài compose bằng Vite dev server
 - **Production:** Render — backend deploy bằng Docker (Blueprint `render.yaml` ở root), Postgres dùng managed database của Render (free tier, xem rủi ro mục 8)
-- **Biến môi trường cần thiết:** `DATABASE_URL` (Render tự inject từ managed DB), `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `EMBEDDING_MODEL_PATH`, `CORS_ORIGINS` — không commit vào git; các biến secret khai trong `render.yaml` với `sync: false` để Render bắt buộc nhập tay qua dashboard, không tự động hóa
+- **Biến môi trường cần thiết:** `DATABASE_URL` (Render tự inject từ managed DB), `JWT_SECRET`, `JWT_REFRESH_SECRET`, `AI_SERVICE_URL`, `CORS_ORIGINS` — không commit vào git; các biến secret khai trong `render.yaml` với `sync: false` để Render bắt buộc nhập tay qua dashboard, không tự động hóa
 
 ## 9.2 CI/CD
 - GitHub Actions: chạy lint + test tự động khi push lên `main` / mở PR (không gate việc deploy — Render tự build/deploy song song khi push vào `main`, độc lập với CI)
@@ -346,8 +346,8 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 
 ## 11.2 DoD — Toàn bộ dự án (tham chiếu cho tuần 6-12)
 - [ ] Tất cả FR1-FR10 hoạt động đúng trên production
-- [ ] AI service nâng cấp lên embedding + pgvector, vẫn có explainable breakdown
-- [ ] Có tối thiểu một tập dữ liệu offline evaluation (Precision@k/Recall@k/NDCG@k so sánh baseline); dữ liệu pilot test thật (nếu có) là điểm cộng, không bắt buộc
+- [x] ~~AI service nâng cấp lên embedding + pgvector~~ — bỏ (quyết định 2026-09-30); thiết kế AI (TF-IDF) đã khoá, vẫn có explainable breakdown
+- [x] Có tối thiểu một tập dữ liệu offline evaluation (Precision@k/Recall@k/NDCG@k so sánh baseline); dữ liệu pilot test thật (nếu có) là điểm cộng, không bắt buộc
 - [ ] Có cơ chế Trust & Safety tối thiểu hoạt động (xác minh, report/block)
 - [ ] Production có logging/error tracking, đã smoke test sau mỗi lần deploy
 - [ ] Báo cáo tốt nghiệp hoàn chỉnh theo template của trường, có nêu rõ giới hạn (không có pilot test quy mô lớn, phạm vi không triển khai CF)

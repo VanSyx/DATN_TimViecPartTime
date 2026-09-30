@@ -4,7 +4,6 @@ name: timviec
 
 services:
   db:
-    # ponytail: postgis image only; add pgvector (custom Dockerfile FROM postgis) at week 6 when embedding lands
     image: postgis/postgis:16-3.4
     environment:
       POSTGRES_USER: postgres

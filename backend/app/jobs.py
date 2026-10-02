@@ -13,7 +13,7 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import Role, require_role
 from app.db import get_db
-from app.models import Application, AvailabilityInterval, Geography, Job, User
+from app.models import Application, AvailabilityInterval, Geography, Job, Rating, User
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -58,6 +58,9 @@ class JobOut(BaseModel):
     status: str
     created_at: datetime
     distance_km: float | None = None
+    # Gắn bởi attach_ratings() ở trang gợi ý: uy tín người đăng tin (đầu vào trust_modifier)
+    rating_avg: float | None = None
+    rating_count: int = 0
 
     model_config = {"from_attributes": True}
 
@@ -93,6 +96,25 @@ class ApplicantOut(BaseModel):
     id: uuid.UUID
     email: str
     phone: str | None
+    rating_avg: float | None = None  # gắn bởi attach_ratings(), chỉ ở danh sách đơn của employer
+    rating_count: int = 0
+
+    model_config = {"from_attributes": True}
+
+
+class RatingIn(BaseModel):
+    application_id: uuid.UUID
+    score: int = Field(ge=1, le=5)
+    comment: str | None = Field(None, max_length=1000)
+
+
+class RatingOut(BaseModel):
+    id: uuid.UUID
+    rater_id: uuid.UUID
+    ratee_id: uuid.UUID
+    score: int
+    comment: str | None
+    created_at: datetime
 
     model_config = {"from_attributes": True}
 
@@ -104,6 +126,7 @@ class ApplicationOut(BaseModel):
     updated_at: datetime
     job: JobOut
     job_seeker: ApplicantOut
+    ratings: list[RatingOut]
 
     model_config = {"from_attributes": True}
 
@@ -114,6 +137,19 @@ def get_own_job(job_id: uuid.UUID, user: User, db: Session) -> Job:
     if job is None or job.employer_id != user.id:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy tin tuyển dụng")
     return job
+
+
+def attach_ratings(db: Session, items: list, user_id_of) -> None:
+    """Gắn rating_avg/rating_count của người được đánh giá vào từng item, 1 query GROUP BY cho cả lô."""
+    ids = {user_id_of(i) for i in items}
+    rows = db.execute(
+        select(Rating.ratee_id, func.avg(Rating.score), func.count())
+        .where(Rating.ratee_id.in_(ids))
+        .group_by(Rating.ratee_id)
+    ).all()
+    stats = {uid: (round(float(avg), 2), n) for uid, avg, n in rows}
+    for i in items:
+        i.rating_avg, i.rating_count = stats.get(user_id_of(i), (None, 0))
 
 
 # ---------- Jobs (FR2, FR3) ----------
@@ -197,6 +233,7 @@ def recommendations(
     jobs = nearby_jobs(db, open_jobs_query(), lat, lng, radius_km)
     if not jobs:
         return RecommendationsOut(source="ai", items=[])
+    attach_ratings(db, jobs, lambda j: j.employer_id)
 
     # Khoảng rảnh đã qua không giúp gì cho job còn mở (job quá hạn đã bị lọc ở trên)
     availability = db.scalars(
@@ -219,6 +256,7 @@ def recommendations(
                 "lat": j.lat,
                 "lng": j.lng,
                 "time": {"start": j.time_start.isoformat(), "end": j.time_end.isoformat()},
+                "employer_rating": j.rating_avg,
             }
             for j in jobs
         ],
@@ -294,9 +332,12 @@ def close_job(job_id: uuid.UUID, user: User = Depends(employer), db: Session = D
 @router.get("/jobs/{job_id}/applications", response_model=list[ApplicationOut], tags=["applications"])
 def job_applications(job_id: uuid.UUID, user: User = Depends(employer), db: Session = Depends(get_db)):
     get_own_job(job_id, user, db)
-    return db.scalars(
+    apps = db.scalars(
         select(Application).where(Application.job_id == job_id).order_by(Application.created_at)
     ).all()
+    # Uy tín người ứng tuyển từ các việc trước, giúp employer chọn người
+    attach_ratings(db, [a.job_seeker for a in apps], lambda u: u.id)
+    return apps
 
 
 # ---------- Availability (FR3) ----------
@@ -402,3 +443,35 @@ def change_application_status(
     db.commit()
     db.refresh(application)
     return application
+
+
+# ---------- Ratings (FR6) ----------
+
+@router.post("/ratings", response_model=RatingOut, status_code=status.HTTP_201_CREATED, tags=["ratings"])
+def rate(
+    body: RatingIn,
+    user: User = Depends(require_role(Role.JOB_SEEKER, Role.EMPLOYER)),
+    db: Session = Depends(get_db),
+):
+    """Hai bên của 1 đơn đã nhận đánh giá lẫn nhau sau khi công việc kết thúc; người được đánh giá suy ra từ đơn."""
+    application = db.get(Application, body.application_id)
+    ratee_id = None
+    if application is not None:
+        seeker_id, employer_id = application.job_seeker_id, application.job.employer_id
+        ratee_id = {seeker_id: employer_id, employer_id: seeker_id}.get(user.id)
+    if ratee_id is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy đơn ứng tuyển")
+    if application.status != "accepted":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ đánh giá được đơn đã được nhận")
+    if application.job.time_end > datetime.now(timezone.utc):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Chỉ đánh giá được sau khi công việc kết thúc")
+
+    rating = Rating(**body.model_dump(), rater_id=user.id, ratee_id=ratee_id)
+    db.add(rating)
+    try:
+        db.commit()
+    except IntegrityError:  # uq_ratings_application_rater
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bạn đã đánh giá đơn này")
+    db.refresh(rating)
+    return rating

@@ -232,14 +232,14 @@ sequenceDiagram
     participant BE as Backend chính
     participant DB as PostgreSQL
 
-    Note over BE,DB: Điều kiện: applications.status = completed
+    Note over BE,DB: Điều kiện: applications.status = accepted và jobs.time_end đã qua<br/>(không có trạng thái completed riêng)
     U->>FE: Đánh giá đối phương (score 1-5 + comment)
-    FE->>BE: POST /ratings { application_id, ratee_id, score, comment }
-    BE->>DB: Kiểm tra application.status = completed và user là rater hợp lệ
-    BE->>DB: INSERT ratings
+    FE->>BE: POST /ratings { application_id, score, comment }
+    BE->>DB: Kiểm tra user là 1 trong 2 bên của đơn (không thì 404), suy ra ratee = bên còn lại
+    BE->>DB: INSERT ratings (UNIQUE application_id + rater_id → trùng thì 409)
     BE-->>FE: 201 Created
 
-    Note over BE: trust_modifier của ratee được AI service đọc lại (runtime, không cache)<br/>ở lần gợi ý AI tiếp theo — xem .claude/docs/ai_scoring.md
+    Note over BE: Lần gợi ý tiếp theo, backend tính điểm trung bình của người đăng tin (runtime, không cache)<br/>gửi cho AI service làm employer_rating → trust — xem .claude/docs/ai_scoring.md
 ```
 
 ---

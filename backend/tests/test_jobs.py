@@ -1,4 +1,10 @@
+import uuid
+from datetime import datetime, timezone
+
 import pytest
+from sqlalchemy import update
+
+from app.models import Job
 
 # Hồ Hoàn Kiếm; Hồ Tây cách ~4 km; TP.HCM cách ~1100 km — toạ độ lấy từ điểm ghim trên bản đồ (frontend)
 HOAN_KIEM = {"street": "1 Đinh Tiên Hoàng", "ward": "Phường Hoàn Kiếm", "city": "Hà Nội", "lat": 21.0285, "lng": 105.8542}
@@ -259,3 +265,51 @@ def test_recommendations_empty_area_skips_ai(client, seeker, monkeypatch):
 def test_recommendations_job_seeker_only(client, employer):
     assert client.get("/recommendations", params=AT_CAN_THO, headers=employer).status_code == 403
     assert client.get("/recommendations", params=AT_CAN_THO).status_code in (401, 403)
+
+
+# ---------- Ratings (FR6) ----------
+
+def rate(client, headers, application, score=5, **kw):
+    return client.post("/ratings", json={"application_id": application["id"], "score": score, **kw}, headers=headers)
+
+
+def finish(db, job):
+    """Đưa job về quá khứ: apply không cho ứng tuyển job đã kết thúc nên phải nhận đơn trước rồi mới lùi giờ."""
+    db.execute(update(Job).where(Job.id == uuid.UUID(job["id"])).values(
+        time_start=datetime(2020, 1, 1, 1, tzinfo=timezone.utc), time_end=datetime(2020, 1, 1, 5, tzinfo=timezone.utc)))
+    db.commit()
+
+
+def test_two_way_rating_feeds_trust_and_applicant_reputation(client, db, employer, seeker, monkeypatch):
+    job = create_job(client, employer, loc=CAN_THO)
+    application = apply(client, seeker, job).json()
+    set_status(client, employer, application, "accepted")
+    assert rate(client, seeker, application).status_code == 400  # việc chưa kết thúc
+    finish(db, job)
+
+    res = rate(client, seeker, application, score=4, comment="Chủ nhà dễ chịu")
+    assert res.status_code == 201 and res.json()["ratee_id"] == job["employer_id"]
+    assert rate(client, seeker, application).status_code == 409
+    assert rate(client, employer, application, score=5).status_code == 201
+    assert sorted(r["score"] for r in client.get("/applications/me", headers=seeker).json()[0]["ratings"]) == [4, 5]
+
+    applicant = client.get(f"/jobs/{job['id']}/applications", headers=employer).json()[0]["job_seeker"]
+    assert (applicant["rating_avg"], applicant["rating_count"]) == (5, 1)
+
+    # Tin mới của cùng employer: backend gửi điểm trung bình employer cho AI làm trust
+    create_job(client, employer, loc=CAN_THO)
+    sent = {}
+    monkeypatch.setattr("app.jobs.score_jobs", lambda p: sent.update(p) or [])
+    client.get("/recommendations", params=AT_CAN_THO, headers=seeker)
+    assert [j["employer_rating"] for j in sent["jobs"]] == [4]
+
+
+def test_rating_needs_accepted_application_and_party(client, db, employer, seeker, auth_headers):
+    job = create_job(client, employer)
+    application = apply(client, seeker, job).json()
+    finish(db, job)
+    assert rate(client, seeker, application).status_code == 400  # đơn chưa được nhận
+    set_status(client, employer, application, "accepted")
+    assert rate(client, auth_headers("employer"), application).status_code == 404
+    assert rate(client, auth_headers("admin"), application).status_code == 403
+    assert rate(client, seeker, application, score=6).status_code == 422

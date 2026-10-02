@@ -220,7 +220,7 @@ Tiền điều kiện: seed sạch. Vị trí test chính: **Bạch Mai, Hà N�
 | RECO-22 | P1 | AI dự phòng | `docker compose stop ai-service`, tải lại `/seeker` | Banner vàng "AI tạm thời không phản hồi — đang xếp theo khoảng cách". Thẻ không có vòng %, chỉ ô "x km"; không có thanh thời gian/lý do; chân thẻ "Chưa có điểm phù hợp khi AI tạm dừng"; dòng đếm "…xếp theo khoảng cách, gần nhất trước"; sắp gần → xa | Đạt |
 | RECO-23 | P1 | Khôi phục sau dự phòng | `docker compose start ai-service`, đợi `/health` 200, bấm "Thử lại" trên banner | Về chế độ AI, có % và lý do | Đạt |
 | RECO-24 | P2 | Backend lỗi | `docker compose stop backend`, bấm "Đổi" → "Xem gợi ý" | Banner đỏ "Không tải được gợi ý" + "Thử lại" | Đạt |
-| RECO-25 | P2 | Cột bên phải | Xem "Lịch rảnh sắp tới" và "Mô tả của bạn" | Tối đa 5 ngày tới, không có ngày đã qua; lan ngày T7 hiện cả 2 khoảng "07:00–20:00, 08:00–10:00". Mô tả đúng nội dung đã lưu; phuong: "Chưa có mô tả." "Sửa" → trang Hồ sơ | Đạt |
+| RECO-25 | P2 | Cột bên phải | Xem "Lịch rảnh sắp tới" và "Mô tả của bạn" | Tối đa 5 ngày tới, không có ngày đã qua; lan ngày T7 hiện cả 2 khoảng "07:00–20:00, 08:00–10:00" (chỉ kiểm được khi T7 nằm trong 5 ngày tới — chạy vào thứ 7 thì T7 kế tiếp rơi ra ngoài). Mô tả đúng nội dung đã lưu; phuong: "Chưa có mô tả." "Sửa" → trang Hồ sơ | Đạt |
 | RECO-26 | P3 | Đang tải | Network Slow 3G | Dòng "Đang tìm việc hợp với giờ rảnh của bạn…" + 2 thẻ khung xám | Đạt |
 | RECO-27 | P2 | Việc ở thành phố khác | duc (Đà Nẵng), vị trí Hải Châu Đà Nẵng | Thấy J9 "Trông 2 bé chiều thứ 7", không thấy việc Hà Nội | Đạt |
 
@@ -316,6 +316,22 @@ Tiền điều kiện: đăng nhập huong, "Đăng tin mới".
 | APPL-09 | P2 | Chống bấm 2 lần | Bấm "Nhận" liên tục | Nút khoá + spinner trong lúc gửi, chỉ 1 request | Đạt |
 | APPL-10 | P3 | Nhận nhiều người cho 1 tin | Nhận cả lan và nam ở J1 | Hệ thống cho phép (chưa có giới hạn số người) — ghi nhận hành vi | Đạt |
 
+## 13b. Đánh giá hai chiều (FR6, Tuần 7)
+
+Chuẩn bị: huong đăng tin A ở Bạch Mai, lan ứng tuyển, huong nhận; lùi giờ tin A về quá khứ bằng SQL (`UPDATE jobs SET time_start = now() - interval '5 hours', time_end = now() - interval '2 hours' WHERE id = '<A>'`). huong đăng thêm tin B còn mở cũng ở Bạch Mai. Seed lại sau khi test.
+
+| ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
+|---|---|---|---|---|---|
+| RATE-01 | P1 | Seeker thấy nút đánh giá | lan → "Đơn ứng tuyển", thẻ tin A | Ghi chú "Công việc đã kết thúc." + nút "Đánh giá". Đơn đã nhận nhưng việc chưa xong (vd. "Tổng vệ sinh…") **không** có nút | Đạt |
+| RATE-02 | P1 | Seeker gửi đánh giá | Bấm "Đánh giá" → chọn "4 ★", nhập nhận xét → "Gửi đánh giá" | Toast "Đã gửi đánh giá"; thẻ hiện "Bạn đánh giá 4 ★ · “…”", hết nút | Đạt |
+| RATE-03 | P1 | Employer thấy uy tín + đánh giá nhận được | huong → tin A → "Xem đơn" | Dòng lan: "Chưa có đánh giá" (uy tín người làm), "Người làm đánh giá bạn 4 ★ · “…”", nút "Đánh giá" | Đạt |
+| RATE-04 | P1 | Employer gửi đánh giá | Bấm "Đánh giá" → "5 ★" → gửi | Dòng lan: "5 ★ · 1 đánh giá" + "Bạn đánh giá 5 ★", hết nút | Đạt |
+| RATE-05 | P1 | Seeker thấy đánh giá về mình | lan tải lại "Đơn ứng tuyển" | Thẻ tin A có "Người đăng tin đánh giá bạn 5 ★" | Đạt |
+| RATE-06 | P1 | Uy tín vào gợi ý AI | lan → "Gợi ý cho tôi" (vị trí Bạch Mai) | Thẻ tin B (và các tin khác của huong): lý do "Người đăng tin: 4 ★ · 1 đánh giá", sao vàng; "Xem cách tính điểm" → dòng Tin cậy cùng nội dung | Đạt |
+| RATE-07 | P1 | Điểm trust đúng công thức | Swagger `GET /recommendations` bằng token lan | Tin B: `breakdown.trust = 0.75` (= (4−1)/4); tin của người đăng chưa có đánh giá vẫn `1` | Đạt |
+| RATE-08 | P1 | Không đánh giá 2 lần / sai người | Swagger `POST /ratings` lần 2 cho cùng đơn; bằng token employer khác; đơn còn chờ duyệt | 409 / 404 / 400 (có trong pytest) | Đạt |
+| RATE-09 | P2 | Không lỗi Console | Đi hết RATE-01→06 | Không lỗi đỏ | Đạt |
+
 ## 14. Quản trị (S12)
 
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
@@ -342,8 +358,8 @@ Tiền điều kiện: đăng nhập huong, "Đăng tin mới".
 
 | ID | UT | Lệnh | Kết quả mong đợi | KQ |
 |---|---|---|---|---|
-| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (44 test) | Đạt |
-| AUTO-02 | P1 | `cd ai-service && .venv/Scripts/python -m pytest` | Tất cả pass (21 test) | Đạt |
+| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (46 test) | Đạt |
+| AUTO-02 | P1 | `cd ai-service && .venv/Scripts/python -m pytest` | Tất cả pass (22 test) | Đạt |
 | AUTO-03 | P1 | `cd frontend && npm run build` | Build thành công (cảnh báo bundle > 500 kB chấp nhận được) | Đạt |
 | AUTO-04 | P1 | `cd frontend && npm run lint` | 0 lỗi (cảnh báo chấp nhận được) | Đạt |
 | AUTO-05 | P1 | Mở PR `feat/week6-ui` → `main` | GitHub Actions xanh | Đạt (CI trên main, commit f37e738) |
@@ -394,11 +410,14 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 11. Tin đã đăng | 7 | 7 | 0 | 0 |
 | 12. Đăng / sửa tin | 19 | 19 | 0 | 0 |
 | 13. Đơn của một tin | 10 | 10 | 0 | 0 |
+| 13b. Đánh giá hai chiều | 9 | 9 | 0 | 0 |
 | 14. Quản trị | 2 | 2 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
 | 17. Production | 7 | 7 | 0 | 0 |
-| **Tổng** | **213** | **213** | **0** | **0** |
+| **Tổng** | **222** | **222** | **0** | **0** |
+
+Mục 1–16 chạy lại toàn bộ 2026-10-03 trên `feat/week7-rating` (xem mục 21); mục 17 là kết quả 2026-09-30, chạy lại sau khi merge.
 
 ## 20. Kết quả chạy 2026-09-30 (trước khi merge `feat/week6-ui`)
 
@@ -419,3 +438,13 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | O2 | Ở 1366×768, nhãn "Khoảng cách · 20%" trong bảng cách tính điểm xuống 2 dòng | Chỉ thẩm mỹ, không ảnh hưởng đọc số |
 
 **Được merge khi**: 100% case **P1** ở mục 1–16 đạt; không còn bug mức Nghiêm trọng/Cao; bug P2/P3 còn mở đã được ghi lại và chấp nhận. Mục 17 chạy **sau** khi merge; nếu PROD-02 → PROD-05 lỗi thì revert commit merge trên `main`.
+
+## 21. Kết quả chạy 2026-10-03 (trước khi merge `feat/week7-rating`, FR6)
+
+- **Cách chạy**: như mục 20 (cùng bộ script `playwright-core` + Edge headless), thêm kịch bản FR6 cho mục 13b (dữ liệu tạo qua API, lùi giờ tin bằng SQL).
+- **Lần 1**: mục 1–15 + 13b đạt **206/210**. 3 case UI-02/06/09 lỗi Console (Bug #4); RECO-25 lỗi do script cố định giả định "có hàng T7", mà hôm chạy là thứ 7 nên T7 kế tiếp nằm ngoài 5 ngày hiển thị — không phải lỗi app, đã sửa script và ghi chú điều kiện vào case.
+- **Lần 2 (sau khi sửa)**: mục 1–15 + 13b đạt **210/210**, mục 16 đạt 4/4 ở local (backend 46, ai-service 22, build, lint 0 lỗi); AUTO-05 là CI trên PR.
+
+| Bug | Case phát hiện | Mức độ | Mô tả | Xử lý |
+|---|---|---|---|---|
+| #4 | UI-02, UI-06, UI-09 | Thấp | Console báo "two children with the same key" ở `/seeker`: khi seeker có 2 khoảng rảnh cùng giờ bắt đầu trong 1 ngày (vd. CN 07:00–20:00 và 07:00–11:00 — backend không gộp khoảng chồng nhau), thanh giờ của thẻ việc dùng giờ bắt đầu làm `key`. Có từ Tuần 6, lần chạy 2026-09-30 không lộ vì "ngày mai" khi đó là thứ 5 | `key` theo `id` khoảng rảnh (`job-ui.tsx` `DayTimeline`) |

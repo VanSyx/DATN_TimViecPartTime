@@ -131,6 +131,19 @@ def test_score_ranks_and_returns_breakdown():
     assert first["distance_km"] < 1 and first["travel_minutes"] < 3
 
 
+def test_trust_from_employer_rating():
+    assert [scoring.trust_score(r) for r in (None, 5, 3, 1)] == [1, 1, 0.5, 0]
+    # Cùng tin, chỉ khác uy tín người đăng: tin bị đánh giá thấp xếp sau đúng w4 × chênh lệch trust
+    body = {"seeker": {"lat": 0, "lng": 0},
+            "jobs": [{**job("bad", "a", 0, 0, h(2), h(4)), "employer_rating": 1},
+                     job("new", "a", 0, 0, h(2), h(4))]}
+    new, bad = client.post("/score", json=body).json()
+    assert (new["job_id"], bad["breakdown"]["trust"]) == ("new", 0)
+    assert new["final_score"] - bad["final_score"] == pytest.approx(scoring.WEIGHTS["trust"])
+    body["jobs"][0]["employer_rating"] = 6
+    assert client.post("/score", json=body).status_code == 422
+
+
 def test_score_rejects_inverted_time_range():
     body = {"seeker": {"lat": 0, "lng": 0},
             "jobs": [job("x", "a", 0, 0, h(4), h(2))]}

@@ -91,8 +91,8 @@ CORS production đã kiểm tra (preflight trả đúng origin) → tick 9.4; m�
 
 ## 7. Sau mốc 70% — backlog tuần 6-12 (thứ tự đề xuất)
 
-1. **Đánh giá offline** (P@k, NDCG@k so với baseline sắp theo thời gian/khoảng cách) trên dữ liệu `seed.py`. **Phải làm trước khi khoá thiết kế AI ở tuần 6**, vì trọng số hiện vẫn chọn tay.
-2. **Embedding** (`sentence-transformers`) + pgvector: đổi image db sang bản có pgvector (comment `ponytail:` trong `docker-compose.yml`). Kiểm tra RAM của free tier Render trước khi chọn model, vì model đa ngôn ngữ nhỏ nhất cũng khoảng 100 MB+.
+1. **Đánh giá offline** (P@k, NDCG@k so với baseline sắp theo thời gian/khoảng cách) trên dữ liệu `seed.py`. **Phải làm trước khi khoá thiết kế AI ở tuần 6**, vì trọng số hiện vẫn chọn tay. ✅ Xong 2026-09-30 (`backend/offline_eval.py`, giữ trọng số).
+2. ~~**Embedding** (`sentence-transformers`) + pgvector~~ — **bỏ** (quyết định 2026-09-30: giữ TF-IDF, khoá thiết kế AI): đổi image db sang bản có pgvector (comment `ponytail:` trong `docker-compose.yml`). Kiểm tra RAM của free tier Render trước khi chọn model, vì model đa ngôn ngữ nhỏ nhất cũng khoảng 100 MB+.
 3. FR6 rating 2 chiều → thay `trust: 1.0` bằng giá trị lấy từ bảng `ratings`.
 4. FR10 admin: duyệt tin (`pending_approval` đã có sẵn trong model), khoá/mở khoá user (`is_blocked` đã được check ở `get_current_user`).
 5. FR7 report/block, FR9 thông báo in-app.

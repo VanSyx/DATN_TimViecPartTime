@@ -42,7 +42,6 @@ erDiagram
         timestamptz time_end
         numeric salary
         string status "pending_approval | open | closed | rejected"
-        vector embedding "tuần 6+, pgvector"
         timestamptz created_at
     }
     AVAILABILITY_INTERVALS {
@@ -91,7 +90,7 @@ erDiagram
 ## Ghi chú
 - `AVAILABILITY_INTERVALS.start_time/end_time` là datetime thực, **không phải enum ca cố định** — đây là điểm khác biệt cốt lõi của đề tài (xem `.claude/docs/database.md`).
 - `USERS` **không lưu vị trí** (bản thiết kế đầu có cột `location`, đã bỏ ở tuần 3-4): vị trí của job seeker lấy theo từng lần tìm/gợi ý (GPS trình duyệt hoặc ghim bản đồ), vì người làm việc theo giờ hay tìm việc quanh chỗ đang đứng chứ không cố định ở 1 địa chỉ.
-- `JOBS.embedding` chỉ dùng từ tuần 6+ khi nâng cấp semantic_score sang embedding; tuần 1-5 semantic tính runtime bằng TF-IDF, không lưu vector.
+- `JOBS` không lưu vector: semantic tính runtime bằng TF-IDF, không lên embedding/pgvector (quyết định 2026-09-30).
 - `JOBS.status = pending_approval` là trạng thái khởi tạo nếu Admin phải duyệt tin trước khi hiển thị công khai (FR10/UC12); nếu tuần 1-5 chưa làm kịp UC12, mặc định `status = open` ngay khi đăng — không block luồng chính.
 - `RATINGS` là 1 dòng cho 1 chiều đánh giá (rater→ratee); rating 2 chiều của 1 application = 2 row.
 - `USERS.verification_code` dùng chung cho cả xác minh email lẫn SĐT (2 lần gọi, không cần 2 cột riêng) — mã hết hạn (`verification_code_expires_at`) thì sinh mã mới đè lên, không cần bảng OTP riêng.

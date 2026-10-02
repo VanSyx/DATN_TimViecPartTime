@@ -5,11 +5,11 @@
 Frontend (React SPA) ──► Backend chính (FastAPI) ──► AI Service (FastAPI, riêng)
                                   │                          │
                                   └──────► PostgreSQL ◄──────┘
-                                    (PostGIS + pgvector)
+                                        (PostGIS)
 ```
 
 - **Monorepo**: 1 repo chứa `frontend/`, `backend/`, `ai-service/`, `docs/`.
-- **AI service tách riêng khỏi backend chính** — lý do: cô lập model (TF-IDF nay, embedding sau) để không làm nặng backend, và cho phép nâng cấp AI (tuần 6+: TF-IDF → sentence-transformers + pgvector) mà không đụng vào luồng nghiệp vụ chính.
+- **AI service tách riêng khỏi backend chính** — lý do: cô lập phần chấm điểm (TF-IDF, hàm thuần) để không làm nặng backend và test/đánh giá độc lập; backend có fallback khi AI không phản hồi. Đã quyết định không lên embedding (quyết định 2026-09-30).
 - Backend chính giữ toàn bộ business logic (auth, RBAC, job CRUD, applications). AI service **chỉ tính điểm**, không giữ state nghiệp vụ.
 - **Docker Compose chứa các service có state/runtime phụ thuộc: `db` + `backend` + `ai-service` (cổng 8001, backend gọi qua `AI_SERVICE_URL=http://ai-service:8001`).** Frontend **không** nằm trong compose — chạy Vite dev server ở local, build ra static asset khi deploy. Lý do: SPA không cần container để chạy, đóng container chỉ làm HMR chậm trên Windows bind mount và thêm một tầng config không đổi lại được gì; production cũng phục vụ static build qua CDN/static host chứ không qua Node container.
 - Compose khóa `name: timviec` — thư mục này trùng basename với một bản dự án khác trên máy, không khóa tên thì hai bản ghi đè container của nhau.

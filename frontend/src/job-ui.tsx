@@ -313,7 +313,7 @@ function Reasons({ job, rec, cols = 2 }: { job: Job; rec: Rec; cols?: 1 | 2 }) {
 function Breakdown({ job, rec, radius }: { job: Job; rec: Rec; radius?: number }) {
   const b = rec.breakdown!
   const tf = b.time_feasibility
-  // Trọng số khớp WEIGHTS trong ai-service/app/scoring.py (thiết kế AI khoá sau tuần 6)
+  // Trọng số khớp WEIGHTS trong ai-service/app/scoring.py (thiết kế AI đã khoá 2026-09-30)
   const rows: [string, string, number, string, boolean?][] = [
     ['Mô tả', '35%', b.semantic, `${fmtPct(b.semantic)} · ${descWord(b.semantic)}`],
     ['Giờ rảnh', '35%', tf, tf >= 0.999 ? '100% · Nằm trọn' : tf > 0 ? `${fmtPct(tf)} · Một phần` : '0% · Ngoài giờ rảnh'],

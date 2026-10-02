@@ -10,6 +10,8 @@
 ## RBAC
 - 3 role: `job_seeker`, `employer`, `admin`.
 - **Enforce ở tầng backend, không chỉ ẩn/hiện phần tử UI.** Một request gọi trực tiếp API (bỏ qua UI) vẫn phải bị chặn đúng theo role.
+- Admin (FR10, `backend/app/admin.py`): cả router `/admin` gắn `require_role(ADMIN)` ở mức router, không phụ thuộc từng endpoint nhớ thêm. Không tự đăng ký được admin qua API; dev có `quantri@example.com` từ `seed.py`, **production tạo tay bằng SQL** (`UPDATE users SET role='admin' WHERE email=…`) do người thực hiện làm.
+- Khoá tài khoản (`users.is_blocked`) có hiệu lực ngay: `get_current_user` đọc lại user ở mỗi request nên access token còn hạn cũng bị 401, refresh bị 401, login 403. Admin không khoá được admin (tránh tự khoá mất quyền).
 
 ## Rate limiting
 - Bắt buộc cho endpoint nhạy cảm: đăng nhập, đăng ký.

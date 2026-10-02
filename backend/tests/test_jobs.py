@@ -313,3 +313,67 @@ def test_rating_needs_accepted_application_and_party(client, db, employer, seeke
     assert rate(client, auth_headers("employer"), application).status_code == 404
     assert rate(client, auth_headers("admin"), application).status_code == 403
     assert rate(client, seeker, application, score=6).status_code == 422
+
+
+# ---------- Quản trị (FR10) ----------
+
+@pytest.fixture
+def admin(auth_headers):
+    return auth_headers("admin")
+
+
+def me(client, headers):
+    return client.get("/auth/me", headers=headers).json()
+
+
+def visible(client, job):
+    return job["id"] in [j["id"] for j in client.get("/jobs").json()]
+
+
+@pytest.mark.parametrize("method,path", [
+    ("GET", "/admin/jobs"), ("GET", "/admin/users"),
+    ("PATCH", f"/admin/jobs/{uuid.uuid4()}"), ("PATCH", f"/admin/users/{uuid.uuid4()}"),
+])
+def test_admin_endpoints_admin_only(client, employer, seeker, method, path):
+    for headers in (employer, seeker):
+        assert client.request(method, path, json={}, headers=headers).status_code == 403
+    assert client.request(method, path, json={}).status_code in (401, 403)
+
+
+def test_admin_takes_down_and_restores_job(client, admin, employer, seeker):
+    job = create_job(client, employer)
+    res = client.patch(f"/admin/jobs/{job['id']}", json={"status": "rejected"}, headers=admin)
+    assert res.status_code == 200 and res.json()["employer"]["email"] == me(client, employer)["email"]
+    assert not visible(client, job) and apply(client, seeker, job).status_code == 400
+    # Employer vẫn thấy tin trong "Tin đã đăng", kèm trạng thái bị gỡ
+    assert client.get("/jobs/mine", headers=employer).json()[0]["status"] == "rejected"
+    assert client.patch(f"/admin/jobs/{job['id']}", json={"status": "rejected"}, headers=admin).status_code == 409
+
+    assert client.patch(f"/admin/jobs/{job['id']}", json={"status": "open"}, headers=admin).status_code == 200
+    assert visible(client, job)
+    assert job["id"] in [j["id"] for j in client.get("/admin/jobs", params={"status": "open"}, headers=admin).json()]
+
+
+def test_admin_cannot_reopen_job_closed_by_employer(client, admin, employer):
+    job = create_job(client, employer)
+    client.delete(f"/jobs/{job['id']}", headers=employer)
+    assert client.patch(f"/admin/jobs/{job['id']}", json={"status": "open"}, headers=admin).status_code == 409
+
+
+def test_block_user_takes_effect_immediately_and_hides_their_jobs(client, admin, employer, seeker):
+    job = create_job(client, employer)
+    emp = me(client, employer)
+    res = client.patch(f"/admin/users/{emp['id']}", json={"is_blocked": True}, headers=admin)
+    assert res.status_code == 200 and res.json()["is_blocked"]
+    assert client.get("/jobs/mine", headers=employer).status_code == 401  # token còn hạn cũng bị chặn
+    assert not visible(client, job) and apply(client, seeker, job).status_code == 400
+    assert [u["email"] for u in client.get("/admin/users", params={"q": emp["email"]}, headers=admin).json()] == [emp["email"]]
+
+    client.patch(f"/admin/users/{emp['id']}", json={"is_blocked": False}, headers=admin)
+    assert client.get("/jobs/mine", headers=employer).status_code == 200 and visible(client, job)
+
+
+def test_admin_cannot_block_admin(client, admin, auth_headers):
+    for target in (admin, auth_headers("admin")):
+        res = client.patch(f"/admin/users/{me(client, target)['id']}", json={"is_blocked": True}, headers=admin)
+        assert res.status_code == 400

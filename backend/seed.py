@@ -14,6 +14,7 @@ from app.models import Application, AvailabilityInterval, Job, Rating, User
 from app.security import hash_secret
 
 PASSWORD = "matkhau123"
+ADMIN = "quantri@example.com"  # chỉ có ở dev; admin production tạo tay bằng SQL
 VN = timezone(timedelta(hours=7))
 TODAY = datetime.now(VN).replace(hour=0, minute=0, second=0, microsecond=0)
 T2, T3, T4, T5, T6, T7, CN = range(7)
@@ -188,7 +189,7 @@ APPLICATIONS = [
 
 
 def main():
-    emails = [s[1] for s in SEEKERS] + [e[1] for e in EMPLOYERS]
+    emails = [s[1] for s in SEEKERS] + [e[1] for e in EMPLOYERS] + [ADMIN]
     password_hash = hash_secret(PASSWORD)
     with SessionLocal() as db:
         old = select(User.id).where(User.email.in_(emails))
@@ -208,6 +209,7 @@ def main():
         for key, email, phone, _ in EMPLOYERS:
             users[key] = User(email=email, phone=phone, role="employer", password_hash=password_hash,
                               email_verified=True)
+        users["admin"] = User(email=ADMIN, role="admin", password_hash=password_hash, email_verified=True)
         db.add_all(users.values())
         db.flush()
 
@@ -232,6 +234,7 @@ def main():
         print(f"  [tìm việc] {email:30} {note}")
     for _, email, _, note in EMPLOYERS:
         print(f"  [chủ nhà]  {email:30} {note}")
+    print(f"  [quản trị] {ADMIN:30} Gỡ tin, khoá tài khoản (FR10).")
 
 
 if __name__ == "__main__":

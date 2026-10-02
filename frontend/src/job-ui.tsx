@@ -451,7 +451,7 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
         <div className="flex max-h-[calc(100vh-48px)] flex-col">
           <div className="flex items-start gap-4 border-b border-stone-100 pt-6 pr-6 pb-[18px] pl-7">
             <div className="flex flex-1 flex-col gap-2">
-              {ended ? (
+              {job.status === 'rejected' ? <span className="w-fit"><JobStatusBadge status="rejected" /></span> : ended ? (
                 <span className="inline-flex h-7 w-fit items-center gap-1.5 rounded-full border border-stone-200 bg-stone-100 px-3 text-sm font-semibold text-stone-700">
                   <Icon name="lock" size={14} stroke={2.25} />Đã kết thúc
                 </span>

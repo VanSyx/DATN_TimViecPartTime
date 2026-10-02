@@ -31,6 +31,8 @@ class JobIn(BaseModel):
     lat: float = Field(ge=-90, le=90)
     lng: float = Field(ge=-180, le=180)
     time: TimeRange
+    # Điểm trung bình (1-5 sao) người đăng tin nhận được; None = chưa có đánh giá
+    employer_rating: float | None = Field(None, ge=1, le=5)
 
 
 class ScoreIn(BaseModel):
@@ -74,8 +76,7 @@ def score(body: ScoreIn):
             "semantic": sem,
             "time_feasibility": scoring.time_feasibility(availability, (job.time.start, job.time.end), travel),
             "geo": scoring.geo_score(distance, body.radius_km),
-            # Chưa có bảng ratings (tuần 6+): trung lập 1.0 cho mọi job nên không làm lệch thứ hạng
-            "trust": 1.0,
+            "trust": scoring.trust_score(job.employer_rating),
         }
         results.append(
             ScoredJob(

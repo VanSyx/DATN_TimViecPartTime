@@ -2,11 +2,11 @@ import L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import { useCallback, useEffect, useRef, useState, type MouseEvent, type ReactNode } from 'react'
 import { Link, useLocation } from 'react-router-dom'
-import { api, ApiError, type ApplicationStatus, type Interval, type Job, type Recommendations } from './api'
+import { api, ApiError, type Application, type ApplicationStatus, type Interval, type Job, type Recommendations } from './api'
 import { useAuth } from './auth'
 import {
-  AppStatusBadge, dateInput, FieldError, fmtDay, fmtHM, fmtHours, fmtMoney, fmtNum, fmtPct, fmtSlot, fullAddress, Icon, IconLine,
-  jobEnded, JobStatusBadge, Modal, ModalHeader, ScoreRing, Spinner, useLoad, useToast, type IconName,
+  AppStatusBadge, dateInput, FieldError, fmtDay, fmtHM, fmtHours, fmtMoney, fmtNum, fmtPct, fmtRating, fmtSlot, fullAddress, Icon, IconLine,
+  jobEnded, JobStatusBadge, Modal, ModalHeader, ScoreRing, Segmented, Spinner, useLoad, useSubmit, useToast, type IconName,
 } from './ui'
 
 export type Rec = Recommendations['items'][number]
@@ -297,7 +297,7 @@ function Reasons({ job, rec, cols = 2 }: { job: Job; rec: Rec; cols?: 1 | 2 }) {
         : ['xCircle', 'text-red-600', 'Ngoài giờ rảnh của bạn'],
     ['pin', 'text-teal-700', `Cách bạn ${fmtNum(job.distance_km ?? 0)} km · ~${mins} phút đi lại`],
     ['file', 'text-teal-700', `${descWord(b.semantic)} ${b.semantic >= 0.3 ? 'với' : 'tới'} mô tả của bạn`],
-    ['star', 'text-stone-400', 'Chưa có đánh giá'],
+    ['star', job.rating_count ? 'text-amber-500' : 'text-stone-400', `Người đăng tin: ${fmtRating(job.rating_avg, job.rating_count)}`],
   ]
   return (
     <div className={`grid gap-x-6 gap-y-3 ${cols === 2 ? 'grid-cols-2' : ''}`}>
@@ -318,7 +318,7 @@ function Breakdown({ job, rec, radius }: { job: Job; rec: Rec; radius?: number }
     ['Mô tả', '35%', b.semantic, `${fmtPct(b.semantic)} · ${descWord(b.semantic)}`],
     ['Giờ rảnh', '35%', tf, tf >= 0.999 ? '100% · Nằm trọn' : tf > 0 ? `${fmtPct(tf)} · Một phần` : '0% · Ngoài giờ rảnh'],
     ['Khoảng cách', '20%', b.geo, `${fmtNum(job.distance_km ?? 0)} km${radius ? ` / bán kính ${radius} km` : ''}`],
-    ['Tin cậy', '10%', b.trust, 'Chưa có đánh giá', true],
+    ['Tin cậy', '10%', b.trust, fmtRating(job.rating_avg, job.rating_count), !job.rating_count],
   ]
   return (
     <div className="flex flex-col gap-3.5 rounded-[10px] border border-stone-200 bg-stone-50 p-5">
@@ -343,7 +343,8 @@ function Breakdown({ job, rec, radius }: { job: Job; rec: Rec; radius?: number }
 function DayTimeline({ job, intervals }: { job: Job; intervals: Interval[] }) {
   const day = dateInput(new Date(job.time_start))
   const h = (t: string) => hoursFrom(day, t)
-  const free = intervals.map((i) => [h(i.start_time), h(i.end_time)]).filter(([a, b]) => b > 6 && a < 22)
+  // Giữ id làm key: lịch rảnh không gộp ở backend nên 2 khoảng có thể cùng giờ bắt đầu
+  const free = intervals.map((i) => [h(i.start_time), h(i.end_time), i.id] as const).filter(([a, b]) => b > 6 && a < 22)
   return (
     <div className="flex flex-col gap-2">
       <div className="flex flex-wrap items-center justify-between gap-3">
@@ -355,7 +356,7 @@ function DayTimeline({ job, intervals }: { job: Job; intervals: Interval[] }) {
       </div>
       <div className="relative h-8 overflow-hidden rounded-lg bg-stone-100">
         {[25, 50, 75].map((p) => <div key={p} className="absolute inset-y-0 w-px bg-stone-200" style={{ left: `${p}%` }} />)}
-        {free.map(([a, b]) => <div key={a} className="absolute inset-y-0 bg-teal-100 shadow-[inset_1px_0_0_#5EEAD4,inset_-1px_0_0_#5EEAD4]" style={spanStyle(a, b)} />)}
+        {free.map(([a, b, id]) => <div key={id}className="absolute inset-y-0 bg-teal-100 shadow-[inset_1px_0_0_#5EEAD4,inset_-1px_0_0_#5EEAD4]" style={spanStyle(a, b)} />)}
         <div className="absolute inset-y-[7px] rounded-[5px] bg-stone-800" style={spanStyle(h(job.time_start), h(job.time_end))} />
       </div>
       <div className="flex justify-between text-sm text-stone-500"><span>6h</span><span>10h</span><span>14h</span><span>18h</span><span>22h</span></div>
@@ -565,5 +566,61 @@ function ApplyButton({ job, status, onApplied, className = '' }: {
         </div>
       </Modal>
     </>
+  )
+}
+
+// ---------- Đánh giá 2 chiều (FR6) ----------
+
+/** Khớp điều kiện ở backend: đơn đã nhận, việc đã kết thúc, mình chưa đánh giá. */
+export const canRate = (a: Application, me: string) =>
+  a.status === 'accepted' && new Date(a.job.time_end) <= new Date() && !a.ratings.some((r) => r.rater_id === me)
+
+export function RatingNotes({ app, me, other }: { app: Application; me: string; other: string }) {
+  if (!app.ratings.length) return null
+  return (
+    <div className="flex flex-col gap-1 text-sm text-stone-600">
+      {app.ratings.map((r) => (
+        <div key={r.id} className="flex items-start gap-1.5">
+          <Icon name="star" size={16} className="mt-0.5 shrink-0 text-amber-500" />
+          <span>{r.rater_id === me ? 'Bạn đánh giá' : `${other} đánh giá bạn`} <b className="font-semibold text-stone-900">{r.score} ★</b>{r.comment && ` · “${r.comment}”`}</span>
+        </div>
+      ))}
+    </div>
+  )
+}
+
+const STARS: [number, string][] = [1, 2, 3, 4, 5].map((n) => [n, `${n} ★`])
+
+export function RatingModal({ app, target, onClose, onSaved }: { app: Application | null; target: string; onClose: () => void; onSaved: () => void }) {
+  return (
+    <Modal open={!!app} onClose={onClose} className="w-[520px]">
+      {app && <RatingForm app={app} target={target} onClose={onClose} onSaved={onSaved} />}
+    </Modal>
+  )
+}
+
+function RatingForm({ app, target, onClose, onSaved }: { app: Application; target: string; onClose: () => void; onSaved: () => void }) {
+  const [score, setScore] = useState(5)
+  const { error, busy, wrap } = useSubmit()
+  const save = wrap(async (form) => {
+    await api.rate(app.id, score, String(form.get('comment')).trim() || null)
+    onSaved()
+  })
+  return (
+    <form onSubmit={save}>
+      <ModalHeader title={`Đánh giá ${target}`} onClose={onClose} />
+      <div className="flex flex-col gap-[18px] px-7 py-5">
+        <p className="text-stone-600">{app.job.title} · {fmtSlot(app.job.time_start, app.job.time_end)}</p>
+        <div className="field"><span className="label">Số sao</span><Segmented label="Số sao" options={STARS} value={score} onChange={setScore} /></div>
+        <label className="field"><span className="label">Nhận xét <span className="font-normal text-stone-500">(không bắt buộc)</span></span>
+          <textarea name="comment" className="input h-auto min-h-[100px] py-3 leading-6" maxLength={1000} /></label>
+        <p className="text-sm text-stone-500">Đánh giá không sửa được sau khi gửi. Hai bên đều thấy đánh giá của nhau.</p>
+        {error && <FieldError>{error}</FieldError>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
+        <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
+        <button className="btn btn-primary h-12 px-6" disabled={busy}>{busy && <Spinner />}Gửi đánh giá</button>
+      </div>
+    </form>
   )
 }

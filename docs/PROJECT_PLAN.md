@@ -85,7 +85,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR3 | Job Seeker khai báo lịch rảnh dạng interval, tìm/lọc job theo khu vực và khung giờ | ✅ Tuần 1-5 |
 | FR4 | Hệ thống tính điểm gợi ý AI theo công thức 4 thành phần, trả kèm breakdown lý do | ✅ Tuần 1-5 (bản TF-IDF). **Đã xác nhận với GVHD:** mốc 70% chỉ bắt buộc `semantic + time_feasibility + geo` chạy đúng; `trust_modifier` mặc định 1.0 là kết quả mong đợi (chưa có `ratings` — FR6 làm từ tuần 6-12), không phải fallback tạm |
 | FR5 | Job Seeker ứng tuyển, theo dõi trạng thái đơn, hủy đơn khi chưa duyệt; Employer duyệt/từ chối đơn | ✅ Tuần 1-5 |
-| FR6 | Hai bên đánh giá (rating) lẫn nhau sau khi hoàn thành công việc | Tuần 6-12 |
+| FR6 | Hai bên đánh giá (rating) lẫn nhau sau khi hoàn thành công việc | Tuần 6-12 — ✅ code Tuần 7 (`feat/week7-rating`); uy tín người đăng tin thay `trust = 1.0` |
 | FR7 | Report/block người dùng; Admin xử lý report | Tuần 6-12 |
 | FR8 | Xác minh SĐT/email khi đăng ký | ✅ Tuần 1-5 (schema + endpoint verify) — gửi mã thật qua provider: tuần 6-12 |
 | FR9 | Thông báo in-app khi có sự kiện liên quan | Tuần 6-12 |

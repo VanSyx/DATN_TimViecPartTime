@@ -23,7 +23,8 @@ Contract đã chốt (tuần 4, `ai-service/app/main.py`):
 ```
 POST /score
 { "seeker": { "description": str, "lat", "lng", "availability": [{ "start", "end" }] },
-  "jobs":   [{ "id": str, "title", "description", "lat", "lng", "time": { "start", "end" } }],
+  "jobs":   [{ "id": str, "title", "description", "lat", "lng", "time": { "start", "end" },
+               "employer_rating": float 1-5 | null }],   // tuần 7 (FR6): trung bình sao của người đăng, null = chưa có
   "radius_km": 10 }
 → 200 [{ "job_id", "final_score",
          "breakdown": { "semantic", "time_feasibility", "geo", "trust" },
@@ -35,7 +36,7 @@ Thời gian là ISO 8601 có timezone (thiếu timezone → 422). Tối đa 500 
 ```
 GET /recommendations?lat&lng&radius_km=10          (chỉ job_seeker)
 → 200 { "source": "ai" | "fallback",
-        "items": [{ "job": JobOut (có distance_km), "final_score",
+        "items": [{ "job": JobOut (có distance_km, rating_avg, rating_count của người đăng), "final_score",
                     "breakdown": {semantic, time_feasibility, geo, trust} | null,
                     "travel_minutes": float | null }] }
 ```

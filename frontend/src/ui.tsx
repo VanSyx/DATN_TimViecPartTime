@@ -20,6 +20,7 @@ export const fmtStamp = (t: string) => `${fmtDay(t).slice(-5)}, ${fmtHM(t)}`
 export const fmtMoney = (n: number) => `${n.toLocaleString('vi-VN')} đ`
 export const fmtNum = (n: number, digits = 2) => n.toLocaleString('vi-VN', { maximumFractionDigits: digits })
 export const fmtPct = (v: number) => `${Math.round(v * 100)}%`
+export const fmtRating = (avg?: number | null, n = 0) => (n ? `${fmtNum(avg ?? 0, 1)} ★ · ${n} đánh giá` : 'Chưa có đánh giá')
 export const fmtHours = (start: string, end: string) => `${fmtNum((+new Date(end) - +new Date(start)) / 3_600_000, 1)} giờ`
 
 /** Giá trị cho <input type="date"> theo giờ địa phương. */

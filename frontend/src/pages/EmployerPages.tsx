@@ -1,9 +1,10 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Application, type Job, type JobInput } from '../api'
-import { JobCard, LocationPicker } from '../job-ui'
+import { useAuth } from '../auth'
+import { canRate, JobCard, LocationPicker, RatingModal, RatingNotes } from '../job-ui'
 import {
-  AppStatusBadge, Banner, ConfirmModal, dateInput, EmptyState, FieldError, fmtHM, fmtMoney, fmtNum, fmtSlot, fmtStamp, fullAddress, hm,
+  AppStatusBadge, Banner, ConfirmModal, dateInput, EmptyState, FieldError, fmtHM, fmtMoney, fmtNum, fmtRating, fmtSlot, fmtStamp, fullAddress, hm,
   Icon, IconLine, jobEnded, JobStatusBadge, Spinner, toIso, useLoad, useToast,
 } from '../ui'
 
@@ -254,6 +255,8 @@ export function JobApplicantsPage() {
   const load = useCallback(() => api.jobApplications(id!), [id])
   const { data: apps, error, reload } = useLoad(load)
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [rating, setRating] = useState<Application | null>(null)
+  const me = useAuth().user!.id
 
   useEffect(() => {
     api.myJobs().then((js) => setJob(js.find((j) => j.id === id) ?? null), () => setJob(null))
@@ -313,13 +316,19 @@ export function JobApplicantsPage() {
                       ? <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 font-semibold no-underline"><Icon name="phone" size={16} />{phone}</a>
                       : <span className="text-stone-500">Chưa có số điện thoại</span>}
                     <span className="text-stone-500">Ứng tuyển {fmtStamp(a.created_at)}</span>
+                    <span className="flex items-center gap-1.5 text-stone-600">
+                      <Icon name="star" size={16} className={a.job_seeker.rating_count ? 'text-amber-500' : 'text-stone-400'} />{fmtRating(a.job_seeker.rating_avg, a.job_seeker.rating_count)}
+                    </span>
                   </div>
-                  {a.status === 'accepted' && (
+                  {a.status === 'accepted' && new Date(a.job.time_end) > new Date() && (
                     <div className="text-sm text-green-700">{phone ? 'Hãy gọi để hẹn giờ và chỉ đường tới nhà.' : 'Hãy gửi email để hẹn giờ và chỉ đường tới nhà.'}</div>
                   )}
+                  <RatingNotes app={a} me={me} other="Người làm" />
                 </div>
                 <div className="flex gap-2">
-                  {a.status === 'pending' ? (
+                  {canRate(a, me) ? (
+                    <button type="button" className="btn btn-primary px-5" onClick={() => setRating(a)}><Icon name="star" size={18} />Đánh giá</button>
+                  ) : a.status === 'pending' ? (
                     <>
                       <button type="button" className="btn btn-danger" disabled={busyId === a.id} onClick={() => decide(a, 'rejected')}>Từ chối</button>
                       <button type="button" className="btn btn-teal px-5" disabled={busyId === a.id} onClick={() => decide(a, 'accepted')}>
@@ -335,6 +344,8 @@ export function JobApplicantsPage() {
           })}
         </div>
       )}
+      <RatingModal app={rating} target={rating?.job_seeker.email ?? ''} onClose={() => setRating(null)}
+        onSaved={() => { toast({ title: 'Đã gửi đánh giá', body: rating?.job_seeker.email }); setRating(null); reload() }} />
     </main>
   )
 }

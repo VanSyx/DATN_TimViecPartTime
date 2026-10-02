@@ -12,6 +12,7 @@ from sqlalchemy import (
     Integer,
     String,
     Text,
+    UniqueConstraint,
     Uuid,
     func,
     text,
@@ -115,3 +116,22 @@ class Application(Base):
 
     job: Mapped[Job] = relationship(lazy="joined")
     job_seeker: Mapped[User] = relationship(lazy="joined")
+    ratings: Mapped[list["Rating"]] = relationship(lazy="selectin", order_by="Rating.created_at")
+
+
+class Rating(Base):
+    """1 dòng = 1 chiều đánh giá (rater → ratee); đánh giá 2 chiều của 1 đơn = 2 dòng."""
+
+    __tablename__ = "ratings"
+    __table_args__ = (
+        UniqueConstraint("application_id", "rater_id", name="uq_ratings_application_rater"),
+        CheckConstraint("score BETWEEN 1 AND 5", name="ck_ratings_score"),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    application_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("applications.id"))
+    rater_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    ratee_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    score: Mapped[int] = mapped_column(Integer)
+    comment: Mapped[str | None] = mapped_column(Text, default=None)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

@@ -4,7 +4,7 @@ import { Link, useSearchParams } from 'react-router-dom'
 import { api, type Application, type ApplicationStatus, type Interval, type Job, type Recommendations } from '../api'
 import { useAuth } from '../auth'
 import {
-  createMap, hoursFrom, JobCard, JobDetailModal, PlaceSearch, spanStyle, upcomingByDay, useApplyButton, VN_CENTER,
+  canRate, createMap, hoursFrom, JobCard, JobDetailModal, PlaceSearch, RatingModal, RatingNotes, spanStyle, upcomingByDay, useApplyButton, VN_CENTER,
   type Detail, type Place,
 } from '../job-ui'
 import {
@@ -617,7 +617,9 @@ const TABS: [string, string, (s: ApplicationStatus) => boolean][] = [
 ]
 
 const NOTE: Record<ApplicationStatus, (a: Application) => string> = {
-  accepted: (a) => `Người đăng tin đã nhận bạn. Nhớ đến đúng giờ: ${fmtDay(a.job.time_start)} lúc ${fmtHM(a.job.time_start)}.`,
+  accepted: (a) => new Date(a.job.time_end) <= new Date()
+    ? 'Công việc đã kết thúc.'
+    : `Người đăng tin đã nhận bạn. Nhớ đến đúng giờ: ${fmtDay(a.job.time_start)} lúc ${fmtHM(a.job.time_start)}.`,
   pending: () => 'Đang chờ người đăng tin xem đơn.',
   rejected: () => 'Đơn không được nhận lần này. Xem thêm việc khác trong Gợi ý cho tôi.',
   cancelled: () => 'Bạn đã hủy đơn này.',
@@ -630,6 +632,8 @@ export function MyApplicationsPage() {
   const [cancel, setCancel] = useState<Application | null>(null)
   const [busy, setBusy] = useState(false)
   const [detail, setDetail] = useState<Detail | null>(null)
+  const [rating, setRating] = useState<Application | null>(null)
+  const me = useAuth().user!.id
   const inTab = TABS.find((t) => t[0] === tab)![2]
   const shown = apps?.filter((a) => inTab(a.status))
 
@@ -685,7 +689,9 @@ export function MyApplicationsPage() {
                 <span className={`flex-1 text-sm leading-5 ${a.status === 'accepted' ? 'text-green-700' : 'text-stone-600'}`}>{NOTE[a.status](a)}</span>
                 <button type="button" className="btn btn-ghost h-10 px-3.5" onClick={() => setDetail({ job: a.job })}>Xem việc</button>
                 {a.status === 'pending' && <button type="button" className="btn btn-danger h-10 px-4" onClick={() => setCancel(a)}>Hủy đơn</button>}
+                {canRate(a, me) && <button type="button" className="btn btn-primary h-10 px-4" onClick={() => setRating(a)}><Icon name="star" size={18} />Đánh giá</button>}
               </div>
+              <RatingNotes app={a} me={me} other="Người đăng tin" />
             </article>
           ))}
         </>
@@ -695,6 +701,8 @@ export function MyApplicationsPage() {
         Bạn sẽ rút đơn khỏi “{cancel?.job.title}”. Có thể ứng tuyển lại nếu tin còn mở.
       </ConfirmModal>
       <JobDetailModal item={detail} onClose={() => setDetail(null)} />
+      <RatingModal app={rating} target="người đăng tin" onClose={() => setRating(null)}
+        onSaved={() => { toast({ title: 'Đã gửi đánh giá', body: rating?.job.title }); setRating(null); reload() }} />
     </main>
   )
 }

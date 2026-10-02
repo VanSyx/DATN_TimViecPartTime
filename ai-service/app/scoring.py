@@ -79,5 +79,11 @@ def geo_score(distance_km: float, radius_km: float) -> float:
     return 1 - min(distance_km, radius_km) / radius_km
 
 
+def trust_score(avg_rating: float | None) -> float:
+    """Min-max cận cố định [1, 5] sao → [0, 1]; chưa có đánh giá = 1.0 (trung lập, không phạt người mới)."""
+    # ponytail: không làm mượt theo số lượt đánh giá, 1 lượt 1 sao đã kéo về 0 (tối đa -0.1 điểm vì w4 = 0.1)
+    return 1.0 if avg_rating is None else (avg_rating - 1) / 4
+
+
 def final_score(breakdown: dict[str, float]) -> float:
     return sum(WEIGHTS[k] * breakdown[k] for k in WEIGHTS)

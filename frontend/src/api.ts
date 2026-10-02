@@ -97,7 +97,12 @@ export type Job = JobInput & {
   status: 'open' | 'closed' | 'pending_approval' | 'rejected'
   created_at: string
   distance_km: number | null
+  // Uy tín người đăng tin, chỉ có ở trang gợi ý
+  rating_avg?: number | null
+  rating_count?: number
 }
+
+export type Rating = { id: string; rater_id: string; ratee_id: string; score: number; comment: string | null; created_at: string }
 
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
 
@@ -107,7 +112,9 @@ export type Application = {
   created_at: string
   updated_at: string
   job: Job
-  job_seeker: { id: string; email: string; phone: string | null }
+  // rating_*: uy tín người ứng tuyển, chỉ có ở danh sách đơn của employer
+  job_seeker: { id: string; email: string; phone: string | null; rating_avg: number | null; rating_count: number }
+  ratings: Rating[]
 }
 
 export type Interval = { id: string; start_time: string; end_time: string }
@@ -156,4 +163,6 @@ export const api = {
   myApplications: () => request<Application[]>('/applications/me'),
   setApplicationStatus: (id: string, status: 'accepted' | 'rejected' | 'cancelled') =>
     send<Application>('PATCH', `/applications/${id}`, { status }),
+  rate: (application_id: string, score: number, comment: string | null) =>
+    post<Rating>('/ratings', { application_id, score, comment }),
 }

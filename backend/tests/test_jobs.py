@@ -351,7 +351,7 @@ def test_admin_takes_down_and_restores_job(client, admin, employer, seeker):
 
     assert client.patch(f"/admin/jobs/{job['id']}", json={"status": "open"}, headers=admin).status_code == 200
     assert visible(client, job)
-    assert job["id"] in [j["id"] for j in client.get("/admin/jobs", params={"status": "open"}, headers=admin).json()]
+    assert job["id"] in [j["id"] for j in client.get("/admin/jobs", headers=admin).json()]
 
 
 def test_admin_cannot_reopen_job_closed_by_employer(client, admin, employer):

@@ -49,11 +49,8 @@ JOB_TRANSITIONS = {"rejected": "open", "open": "rejected"}
 
 
 @router.get("/jobs", response_model=list[AdminJobOut])
-def list_jobs(status_: Literal["open", "closed", "rejected"] | None = Query(None, alias="status"),
-              db: Session = Depends(get_db)):
+def list_jobs(db: Session = Depends(get_db)):
     query = select(Job).options(joinedload(Job.employer)).order_by(Job.created_at.desc())
-    if status_:
-        query = query.where(Job.status == status_)
     return db.scalars(query.limit(200)).all()  # ponytail: chưa phân trang, thêm khi >200 tin
 
 

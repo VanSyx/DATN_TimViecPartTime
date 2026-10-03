@@ -183,12 +183,8 @@ def open_jobs_query():
     # Chủ nhà hay quên đóng tin đã qua ngày làm — không cho người tìm việc thấy tin đã kết thúc.
     # Tin của người đăng bị admin khoá cũng ẩn theo (FR10), mở khoá thì hiện lại.
     return select(Job).where(
-        Job.status == "open", Job.time_end > func.now(), Job.employer_id.not_in(blocked_user_ids())
+        Job.status == "open", Job.time_end > func.now(), Job.employer_id.not_in(select(User.id).where(User.is_blocked))
     )
-
-
-def blocked_user_ids():
-    return select(User.id).where(User.is_blocked)
 
 
 def nearby_jobs(db: Session, query, lat: float, lng: float, radius_km: float) -> list[Job]:

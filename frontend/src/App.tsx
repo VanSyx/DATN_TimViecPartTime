@@ -1,6 +1,7 @@
 import { createBrowserRouter, Link, Navigate, NavLink, Outlet, RouterProvider } from 'react-router-dom'
-import { roleHome, type Role } from './api'
+import { roleHome, roleLabel, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
+import { AdminJobsPage, AdminUsersPage } from './pages/AdminPages'
 import { LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
 import { EmployerJobsPage, JobApplicantsPage, JobFormPage } from './pages/EmployerPages'
 import { HomePage } from './pages/HomePage'
@@ -10,11 +11,10 @@ import { Icon, Logo, ToastProvider } from './ui'
 const NAV: Record<Role, [string, string][]> = {
   job_seeker: [['/seeker', 'Gợi ý cho tôi'], ['/tim-viec', 'Tìm việc'], ['/seeker/applications', 'Đơn ứng tuyển'], ['/seeker/profile', 'Hồ sơ & lịch rảnh']],
   employer: [['/employer', 'Tin đã đăng'], ['/employer/new', 'Đăng tin mới']],
-  admin: [['/admin', 'Duyệt tin']],
+  admin: [['/admin', 'Tin đăng'], ['/admin/users', 'Người dùng']],
 }
 const GUEST_NAV = [['/#cach-hoat-dong', 'Cách hoạt động'], ['/#goi-y-ai', 'Gợi ý AI'], ['/#cau-hoi', 'Câu hỏi']]
 
-const roleLabel: Record<Role, string> = { job_seeker: 'Người tìm việc', employer: 'Người đăng tin', admin: 'Quản trị viên' }
 const navItem = 'flex h-10 items-center rounded-[10px] px-3.5 whitespace-nowrap no-underline'
 const navIdle = `${navItem} font-medium text-stone-600 hover:bg-stone-100 hover:text-stone-900`
 
@@ -71,22 +71,6 @@ function Home() {
   return user ? <Navigate to={roleHome[user.role]} replace /> : <HomePage />
 }
 
-// ponytail: S12 chỉ là khung, duyệt tin / khoá người dùng / báo cáo vi phạm làm cùng FR10 (wireframe W4)
-function AdminPage() {
-  return (
-    <main className="page gap-5">
-      <div className="flex items-center gap-3">
-        <h1 className="h1">Duyệt tin</h1>
-        <span className="flex h-7 items-center rounded-full bg-stone-900 px-3 text-[13px] font-semibold text-white">Quản trị viên</span>
-      </div>
-      <div className="card flex items-center gap-4 p-6 text-stone-600">
-        <Icon name="info" className="text-sky-600" />
-        Chức năng quản trị (duyệt tin, khoá tài khoản, xử lý báo cáo vi phạm) sẽ có ở các tuần sau.
-      </div>
-    </main>
-  )
-}
-
 const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
@@ -114,7 +98,13 @@ const router = createBrowserRouter([
           { path: '/employer/jobs/:id', element: <JobApplicantsPage /> },
         ],
       },
-      { element: <RequireRole roles={['admin']} />, children: [{ path: '/admin', element: <AdminPage /> }] },
+      {
+        element: <RequireRole roles={['admin']} />,
+        children: [
+          { path: '/admin', element: <AdminJobsPage /> },
+          { path: '/admin/users', element: <AdminUsersPage /> },
+        ],
+      },
     ],
   },
   { path: '*', element: <Navigate to="/" replace /> },

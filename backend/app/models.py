@@ -77,9 +77,12 @@ class Job(Base):
     time_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     time_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     salary: Mapped[int] = mapped_column(Integer)  # VND
-    # pending_approval/rejected dành cho FR10 (tuần 6+); tuần 1-5 đăng là open luôn
+    # open → closed (employer đóng) | rejected (admin gỡ, FR10, khôi phục được về open).
+    # pending_approval chưa dùng: tin hiện ngay khi đăng, admin gỡ sau (quyết định 2026-10-02)
     status: Mapped[str] = mapped_column(String(20), default="open")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+    employer: Mapped[User] = relationship()  # chỉ trang admin cần, nạp bằng joinedload ở đó
 
 
 class AvailabilityInterval(Base):

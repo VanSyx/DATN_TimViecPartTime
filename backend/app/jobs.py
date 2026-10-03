@@ -180,8 +180,11 @@ def search_jobs(
 
 
 def open_jobs_query():
-    # Chủ nhà hay quên đóng tin đã qua ngày làm — không cho người tìm việc thấy tin đã kết thúc
-    return select(Job).where(Job.status == "open", Job.time_end > func.now())
+    # Chủ nhà hay quên đóng tin đã qua ngày làm — không cho người tìm việc thấy tin đã kết thúc.
+    # Tin của người đăng bị admin khoá cũng ẩn theo (FR10), mở khoá thì hiện lại.
+    return select(Job).where(
+        Job.status == "open", Job.time_end > func.now(), Job.employer_id.not_in(select(User.id).where(User.is_blocked))
+    )
 
 
 def nearby_jobs(db: Session, query, lat: float, lng: float, radius_km: float) -> list[Job]:
@@ -382,7 +385,8 @@ def apply(body: ApplicationIn, user: User = Depends(job_seeker), db: Session = D
     job = db.get(Job, body.job_id)
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy tin tuyển dụng")
-    if job.status != "open":
+    # Cùng điều kiện ẩn tin với open_jobs_query: gọi thẳng API cũng không ứng tuyển được tin đã gỡ/của người bị khoá
+    if job.status != "open" or db.get(User, job.employer_id).is_blocked:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tin tuyển dụng đã đóng")
     if job.time_end <= datetime.now(timezone.utc):
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Công việc này đã kết thúc")

@@ -5,6 +5,7 @@ from fastapi.middleware.cors import CORSMiddleware
 from slowapi import _rate_limit_exceeded_handler
 from slowapi.errors import RateLimitExceeded
 
+from app.admin import router as admin_router
 from app.auth import router as auth_router
 from app.config import CORS_ORIGINS
 from app.jobs import router as jobs_router
@@ -26,6 +27,7 @@ app.add_middleware(
 )
 app.include_router(auth_router)
 app.include_router(jobs_router)
+app.include_router(admin_router)
 
 
 @app.get("/health")

@@ -96,7 +96,9 @@ sequenceDiagram
 
 ---
 
-## 4. Admin: Duyệt tin đăng (FR10)
+## 4. Admin: Gỡ / khôi phục tin đăng (FR10)
+
+Tin hiện ngay khi đăng (`status = open`), **không duyệt trước** (quyết định 2026-10-02: giữ luồng đăng tin nhanh cho chủ nhà); admin gỡ tin vi phạm sau.
 
 ```mermaid
 sequenceDiagram
@@ -104,25 +106,21 @@ sequenceDiagram
     participant FE as Frontend
     participant BE as Backend chính
     participant DB as PostgreSQL
-    participant N as Notification (FR9)
 
-    A->>FE: Mở danh sách job status=pending_approval
-    FE->>BE: GET /admin/jobs?status=pending_approval
-    BE-->>FE: Danh sách job chờ duyệt
+    A->>FE: Mở trang "Tin đăng", lọc theo trạng thái
+    FE->>BE: GET /admin/jobs (kèm email người đăng)
+    BE-->>FE: Danh sách tin (mới nhất trước)
 
-    A->>FE: Duyệt hoặc từ chối 1 job
-    FE->>BE: PATCH /admin/jobs/:id { decision }
-    alt Duyệt
-        BE->>DB: UPDATE jobs SET status = open
-        BE->>N: Tạo notification cho employer (type=job_approved)
-    else Từ chối
-        BE->>DB: UPDATE jobs SET status = rejected
-        BE->>N: Tạo notification cho employer (type=job_rejected)
+    A->>FE: Gỡ hoặc khôi phục 1 tin
+    FE->>BE: PATCH /admin/jobs/:id { status: rejected | open }
+    BE->>DB: UPDATE jobs SET status = :đích WHERE id = :id AND status = :nguồn<br/>(gỡ: chỉ từ open; khôi phục: chỉ từ rejected)
+    alt Không có dòng nào đổi
+        BE-->>FE: 409 (tin đã bị đóng/đổi trạng thái)
+    else
+        BE-->>FE: 200 OK
     end
-    BE-->>FE: 200 OK
+    Note over BE: Tin rejected không hiện ở tìm kiếm/gợi ý, không nhận đơn (open_jobs_query + apply).<br/>Thông báo cho employer: làm cùng FR9
 ```
-
-**Ghi chú:** nếu tuần 1-5 chưa cài UC19, job mặc định `status=open` ngay khi đăng (bỏ bước duyệt) — không chặn luồng chính; bật lại bước duyệt này khi làm FR10 ở tuần 6+.
 
 ---
 
@@ -291,9 +289,9 @@ sequenceDiagram
 
     A->>FE: Khóa hoặc mở khóa tài khoản
     FE->>BE: PATCH /admin/users/:id { is_blocked }
-    BE->>DB: UPDATE users SET is_blocked = :value
+    BE->>DB: UPDATE users SET is_blocked = :value (không khoá được admin → 400)
     BE-->>FE: 200 OK
-    Note over BE: User bị khóa (is_blocked=true) sẽ bị chặn ở bước login (xem mục 2)
+    Note over BE: Có hiệu lực ngay: get_current_user kiểm is_blocked ở mọi request (token còn hạn cũng 401),<br/>login trả 403. Tin đang mở của người bị khoá ẩn khỏi tìm kiếm/gợi ý và không nhận đơn
 ```
 
 ## Ghi chú chung

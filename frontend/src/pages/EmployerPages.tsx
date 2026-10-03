@@ -12,7 +12,7 @@ import {
 
 function jobNote(job: Job) {
   if (job.status === 'pending_approval') return 'Tin đang chờ quản trị viên duyệt trước khi hiện cho người tìm việc.'
-  if (job.status === 'rejected') return 'Tin bị quản trị viên từ chối.'
+  if (job.status === 'rejected') return 'Tin bị quản trị viên gỡ vì vi phạm quy định — không còn hiện với người tìm việc.'
   if (job.status === 'open' && jobEnded(job)) return 'Đã qua giờ làm — tin không còn hiện với người tìm việc.'
   return null
 }

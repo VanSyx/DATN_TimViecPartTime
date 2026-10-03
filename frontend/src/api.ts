@@ -2,6 +2,8 @@ const API_URL = import.meta.env.VITE_API_URL ?? 'http://localhost:8000'
 
 export type Role = 'job_seeker' | 'employer' | 'admin'
 
+export const roleLabel: Record<Role, string> = { job_seeker: 'Người tìm việc', employer: 'Người đăng tin', admin: 'Quản trị viên' }
+
 export const roleHome: Record<Role, string> = {
   job_seeker: '/seeker',
   employer: '/employer',
@@ -102,7 +104,12 @@ export type Job = JobInput & {
   rating_count?: number
 }
 
-export type Rating = { id: string; rater_id: string; ratee_id: string; score: number; comment: string | null; created_at: string }
+export type AdminUser = {
+  id: string; email: string; phone: string | null; role: Role; email_verified: boolean; is_blocked: boolean; created_at: string
+}
+export type AdminJob = Job & { employer: AdminUser }
+
+export type Rating ={ id: string; rater_id: string; ratee_id: string; score: number; comment: string | null; created_at: string }
 
 export type ApplicationStatus = 'pending' | 'accepted' | 'rejected' | 'cancelled'
 
@@ -165,4 +172,9 @@ export const api = {
     send<Application>('PATCH', `/applications/${id}`, { status }),
   rate: (application_id: string, score: number, comment: string | null) =>
     post<Rating>('/ratings', { application_id, score, comment }),
+
+  adminJobs: () => request<AdminJob[]>('/admin/jobs'),
+  setJobStatus: (id: string, status: 'open' | 'rejected') => send<AdminJob>('PATCH', `/admin/jobs/${id}`, { status }),
+  adminUsers: (q: string) => request<AdminUser[]>(`/admin/users?${new URLSearchParams({ q })}`),
+  setBlocked: (id: string, is_blocked: boolean) => send<AdminUser>('PATCH', `/admin/users/${id}`, { is_blocked }),
 }

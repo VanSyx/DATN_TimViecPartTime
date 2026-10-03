@@ -137,7 +137,7 @@ const JOB_STATUS: Record<Job['status'], [string, string, string]> = {
   open: ['Đang mở', 'border-green-200 bg-green-50 text-green-700', 'bg-green-600'],
   closed: ['Đã đóng', 'border-stone-200 bg-stone-100 text-stone-700', 'bg-stone-400'],
   pending_approval: ['Chờ duyệt', 'border-amber-200 bg-amber-50 text-amber-800', 'bg-amber-500'],
-  rejected: ['Bị từ chối', 'border-red-200 bg-red-50 text-red-700', 'bg-red-600'],
+  rejected: ['Bị gỡ', 'border-red-200 bg-red-50 text-red-700', 'bg-red-600'],
 }
 
 export function JobStatusBadge({ status }: { status: Job['status'] }) {

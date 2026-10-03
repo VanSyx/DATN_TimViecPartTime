@@ -54,7 +54,7 @@ flowchart LR
     SYS --> UC18
 
     %% FR10 - Admin
-    ADM --> UC19[Duyệt tin đăng]
+    ADM --> UC19[Gỡ / khôi phục tin đăng]
     ADM --> UC20[Khóa / Mở khóa tài khoản user]
 ```
 
@@ -75,13 +75,13 @@ flowchart LR
 | UC11 | Đăng tin tuyển dụng | FR2 | EMP | ✅ Tuần 1-5 |
 | UC12 | Sửa tin tuyển dụng | FR2 | EMP | ✅ Tuần 1-5 |
 | UC13 | Đóng / Xóa tin tuyển dụng | FR2 | EMP | ✅ Tuần 1-5 |
-| UC14 | Đánh giá Employer | FR6 | JS | Tuần 6-12 |
-| UC15 | Đánh giá Job Seeker | FR6 | EMP | Tuần 6-12 |
+| UC14 | Đánh giá Employer | FR6 | JS | ✅ Tuần 7 |
+| UC15 | Đánh giá Job Seeker | FR6 | EMP | ✅ Tuần 7 |
 | UC16 | Report / Block user | FR7 | JS, EMP | Tuần 6-12 |
 | UC17 | Xử lý report | FR7 | ADM | Tuần 6-12 |
 | UC18 | Nhận & xem thông báo in-app | FR9 | JS, EMP, Hệ thống | Tuần 6-12 |
-| UC19 | Duyệt tin đăng | FR10 | ADM | Tuần 6-12 |
-| UC20 | Khóa / Mở khóa tài khoản user | FR10 | ADM | Tuần 6-12 |
+| UC19 | Gỡ / khôi phục tin đăng (tin hiện ngay, không duyệt trước — 2026-10-02) | FR10 | ADM | ✅ Tuần 7 |
+| UC20 | Khóa / Mở khóa tài khoản user | FR10 | ADM | ✅ Tuần 7 |
 
 ## Ghi chú
 - Actor **Hệ thống** đại diện cho các use case do backend tự kích hoạt (gửi mã xác minh, tính lại gợi ý khi có job mới, sinh thông báo) — không phải người dùng chủ động gọi, nhưng vẫn là một luồng nghiệp vụ cần cài đặt.

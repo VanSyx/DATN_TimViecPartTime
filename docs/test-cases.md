@@ -273,7 +273,7 @@ Tiền điều kiện: seed sạch. Vị trí test chính: **Bạch Mai, Hà N�
 | EMP-04 | P1 | Đóng tin | huong → J2 → "Đóng tin" → "Đóng tin" | Modal "Đóng tin này?" nói rõ đơn cũ vẫn giữ. Sau xác nhận: toast "Đã đóng tin", badge "Đã đóng". J2 biến mất khỏi `/tim-viec` và trang gợi ý; đơn của trang ở J2 vẫn còn | Đạt |
 | EMP-05 | P2 | Giữ tin | "Đóng tin" → "Giữ tin" | Không đổi gì | Đạt |
 | EMP-06 | P2 | Chưa có tin | Đăng nhập hai | "Bạn chưa đăng tin nào" + nút "Đăng tin đầu tiên" | Đạt |
-| EMP-07 | P3 | Badge chờ duyệt / bị từ chối | SQL đổi `status` 1 tin của huong thành `pending_approval`, rồi `rejected` | Badge "Chờ duyệt" (vàng) / "Bị từ chối" (đỏ) kèm ghi chú tương ứng (chưa có luồng admin thật — chỉ kiểm hiển thị) | Đạt |
+| EMP-07 | P3 | Badge chờ duyệt / bị gỡ | SQL đổi `status` 1 tin của huong thành `pending_approval`, rồi `rejected` | Badge "Chờ duyệt" (vàng) / "Bị gỡ" (đỏ) kèm ghi chú tương ứng ("Tin bị quản trị viên gỡ vì vi phạm quy định…"). `pending_approval` chưa dùng trong luồng thật; luồng gỡ tin thật ở ADM-04 | Đạt |
 
 ## 12. Đăng / sửa tin (S10)
 
@@ -332,12 +332,22 @@ Chuẩn bị: huong đăng tin A ở Bạch Mai, lan ứng tuyển, huong nhận
 | RATE-08 | P1 | Không đánh giá 2 lần / sai người | Swagger `POST /ratings` lần 2 cho cùng đơn; bằng token employer khác; đơn còn chờ duyệt | 409 / 404 / 400 (có trong pytest) | Đạt |
 | RATE-09 | P2 | Không lỗi Console | Đi hết RATE-01→06 | Không lỗi đỏ | Đạt |
 
-## 14. Quản trị (S12)
+## 14. Quản trị (S12, FR10)
+
+Tài khoản `quantri@example.com` (seed tạo sẵn, chỉ ở dev). Tin hiện ngay khi đăng; admin gỡ tin vi phạm sau, không duyệt trước (quyết định 2026-10-02).
 
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
 |---|---|---|---|---|---|
-| ADM-01 | P2 | Trang khung quản trị | SQL `UPDATE users SET role='admin' WHERE email='hai.cao@example.com';`, đăng nhập hai | Vào `/admin`: tiêu đề "Duyệt tin", nhãn "Quản trị viên", thông báo chức năng sẽ có ở các tuần sau. Menu chỉ có "Duyệt tin". Seed lại sau khi test | Đạt |
+| ADM-01 | P1 | Trang tin đăng | Đăng nhập quantri | Vào `/admin`: tiêu đề "Tin đăng" + nhãn "Quản trị viên"; menu "Tin đăng", "Người dùng". Mỗi tin có badge trạng thái, giờ, địa chỉ, tiền, "Người đăng: <email>", nút "Xem tin" + "Gỡ tin" (tin đang mở) | Đạt |
 | ADM-02 | P2 | Admin vào trang vai trò khác | Mở `/seeker`, `/employer` | Bị đưa về `/admin` | Đạt |
+| ADM-03 | P2 | Xem nội dung tin | "Xem tin" ở J1 | Modal chi tiết có "Mô tả công việc"; Esc đóng | Đạt |
+| ADM-04 | P1 | Gỡ tin | "Gỡ tin" ở J1 → xác nhận | Toast "Đã gỡ tin"; badge "Bị gỡ", nút đổi thành "Khôi phục". J1 biến mất khỏi `/tim-viec`/gợi ý; ứng tuyển J1 qua API → 400. huong thấy J1 "Bị gỡ" + "Tin bị quản trị viên gỡ vì vi phạm quy định…" | Đạt |
+| ADM-05 | P2 | Lọc | Chọn "Bị gỡ" | Chỉ còn J1 | Đạt |
+| ADM-06 | P1 | Khôi phục | "Khôi phục" ở J1 | Toast "Đã khôi phục tin", badge "Đang mở", J1 hiện lại ở `/tim-viec` | Đạt |
+| ADM-07 | P1 | Khoá tài khoản | huong đang đăng nhập ở tab khác. quantri → "Người dùng", tìm `huong.dinh` → "Khoá" → xác nhận | Hộp xác nhận nhắc tin của người đăng sẽ bị ẩn; toast "Đã khoá tài khoản", badge "Bị khoá". Tin của huong ẩn khỏi `/tim-viec`. Tab huong tải lại → về trang đăng nhập; đăng nhập lại → "Tài khoản đã bị khóa" | Đạt |
+| ADM-08 | P1 | Mở khoá | "Mở khoá" ở huong | Toast "Đã mở khoá tài khoản", hết badge, tin của huong hiện lại | Đạt |
+| ADM-09 | P1 | Không khoá được admin | Tìm `quantri`; Swagger `PATCH /admin/users/<id quantri>` `{"is_blocked": true}` | Dòng admin không có nút; API → 400 | Đạt |
+| ADM-10 | P1 | RBAC backend | Token huong/lan gọi `GET /admin/jobs`, `GET /admin/users`, `PATCH /admin/users/<id>` | 403 cả 3, không đổi dữ liệu | Đạt |
 
 ## 15. Giao diện chung & phi chức năng
 
@@ -358,7 +368,7 @@ Chuẩn bị: huong đăng tin A ở Bạch Mai, lan ứng tuyển, huong nhận
 
 | ID | UT | Lệnh | Kết quả mong đợi | KQ |
 |---|---|---|---|---|
-| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (46 test) | Đạt |
+| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (54 test) | Đạt |
 | AUTO-02 | P1 | `cd ai-service && .venv/Scripts/python -m pytest` | Tất cả pass (22 test) | Đạt |
 | AUTO-03 | P1 | `cd frontend && npm run build` | Build thành công (cảnh báo bundle > 500 kB chấp nhận được) | Đạt |
 | AUTO-04 | P1 | `cd frontend && npm run lint` | 0 lỗi (cảnh báo chấp nhận được) | Đạt |
@@ -376,6 +386,7 @@ Merge = deploy. Production **không có dữ liệu seed**, dùng tài khoản t
 | PROD-04 | P1 | CORS | Đăng ký 1 tài khoản test trên production | Thành công, tab Console không có lỗi CORS | Đạt |
 | PROD-05 | P1 | Luồng chính | Tài khoản người đăng tin test đăng 1 tin → tài khoản người tìm việc test khai lịch rảnh, xem gợi ý, ứng tuyển → người đăng tin nhận | Đi hết không lỗi | Đạt |
 | PROD-06 | P1 | AI thật, không phải dự phòng | Trang Gợi ý sau khi đã đặt `AI_SERVICE_URL` | Có vòng % và lý do, **không** có banner "AI tạm thời không phản hồi". Nếu còn banner: kiểm biến `AI_SERVICE_URL` trên `timviec-backend` | Đạt (lần 2, sau khi sửa Bug #3) |
+| PROD-08 | P1 | FR6 đã lên production | Swagger bằng token người tìm việc test: `GET /applications/me`, `POST /ratings` cho đơn vừa được nhận, `GET /recommendations` | Đơn có trường `ratings`; `POST /ratings` → 400 "…sau khi công việc kết thúc" (không phải 500 = bảng đã migrate); tin của người đăng mới có `trust = 1`, `rating_count = 0` | Đạt (2026-10-03, sau merge PR #15) |
 | PROD-07 | P2 | Dọn dẹp | Đóng tin test | Tin không còn hiện với người khác | Đạt |
 
 ---
@@ -411,13 +422,13 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 12. Đăng / sửa tin | 19 | 19 | 0 | 0 |
 | 13. Đơn của một tin | 10 | 10 | 0 | 0 |
 | 13b. Đánh giá hai chiều | 9 | 9 | 0 | 0 |
-| 14. Quản trị | 2 | 2 | 0 | 0 |
+| 14. Quản trị | 10 | 10 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
-| 17. Production | 7 | 7 | 0 | 0 |
-| **Tổng** | **222** | **222** | **0** | **0** |
+| 17. Production | 8 | 8 | 0 | 0 |
+| **Tổng** | **231** | **231** | **0** | **0** |
 
-Mục 1–16 chạy lại toàn bộ 2026-10-03 trên `feat/week7-rating` (xem mục 21); mục 17 là kết quả 2026-09-30, chạy lại sau khi merge.
+Mục 1–16 chạy lại toàn bộ 2026-10-03 trên `feat/week7-admin` (xem mục 22); mục 17 chạy 2026-10-03 sau merge PR #15, chạy lại sau khi merge FR10.
 
 ## 20. Kết quả chạy 2026-09-30 (trước khi merge `feat/week6-ui`)
 
@@ -448,3 +459,11 @@ Mục 1–16 chạy lại toàn bộ 2026-10-03 trên `feat/week7-rating` (xem m
 | Bug | Case phát hiện | Mức độ | Mô tả | Xử lý |
 |---|---|---|---|---|
 | #4 | UI-02, UI-06, UI-09 | Thấp | Console báo "two children with the same key" ở `/seeker`: khi seeker có 2 khoảng rảnh cùng giờ bắt đầu trong 1 ngày (vd. CN 07:00–20:00 và 07:00–11:00 — backend không gộp khoảng chồng nhau), thanh giờ của thẻ việc dùng giờ bắt đầu làm `key`. Có từ Tuần 6, lần chạy 2026-09-30 không lộ vì "ngày mai" khi đó là thứ 5 | `key` theo `id` khoảng rảnh (`job-ui.tsx` `DayTimeline`) |
+
+## 22. Kết quả chạy 2026-10-03 (trước khi merge `feat/week7-admin`, FR10)
+
+- **Trước đó, production sau merge PR #15 (FR6)**: mục 17 đạt **8/8**, thêm PROD-08 xác nhận bảng `ratings` đã migrate và luật đánh giá chạy đúng trên production. Để lại 2 tài khoản `qa-prod-1790967449300-*@example.org`, tin test đã đóng.
+- **Mục 1–15 + 13b**: **217/218** ở lần 1. Lỗi duy nhất là EMP-07, vì case vẫn đòi nhãn cũ "Bị từ chối", trong khi FR10 đã đổi có chủ đích thành "Bị gỡ" cho đúng luồng gỡ tin. Đã sửa case và script, chạy lại case đó thì đạt. Kết quả **218/218**.
+- **Mục 14** viết lại thành 10 case FR10 (ADM-01→10), thay 2 case khung cũ.
+- **Mục 16**: backend 54 test, ai-service 22, build, lint 0 lỗi.
+- Không phát sinh bug mới.

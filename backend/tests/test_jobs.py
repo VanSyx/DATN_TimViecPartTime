@@ -333,6 +333,7 @@ def visible(client, job):
 @pytest.mark.parametrize("method,path", [
     ("GET", "/admin/jobs"), ("GET", "/admin/users"),
     ("PATCH", f"/admin/jobs/{uuid.uuid4()}"), ("PATCH", f"/admin/users/{uuid.uuid4()}"),
+    ("GET", "/admin/reports"), ("PATCH", f"/admin/reports/{uuid.uuid4()}"),
 ])
 def test_admin_endpoints_admin_only(client, employer, seeker, method, path):
     for headers in (employer, seeker):
@@ -377,3 +378,71 @@ def test_admin_cannot_block_admin(client, admin, auth_headers):
     for target in (admin, auth_headers("admin")):
         res = client.patch(f"/admin/users/{me(client, target)['id']}", json={"is_blocked": True}, headers=admin)
         assert res.status_code == 400
+
+
+# ---------- Báo cáo vi phạm (FR7) + thông báo (FR9) ----------
+
+def report(client, headers, user, reason="Hẹn rồi không đến, không báo trước"):
+    return client.post("/reports", json={"reported_id": user["id"], "reason": reason}, headers=headers)
+
+
+def decide(client, admin, rep, decision):
+    return client.patch(f"/admin/reports/{rep['id']}", json={"decision": decision}, headers=admin)
+
+
+def notes(client, headers):
+    return client.get("/notifications", headers=headers).json()
+
+
+def messages(client, headers):
+    # Không dựa vào thứ tự: trong test cả kịch bản chung 1 transaction nên created_at (now()) trùng nhau
+    return " | ".join(n["message"] for n in notes(client, headers))
+
+
+def test_report_validation(client, admin, employer, seeker):
+    emp = me(client, employer)
+    assert report(client, seeker, emp, reason="   ").status_code == 422
+    assert report(client, seeker, me(client, seeker)).status_code == 400
+    assert report(client, seeker, me(client, admin)).status_code == 404
+    assert report(client, seeker, {"id": str(uuid.uuid4())}).status_code == 404
+    assert report(client, admin, emp).status_code == 403  # admin xử lý báo cáo, không tự báo cáo
+    assert report(client, seeker, emp).status_code == 201
+    assert report(client, seeker, emp).status_code == 409  # đang chờ xử lý thì không báo cáo trùng
+
+
+def test_admin_dismisses_then_blocks_closing_all_pending_reports(client, admin, employer, seeker, auth_headers):
+    emp, other = me(client, employer), auth_headers("job_seeker")
+    first = report(client, seeker, emp).json()
+    assert decide(client, admin, first, "dismiss").json()["status"] == "dismissed"
+    assert decide(client, admin, first, "block").status_code == 409  # đã xử lý
+    assert client.get("/jobs/mine", headers=employer).status_code == 200  # bỏ qua thì không khoá
+    assert "chưa đủ căn cứ" in messages(client, seeker)
+
+    # Xử lý xong thì báo cáo lại được; 2 người cùng báo cáo, khoá 1 lần là đóng cả 2
+    again, theirs = report(client, seeker, emp).json(), report(client, other, emp).json()
+    res = decide(client, admin, again, "block")
+    assert res.status_code == 200 and res.json()["status"] == "resolved" and res.json()["reported"]["is_blocked"]
+    assert client.get("/jobs/mine", headers=employer).status_code == 401
+    statuses = {r["id"]: r["status"] for r in client.get("/admin/reports", headers=admin).json()}
+    assert statuses[again["id"]] == statuses[theirs["id"]] == "resolved"
+    for headers in (seeker, other):
+        assert "tài khoản này đã bị khoá" in messages(client, headers)
+
+
+def test_notifications_follow_application_and_takedown(client, admin, employer, seeker):
+    job = create_job(client, employer)
+    application = apply(client, seeker, job).json()
+    [new] = notes(client, employer)
+    assert new["type"] == "new_application" and new["related_id"] == job["id"] and not new["is_read"]
+
+    set_status(client, employer, application, "accepted")
+    [status] = notes(client, seeker)
+    assert status["related_id"] == application["id"] and "đã được nhận" in status["message"]
+
+    client.patch(f"/admin/jobs/{job['id']}", json={"status": "rejected", "reason": "Tin lừa đảo"}, headers=admin)
+    assert "đã bị quản trị viên gỡ. Lý do: Tin lừa đảo" in messages(client, employer)
+
+    assert client.post("/notifications/read", headers=employer).status_code == 204
+    assert all(n["is_read"] for n in notes(client, employer))
+    assert not any(n["is_read"] for n in notes(client, seeker))  # chỉ đánh dấu thông báo của chính mình
+    assert client.get("/notifications").status_code in (401, 403)

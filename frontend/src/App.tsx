@@ -1,17 +1,18 @@
-import { createBrowserRouter, Link, Navigate, NavLink, Outlet, RouterProvider } from 'react-router-dom'
-import { roleHome, roleLabel, type Role } from './api'
+import { useEffect, useState } from 'react'
+import { createBrowserRouter, Link, Navigate, NavLink, Outlet, RouterProvider, useLocation } from 'react-router-dom'
+import { api, roleHome, roleLabel, type Notification, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
-import { AdminJobsPage, AdminUsersPage } from './pages/AdminPages'
+import { AdminJobsPage, AdminReportsPage, AdminUsersPage } from './pages/AdminPages'
 import { LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
 import { EmployerJobsPage, JobApplicantsPage, JobFormPage } from './pages/EmployerPages'
 import { HomePage } from './pages/HomePage'
 import { MyApplicationsPage, ProfilePage, RecommendPage, SearchPage } from './pages/SeekerPages'
-import { Icon, Logo, ToastProvider } from './ui'
+import { fmtStamp, Icon, Logo, ToastProvider } from './ui'
 
 const NAV: Record<Role, [string, string][]> = {
   job_seeker: [['/seeker', 'Gợi ý cho tôi'], ['/tim-viec', 'Tìm việc'], ['/seeker/applications', 'Đơn ứng tuyển'], ['/seeker/profile', 'Hồ sơ & lịch rảnh']],
   employer: [['/employer', 'Tin đã đăng'], ['/employer/new', 'Đăng tin mới']],
-  admin: [['/admin', 'Tin đăng'], ['/admin/users', 'Người dùng']],
+  admin: [['/admin', 'Tin đăng'], ['/admin/users', 'Người dùng'], ['/admin/reports', 'Báo cáo']],
 }
 const GUEST_NAV = [['/#cach-hoat-dong', 'Cách hoạt động'], ['/#goi-y-ai', 'Gợi ý AI'], ['/#cau-hoi', 'Câu hỏi']]
 
@@ -38,6 +39,54 @@ function AccountMenu() {
   )
 }
 
+// Thông báo bấm vào thì tới trang liên quan; report_resolved chỉ để đọc
+const NOTIF_LINK: Record<Notification['type'], (id: string | null) => string | null> = {
+  new_application: (id) => `/employer/jobs/${id}`,
+  application_status: () => '/seeker/applications',
+  job_status: () => '/employer',
+  report_resolved: () => null,
+}
+
+/** FR9: tải lại mỗi lần chuyển trang (không polling); mở chuông = đánh dấu đã xem hết. */
+function NotificationBell() {
+  const { pathname } = useLocation()
+  const [items, setItems] = useState<Notification[]>([])
+  useEffect(() => { api.notifications().then(setItems, () => {}) }, [pathname])
+  const unread = items.filter((n) => !n.is_read).length
+
+  function toggle(open: boolean) {
+    if (open && unread) api.readNotifications().catch(() => {})
+    // Đóng xong mới bỏ tô đậm, để lúc đang mở còn thấy cái nào mới
+    if (!open) setItems((xs) => xs.map((n) => ({ ...n, is_read: true })))
+  }
+
+  return (
+    <details className="relative shrink-0" onToggle={(e) => toggle(e.currentTarget.open)}>
+      <summary aria-label={unread ? `Thông báo, ${unread} chưa đọc` : 'Thông báo'} title="Thông báo"
+        className="relative grid size-10 cursor-pointer place-items-center rounded-full text-stone-700 hover:bg-stone-100">
+        <Icon name="bell" size={22} />
+        {!!unread && <span className="absolute top-0.5 right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-orange-700 px-1 text-xs font-bold text-white">{unread > 9 ? '9+' : unread}</span>}
+      </summary>
+      <div className="card absolute right-0 z-[1100] mt-2 flex max-h-[420px] w-[380px] flex-col overflow-auto p-1.5 shadow-md"
+        onClick={(e) => { if ((e.target as HTMLElement).closest('a')) (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
+        <div className="px-3 py-2 font-semibold">Thông báo</div>
+        {!items.length && <p className="px-3 pb-3 text-sm text-stone-500">Chưa có thông báo nào.</p>}
+        {items.map((n) => {
+          const to = NOTIF_LINK[n.type](n.related_id)
+          const body = (
+            <>
+              <span className={`text-sm leading-5 ${n.is_read ? 'text-stone-700' : 'font-semibold text-stone-900'}`}>{n.message}</span>
+              <span className="text-xs text-stone-500">{fmtStamp(n.created_at)}</span>
+            </>
+          )
+          const cls = `flex flex-col gap-1 rounded-lg px-3 py-2.5 no-underline ${n.is_read ? '' : 'bg-teal-50'}`
+          return to ? <Link key={n.id} to={to} className={`${cls} hover:bg-stone-100`}>{body}</Link> : <div key={n.id} className={cls}>{body}</div>
+        })}
+      </div>
+    </details>
+  )
+}
+
 function Shell() {
   const { user } = useAuth()
   return (
@@ -52,7 +101,12 @@ function Shell() {
               ))
               : GUEST_NAV.map(([href, label]) => <a key={href} href={href} className={navIdle}>{label}</a>)}
           </nav>
-          {user ? <AccountMenu /> : (
+          {user ? (
+            <div className="flex shrink-0 items-center gap-2">
+              {user.role !== 'admin' && <NotificationBell />}
+              <AccountMenu />
+            </div>
+          ) : (
             <div className="flex shrink-0 items-center gap-2">
               <Link to="/login" className="btn btn-plain h-10 px-4">Đăng nhập</Link>
               <Link to="/register" className="btn btn-primary h-10">Đăng ký</Link>
@@ -103,6 +157,7 @@ const router = createBrowserRouter([
         children: [
           { path: '/admin', element: <AdminJobsPage /> },
           { path: '/admin/users', element: <AdminUsersPage /> },
+          { path: '/admin/reports', element: <AdminReportsPage /> },
         ],
       },
     ],

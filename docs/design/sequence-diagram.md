@@ -111,15 +111,15 @@ sequenceDiagram
     FE->>BE: GET /admin/jobs (kèm email người đăng)
     BE-->>FE: Danh sách tin (mới nhất trước)
 
-    A->>FE: Gỡ hoặc khôi phục 1 tin
-    FE->>BE: PATCH /admin/jobs/:id { status: rejected | open }
+    A->>FE: Gỡ (nhập lý do) hoặc khôi phục 1 tin
+    FE->>BE: PATCH /admin/jobs/:id { status: rejected | open, reason? }
     BE->>DB: UPDATE jobs SET status = :đích WHERE id = :id AND status = :nguồn<br/>(gỡ: chỉ từ open; khôi phục: chỉ từ rejected)
     alt Không có dòng nào đổi
         BE-->>FE: 409 (tin đã bị đóng/đổi trạng thái)
     else
         BE-->>FE: 200 OK
     end
-    Note over BE: Tin rejected không hiện ở tìm kiếm/gợi ý, không nhận đơn (open_jobs_query + apply).<br/>Thông báo cho employer: làm cùng FR9
+    Note over BE: Tin rejected không hiện ở tìm kiếm/gợi ý, không nhận đơn (open_jobs_query + apply).<br/>Cùng transaction: notification cho employer (type=job_status, kèm lý do gỡ nếu admin nhập)
 ```
 
 ---
@@ -252,23 +252,28 @@ sequenceDiagram
     participant BE as Backend chính
     participant DB as PostgreSQL
 
-    U->>FE: Report user khác (kèm lý do)
+    Note over U,FE: JS báo cáo người đăng tin từ chi tiết tin; EMP báo cáo người ứng tuyển từ danh sách đơn
+    U->>FE: Báo cáo user khác (kèm lý do)
     FE->>BE: POST /reports { reported_id, reason }
     BE->>DB: INSERT reports (status = pending)
-    BE-->>FE: 201 Created
-
-    A->>FE: Mở danh sách report pending
-    FE->>BE: GET /admin/reports?status=pending
-    BE-->>FE: Danh sách report
-
-    A->>FE: Xử lý report (dismiss hoặc block user bị báo cáo)
-    FE->>BE: PATCH /admin/reports/:id { decision }
-    alt Block
-        BE->>DB: UPDATE users SET is_blocked = true WHERE id = reported_id
-        BE->>DB: UPDATE reports SET status = resolved, resolved_at = now()
-    else Dismiss (report không hợp lệ)
-        BE->>DB: UPDATE reports SET status = dismissed, resolved_at = now()
+    alt Đã có báo cáo pending cùng cặp (unique index)
+        BE-->>FE: 409
+    else
+        BE-->>FE: 201 Created
     end
+
+    A->>FE: Mở trang "Báo cáo", lọc "Chờ xử lý" (lọc ở frontend)
+    FE->>BE: GET /admin/reports
+    BE-->>FE: Danh sách báo cáo (kèm email 2 bên)
+
+    A->>FE: Xử lý (bỏ qua hoặc khoá tài khoản bị báo cáo)
+    FE->>BE: PATCH /admin/reports/:id { decision: block | dismiss }
+    BE->>DB: UPDATE reports SET status = resolved | dismissed, resolved_at = now()<br/>WHERE id = :id AND status = pending (không dòng nào đổi → 409)
+    opt Block
+        BE->>DB: UPDATE users SET is_blocked = true WHERE id = reported_id
+        BE->>DB: Các báo cáo pending khác về cùng người → resolved
+    end
+    BE->>DB: INSERT notifications (type=report_resolved) cho từng người báo cáo được đóng
     BE-->>FE: 200 OK
 ```
 

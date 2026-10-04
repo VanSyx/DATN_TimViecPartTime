@@ -10,7 +10,7 @@ from datetime import datetime, timedelta, timezone
 from sqlalchemy import delete, or_, select
 
 from app.db import SessionLocal
-from app.models import Application, AvailabilityInterval, Job, Rating, User
+from app.models import Application, AvailabilityInterval, Job, Notification, Rating, Report, User
 from app.security import hash_secret
 
 PASSWORD = "matkhau123"
@@ -196,6 +196,8 @@ def main():
         old_jobs = select(Job.id).where(Job.employer_id.in_(old))
         # Mỗi đánh giá luôn có 1 trong 2 bên của đơn là rater/ratee nên lọc theo user là đủ
         db.execute(delete(Rating).where(or_(Rating.rater_id.in_(old), Rating.ratee_id.in_(old))))
+        db.execute(delete(Report).where(or_(Report.reporter_id.in_(old), Report.reported_id.in_(old))))
+        db.execute(delete(Notification).where(Notification.user_id.in_(old)))
         db.execute(delete(Application).where(
             or_(Application.job_seeker_id.in_(old), Application.job_id.in_(old_jobs))))
         db.execute(delete(AvailabilityInterval).where(AvailabilityInterval.job_seeker_id.in_(old)))
@@ -234,7 +236,7 @@ def main():
         print(f"  [tìm việc] {email:30} {note}")
     for _, email, _, note in EMPLOYERS:
         print(f"  [chủ nhà]  {email:30} {note}")
-    print(f"  [quản trị] {ADMIN:30} Gỡ tin, khoá tài khoản (FR10).")
+    print(f"  [quản trị] {ADMIN:30} Gỡ tin, khoá tài khoản (FR10), xử lý báo cáo (FR7).")
 
 
 if __name__ == "__main__":

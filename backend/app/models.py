@@ -138,3 +138,44 @@ class Rating(Base):
     score: Mapped[int] = mapped_column(Integer)
     comment: Mapped[str | None] = mapped_column(Text, default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+
+
+class Report(Base):
+    """FR7: người dùng báo cáo người khác, admin bỏ qua (dismissed) hoặc khoá tài khoản bị báo cáo (resolved)."""
+
+    __tablename__ = "reports"
+    __table_args__ = (
+        # Mỗi cặp người báo cáo → người bị báo cáo chỉ 1 báo cáo đang chờ; xử lý xong thì báo cáo lại được
+        Index(
+            "uq_reports_pending",
+            "reporter_id",
+            "reported_id",
+            unique=True,
+            postgresql_where=text("status = 'pending'"),
+        ),
+    )
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    reporter_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"))
+    reported_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    reason: Mapped[str] = mapped_column(Text)
+    status: Mapped[str] = mapped_column(String(20), default="pending")  # pending | resolved | dismissed
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
+    resolved_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True), default=None)
+
+    reporter: Mapped[User] = relationship(foreign_keys=[reporter_id], lazy="joined")
+    reported: Mapped[User] = relationship(foreign_keys=[reported_id], lazy="joined")
+
+
+class Notification(Base):
+    """FR9: thông báo in-app. message lưu sẵn câu hiển thị lúc tạo; related_id trỏ job/application/report tuỳ type (không FK)."""
+
+    __tablename__ = "notifications"
+
+    id: Mapped[uuid.UUID] = mapped_column(Uuid, primary_key=True, default=uuid.uuid4)
+    user_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
+    type: Mapped[str] = mapped_column(String(30))
+    message: Mapped[str] = mapped_column(Text)
+    related_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, default=None)
+    is_read: Mapped[bool] = mapped_column(Boolean, default=False)
+    created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())

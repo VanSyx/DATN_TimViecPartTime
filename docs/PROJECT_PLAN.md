@@ -276,7 +276,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Report bị code "ăn" hết thời gian ở tuần 6-12 | Không giữ kỷ luật chia thời gian code/report | Trung bình | Bám lịch xen kẽ ngày code/ngày report mỗi tuần (mục 5.2) |
 | Không đủ dữ liệu pilot test thật để phân tích | Không ưu tiên thời gian tuyển pilot tester (đã xác nhận với người thực hiện) | Chấp nhận được nếu minh bạch | Nêu rõ giới hạn này trong báo cáo, không phóng đại kết luận (mục 7.1) |
 | Deploy lỗi ở phút chót | Dồn việc deploy về cuối dự án | Trung bình | Deploy Hello World từ tuần 1, deploy lại mỗi tuần để phát hiện lỗi hạ tầng sớm |
-| Render free Postgres bị xóa giữa dự án | Free tier chỉ giữ DB 90 ngày kể từ lúc tạo — ~tuần 13 tính từ tuần 1, sát mốc nộp báo cáo tuần 12 | Cao | Ghi lại ngày tạo DB; nâng lên plan trả phí (~$7/tháng) trước ngày hết hạn nếu cần production sống qua tuần 12; hoặc export/backup dữ liệu định kỳ từ tuần 9+ đề phòng |
+| Render free Postgres bị xóa giữa dự án | Free tier của Render chỉ giữ DB **30 ngày** (`timviec-db` hết hạn 15/10), bảo vệ 30/12 | ✅ Đã xử lý (2026-10-05) | Chuyển sang Neon free (Postgres 16 + PostGIS, không hết hạn, 0,5 GB). Bản dump dự phòng giữ ở `D:/DATN_backup/` (setup-log #20–22) |
 | Render free web service cold start chậm | Service free tier ngủ sau 15 phút không có traffic, request đầu tiên mất 30-50s để dậy | Thấp, ảnh hưởng lúc demo | "Đánh thức" service vài phút trước khi demo/báo cáo trực tiếp; nêu rõ giới hạn free tier nếu GVHD hỏi vì sao chậm lần đầu |
 
 ---

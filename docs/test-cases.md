@@ -528,3 +528,10 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-passwor
 - **Mục 1–15 + 13b + 14b**: lần 1 đạt **235/236**. FORM-07 quá 15s vì dịch vụ định vị Photon (bên ngoài) trả lời chậm 15–19s (đo bằng curl). Chạy lại riêng thì đạt. Thay đổi không đụng tới đăng tin, nên đây không phải lỗi app. Kết quả **236/236**.
 - **Mục 16**: backend **62** test (thêm 1 test cho quên mật khẩu: email không tồn tại vẫn 204 và không gửi mã, cooldown im lặng, sai mã → huỷ mã, mật khẩu < 8 ký tự → 422, mã chỉ dùng 1 lần, mật khẩu cũ hết dùng được), ai-service 22, build, lint 0 lỗi.
 - **Mục 17 (production)**: PROD-11 "gửi lại mã" chạy 2026-10-05 sau merge PR #21/#22. Gọi `POST /auth/resend-code` cho `syx140704+prod10@gmail.com` → 204, email tới hộp thư; gọi lại ngay → 429 "Vui lòng đợi 1 phút rồi gửi lại mã". **Đạt.**
+
+## 27. Smoke test production sau khi chuyển DB sang Neon (2026-10-05)
+
+- Bối cảnh: `DATABASE_URL` của `timviec-backend` chuyển từ Postgres free của Render (`timviec-db`, hết hạn 15/10) sang Neon free (setup-log #20–22). Không đổi code.
+- Trước khi chuyển: checksum nội dung 8 bảng (`users`, `jobs`, `applications`, `availability_intervals`, `ratings`, `reports`, `notifications`, `alembic_version`) ở 2 DB giống hệt.
+- Sau khi chuyển: `POST /auth/forgot-password` cho `+prod10` chỉ làm đổi dòng ở Neon (xác nhận backend đã dùng Neon). Chạy lại PROD-01…09 tự động: **9/9 Đạt**. Neon có thêm 2 tài khoản `qa-prod-1791212607616-*@example.org`, 1 tin test (đã đóng ở PROD-07) và 1 báo cáo test chờ admin "Bỏ qua".
+

@@ -87,7 +87,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR5 | Job Seeker ứng tuyển, theo dõi trạng thái đơn, hủy đơn khi chưa duyệt; Employer duyệt/từ chối đơn | ✅ Tuần 1-5 |
 | FR6 | Hai bên đánh giá (rating) lẫn nhau sau khi hoàn thành công việc | Tuần 6-12 — ✅ Tuần 7 (PR #15, đã lên production); uy tín người đăng tin thay `trust = 1.0` |
 | FR7 | Report/block người dùng; Admin xử lý report | Tuần 6-12 — ✅ code Tuần 7 (`feat/week7-report-notif`): người dùng báo cáo nhau, admin bỏ qua hoặc khoá tài khoản (block = admin khoá, không có chặn giữa 2 người dùng — 2026-10-04) |
-| FR8 | Xác minh SĐT/email khi đăng ký | ✅ Tuần 1-5 (schema + endpoint verify) — gửi mã thật qua provider: tuần 6-12 |
+| FR8 | Xác minh SĐT/email khi đăng ký | ✅ Tuần 1-5 (schema + endpoint verify) — ✅ code Tuần 8 (`feat/week8-email`): gửi mã qua email bằng HTTP API Brevo (Render free chặn cổng SMTP từ 09/2025); chỉ email, không SMS (tốn phí) |
 | FR9 | Thông báo in-app khi có sự kiện liên quan | Tuần 6-12 — ✅ code Tuần 7 (`feat/week7-report-notif`): đơn mới, đơn được nhận/từ chối, tin bị gỡ (kèm lý do)/khôi phục, kết quả báo cáo; chuông trên header, tải lại khi chuyển trang (không realtime) |
 | FR10 | Admin duyệt tin đăng, khóa/mở khóa tài khoản user, xử lý report | Tuần 6-12 — ✅ Tuần 7 (PR #16, đã lên production): gỡ/khôi phục tin (tin hiện ngay, không duyệt trước — 2026-10-02), khoá/mở khoá user; xử lý report làm cùng FR7 |
 

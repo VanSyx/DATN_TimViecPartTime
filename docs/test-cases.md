@@ -74,7 +74,7 @@ Tiền điều kiện: chưa đăng nhập, mở `/register`.
 
 ## 2. Xác minh email (S3)
 
-Tiền điều kiện: vừa đăng ký xong ở REG-01 (đang ở `/verify`), lấy mã trong log backend.
+Tiền điều kiện: vừa đăng ký xong ở REG-01 (đang ở `/verify`), lấy mã trong log backend (local không đặt `BREVO_API_KEY` nên mã chỉ ghi log; gửi email thật kiểm ở PROD-10).
 
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
 |---|---|---|---|---|---|
@@ -408,6 +408,7 @@ Merge = deploy. Production **không có dữ liệu seed**, dùng tài khoản t
 | PROD-06 | P1 | AI thật, không phải dự phòng | Trang Gợi ý sau khi đã đặt `AI_SERVICE_URL` | Có vòng % và lý do, **không** có banner "AI tạm thời không phản hồi". Nếu còn banner: kiểm biến `AI_SERVICE_URL` trên `timviec-backend` | Đạt (lần 2, sau khi sửa Bug #3) |
 | PROD-08 | P1 | FR6 đã lên production | Swagger bằng token người tìm việc test: `GET /applications/me`, `POST /ratings` cho đơn vừa được nhận, `GET /recommendations` | Đơn có trường `ratings`; `POST /ratings` → 400 "…sau khi công việc kết thúc" (không phải 500 = bảng đã migrate); tin của người đăng mới có `trust = 1`, `rating_count = 0` | Đạt (2026-10-03, sau merge PR #15) |
 | PROD-09 | P1 | FR7/FR9 đã lên production | Sau PROD-05: token người đăng tin test `GET /notifications`; token người tìm việc test `POST /reports` về người đăng tin test; người đăng tin mở `/employer` | 200 và có thông báo `new_application` của tin test (không phải 500 = bảng đã migrate); báo cáo → 201; header có chuông kèm badge. Báo cáo test để lại cho admin production "Bỏ qua" | Đạt |
+| PROD-10 | P1 | FR8 gửi mã thật | Sau khi đặt `BREVO_API_KEY`, `MAIL_FROM` trên `timviec-backend`: đăng ký trên production bằng 1 email thật mình đọc được (vd. Gmail phụ) | Trong ≤ 1 phút nhận được email "Mã xác minh TimViecPartTime: xxxxxx" (kiểm cả mục Spam); nhập mã ở `/verify` → "Email đã được xác minh". Log backend **không** in mã | |
 | PROD-07 | P2 | Dọn dẹp | Đóng tin test | Tin không còn hiện với người khác | Đạt |
 
 ---
@@ -447,8 +448,8 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
-| 17. Production | 9 | 9 | 0 | 0 |
-| **Tổng** | **245** | **245** | **0** | **0** |
+| 17. Production | 10 | 9 | 0 | 0 |
+| **Tổng** | **246** | **245** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` (xem mục 23); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 
@@ -501,3 +502,9 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` 
 - **Lần 2**: mục 1–15 + 13b + 14b đạt **231/231**. Mục 16: backend **59** test, ai-service 22, build, lint 0 lỗi; AUTO-05 là CI trên PR.
 - **Lỗi tự phát hiện trong lúc code (đã sửa trước khi chạy suite)**: `seed.py` chưa xoá `reports`/`notifications` trước `users` → seed lại sẽ lỗi khoá ngoại; chuông làm menu người tìm việc tràn sát vào chuông (gom chuông + menu tài khoản vào 1 cụm, đo lại ở 1280/1440 px không tràn).
 - **Production sau merge PR #17/#18 (FR7 + FR9)**: mục 17 đạt **9/9** (gồm PROD-09); `/admin/reports` trả 401 khi chưa đăng nhập. Để lại 2 tài khoản `qa-prod-1791191808372-*@example.org` và 1 báo cáo test cho admin production bỏ qua; tin test đã đóng.
+
+## 24. Kết quả chạy 2026-10-05 (trước khi merge `feat/week8-email`, FR8)
+
+- **Mục 1–15 + 13b + 14b**: **231/231** ngay lần 1. Local không đặt `BREVO_API_KEY` nên luồng đăng ký/xác minh vẫn lấy mã như cũ; FR8 không đổi giao diện.
+- **Mục 16**: backend **60** test (thêm 1 test gửi qua Brevo: đúng người nhận/người gửi, mã có trong email; Brevo lỗi thì đăng ký vẫn 201), ai-service 22, build, lint 0 lỗi; AUTO-05 là CI trên PR.
+- **PROD-10** (mục 17) chạy sau khi merge và đặt `BREVO_API_KEY`, `MAIL_FROM` trên Render.

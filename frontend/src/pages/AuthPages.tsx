@@ -206,6 +206,7 @@ export function VerifyPage() {
   const [error, setError] = useState('')
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState<User | null>(null)
+  const [resent, setResent] = useState(false)
   const loginLink = `/login${email ? `?email=${encodeURIComponent(email)}` : ''}`
 
   async function onSubmit(e: FormEvent<HTMLFormElement>) {
@@ -218,6 +219,18 @@ export function VerifyPage() {
       setError(asApiError(err).message)
     } finally {
       setBusy(false)
+    }
+  }
+
+  async function onResend() {
+    setError('')
+    setResent(false)
+    try {
+      await api.resendCode(userId)
+      setResent(true)
+      setCode('')
+    } catch (err) {
+      setError(asApiError(err).message)
     }
   }
 
@@ -249,7 +262,12 @@ export function VerifyPage() {
         </div>
         <OtpInput value={code} onChange={(v) => { setCode(v); setError('') }} invalid={!!error} />
         {error && <FieldError>{error}</FieldError>}
+        {resent && <p role="status" className="text-sm text-green-700">Đã gửi mã mới, mã cũ không còn dùng được.</p>}
         <button className="btn btn-primary h-12" disabled={busy || code.length !== 6 || !userId}>{busy ? <><Spinner />Đang xác minh…</> : 'Xác minh'}</button>
+        <p className="text-sm text-stone-600">
+          Không nhận được mã? Xem cả mục Spam, hoặc{' '}
+          <button type="button" onClick={onResend} disabled={!userId} className="font-semibold text-teal-700 underline disabled:text-stone-400">gửi lại mã</button>
+        </p>
         <div className="flex flex-col gap-1 border-t border-stone-100 pt-4">
           <Link to={loginLink} className="font-semibold no-underline">Để sau, đăng nhập luôn →</Link>
           <span className="text-sm text-stone-500">Chưa xác minh bạn vẫn dùng được đầy đủ.</span>

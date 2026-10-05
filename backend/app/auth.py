@@ -51,6 +51,10 @@ class VerifyIn(BaseModel):
     code: str
 
 
+class ResendIn(BaseModel):
+    user_id: uuid.UUID
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(max_length=72)
@@ -104,6 +108,16 @@ def send_verification_code(email: str, code: str) -> None:
         log.warning("Gửi mã xác minh tới %s thất bại: %r", email, e)
 
 
+def issue_code(user: User) -> str:
+    """Sinh mã mới đè lên mã cũ (mã cũ hết hiệu lực), trả mã gốc để gửi đi."""
+    code = f"{secrets.randbelow(10**6):06d}"
+    user.verification_code = hash_secret(code)
+    user.verification_code_expires_at = datetime.now(timezone.utc) + timedelta(
+        minutes=VERIFICATION_CODE_MINUTES
+    )
+    return code
+
+
 def get_current_user(
     credentials: HTTPAuthorizationCredentials = Depends(bearer),
     db: Session = Depends(get_db),
@@ -136,16 +150,13 @@ def register(request: Request, body: RegisterIn, db: Session = Depends(get_db)):
     if db.scalar(select(User).where(User.email == body.email)):
         raise HTTPException(status.HTTP_409_CONFLICT, "Email đã được đăng ký")
 
-    code = f"{secrets.randbelow(10**6):06d}"
     user = User(
         email=body.email,
         role=body.role,
         phone=body.phone,
         password_hash=hash_secret(body.password),
-        verification_code=hash_secret(code),
-        verification_code_expires_at=datetime.now(timezone.utc)
-        + timedelta(minutes=VERIFICATION_CODE_MINUTES),
     )
+    code = issue_code(user)
     db.add(user)
     db.commit()
     db.refresh(user)
@@ -172,6 +183,26 @@ def verify(body: VerifyIn, db: Session = Depends(get_db)):
     db.commit()
     db.refresh(user)
     return user
+
+
+@router.post("/resend-code", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("3/minute")
+def resend_code(request: Request, body: ResendIn, db: Session = Depends(get_db)):
+    user = db.get(User, body.user_id)
+    if user is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy tài khoản")
+    if user.email_verified:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email đã được xác minh")
+    # Mỗi tài khoản chỉ gửi lại sau 60s kể từ mã trước (rate limit theo IP không chặn được spam 1 hộp thư)
+    expires_at = user.verification_code_expires_at
+    if expires_at and expires_at - timedelta(minutes=VERIFICATION_CODE_MINUTES, seconds=-60) > datetime.now(
+        timezone.utc
+    ):
+        raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Vui lòng đợi 1 phút rồi gửi lại mã")
+
+    code = issue_code(user)
+    db.commit()
+    send_verification_code(user.email, code)
 
 
 @router.post("/login", response_model=TokenOut)

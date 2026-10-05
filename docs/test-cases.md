@@ -88,6 +88,8 @@ Tiền điều kiện: vừa đăng ký xong ở REG-01 (đang ở `/verify`), l
 | VER-08 | P2 | Thiếu user_id | Mở `/verify` không có tham số | Nút "Xác minh" luôn khoá; câu "Nhập mã 6 số đã gửi tới email của bạn" | Đạt |
 | VER-09 | P2 | Xác minh lần 2 | Sau VER-01, quay lại link verify cũ, nhập lại mã | "Chưa có mã xác minh nào đang chờ" | Đạt |
 | VER-10 | P1 | Bỏ qua xác minh | Bấm "Để sau, đăng nhập luôn →" rồi đăng nhập | Đăng nhập được bình thường. Trang Hồ sơ hiện badge "Chưa xác minh" | Đạt |
+| VER-11 | P1 | Gửi lại mã | Hơn 1 phút sau khi đăng ký, bấm "gửi lại mã" | Hiện "Đã gửi mã mới, mã cũ không còn dùng được." Nhập mã cũ → "Mã xác minh sai hoặc đã hết hạn"; nhập mã mới → "Email đã được xác minh" | Đạt |
+| VER-12 | P2 | Gửi lại quá sớm | Vừa đăng ký xong bấm ngay "gửi lại mã" | "Vui lòng đợi 1 phút rồi gửi lại mã", mã cũ vẫn dùng được | Đạt |
 
 ## 3. Đăng nhập, đăng xuất (S1)
 
@@ -431,7 +433,7 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | Nhóm | Số TC | Đạt | Lỗi | Bỏ qua |
 |---|---|---|---|---|
 | 1. Đăng ký | 13 | 13 | 0 | 0 |
-| 2. Xác minh email | 10 | 10 | 0 | 0 |
+| 2. Xác minh email | 12 | 12 | 0 | 0 |
 | 3. Đăng nhập | 13 | 13 | 0 | 0 |
 | 4. Phân quyền | 15 | 15 | 0 | 0 |
 | 5. Trang chủ | 22 | 22 | 0 | 0 |
@@ -449,7 +451,7 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
 | 17. Production | 10 | 10 | 0 | 0 |
-| **Tổng** | **246** | **246** | **0** | **0** |
+| **Tổng** | **248** | **248** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` (xem mục 23); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 
@@ -508,3 +510,9 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` 
 - **Mục 1–15 + 13b + 14b**: **231/231** ngay lần 1. Local không đặt `BREVO_API_KEY` nên luồng đăng ký/xác minh vẫn lấy mã như cũ; FR8 không đổi giao diện.
 - **Mục 16**: backend **60** test (thêm 1 test gửi qua Brevo: đúng người nhận/người gửi, mã có trong email; Brevo lỗi thì đăng ký vẫn 201), ai-service 22, build, lint 0 lỗi; AUTO-05 là CI trên PR.
 - **PROD-10, sau merge PR #20**: lần 1 lỗi cấu hình. Log Render vẫn in `Verification code for …+prod10@…`, nghĩa là `timviec-backend` chưa đọc được `BREVO_API_KEY`, nên Brevo không có log nào. Không phải lỗi code: thiếu key thì chỉ ghi log, đúng thiết kế. Người thực hiện sửa biến môi trường trên Render, chạy lại với `syx140704+prod11@gmail.com`: nhận được email, nhập mã, trang quản trị hiện "Đã xác minh email" (`screenshots/week8/03-prod-xac-minh-email.png`). **Đạt.** Để lại trên production 2 tài khoản `syx140704+prod10/+prod11@gmail.com` (prod10 chưa xác minh).
+
+## 25. Kết quả chạy 2026-10-05 (trước khi merge `feat/week8-resend-code`, gửi lại mã xác minh)
+
+- **Thêm** `POST /auth/resend-code` và nút "gửi lại mã" ở trang `/verify`. Hai case mới: VER-11 (gửi lại → mã cũ hết hiệu lực, mã mới xác minh được), VER-12 (gửi lại trước 1 phút → 429).
+- **Mục 1–15 + 13b + 14b**: lần 1 đạt **232/233**. LOGIN-05 quá 30s ở bước cuối (đợi 61s cho hết rate limit rồi đăng nhập đúng). Chạy lại riêng thì đạt. Thay đổi không đụng tới đăng nhập, nên đây là case bấp bênh do phụ thuộc thời gian, không phải lỗi app. Kết quả **233/233**.
+- **Mục 16**: backend **61** test (thêm 1 test: chặn gửi lại trong 60s, mã cũ bị thay, đã xác minh → 400, không có tài khoản → 404, quá 3 lần/phút theo IP → 429), ai-service 22, build, lint 0 lỗi.

@@ -90,7 +90,10 @@ export function LoginPage() {
           <input className="input" name="email" type="email" required autoComplete="email" placeholder="ban@email.com" defaultValue={params.get('email') ?? ''} />
         </label>
         <div className="field">
-          <label htmlFor="password" className="label">Mật khẩu</label>
+          <div className="flex items-center justify-between">
+            <label htmlFor="password" className="label">Mật khẩu</label>
+            <Link to="/forgot-password" className="text-sm font-semibold no-underline">Quên mật khẩu?</Link>
+          </div>
           <PasswordInput id="password" name="password" required maxLength={72} autoComplete="current-password" invalid={!!error && !locked} />
           {error && !locked && <FieldError>{error.message}</FieldError>}
         </div>
@@ -272,6 +275,103 @@ export function VerifyPage() {
           <Link to={loginLink} className="font-semibold no-underline">Để sau, đăng nhập luôn →</Link>
           <span className="text-sm text-stone-500">Chưa xác minh bạn vẫn dùng được đầy đủ.</span>
         </div>
+      </form>
+    </AuthLayout>
+  )
+}
+
+export function ForgotPasswordPage() {
+  const [email, setEmail] = useState('')
+  const [sent, setSent] = useState(false)
+  const [code, setCode] = useState('')
+  const [password, setPassword] = useState('')
+  const [error, setError] = useState('')
+  const [info, setInfo] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [done, setDone] = useState(false)
+
+  async function sendCode() {
+    setError('')
+    setInfo('')
+    setBusy(true)
+    try {
+      await api.forgotPassword(email)
+      setSent(true)
+      setCode('')
+      setInfo('Nếu email đã đăng ký, mã 6 số vừa được gửi tới hộp thư (xem cả mục Spam).')
+    } catch (err) {
+      setError(asApiError(err).message)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function onSubmit(e: FormEvent<HTMLFormElement>) {
+    e.preventDefault()
+    if (!sent) return sendCode()
+    setError('')
+    setInfo('')
+    setBusy(true)
+    try {
+      await api.resetPassword(email, code, password)
+      setDone(true)
+    } catch (err) {
+      setError(asApiError(err).message)
+      setCode('')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  if (done) {
+    return (
+      <AuthLayout>
+        <span className="grid size-16 place-items-center rounded-full bg-green-50 text-green-600"><Icon name="checkCircle" size={34} /></span>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="h1">Đã đặt lại mật khẩu</h1>
+          <p className="text-stone-600">Đăng nhập bằng mật khẩu mới của bạn.</p>
+        </div>
+        <Link to={`/login?email=${encodeURIComponent(email)}`} className="btn btn-primary h-12">Đăng nhập</Link>
+      </AuthLayout>
+    )
+  }
+
+  return (
+    <AuthLayout>
+      <form className="flex flex-col gap-5" onSubmit={onSubmit}>
+        <div className="flex flex-col gap-1.5">
+          <h1 className="h1">Quên mật khẩu</h1>
+          <p className="text-stone-600">{sent ? <>Nhập mã 6 số đã gửi tới <b className="font-semibold text-stone-900">{email}</b> và mật khẩu mới.</> : 'Nhập email đã đăng ký, chúng tôi sẽ gửi mã để đặt lại mật khẩu.'}</p>
+        </div>
+        {!sent ? (
+          <label className="field">
+            <span className="label">Email</span>
+            <input className="input" type="email" required autoComplete="email" placeholder="ban@email.com" value={email} onChange={(e) => setEmail(e.target.value)} />
+          </label>
+        ) : (
+          <>
+            <OtpInput value={code} onChange={(v) => { setCode(v); setError('') }} invalid={!!error} />
+            <div className="field">
+              <label htmlFor="new-password" className="label">Mật khẩu mới</label>
+              <PasswordInput id="new-password" required minLength={8} maxLength={72} autoComplete="new-password" value={password} onChange={(e) => setPassword(e.target.value)} />
+              <div className={`flex items-center gap-1.5 text-sm ${password.length >= 8 ? 'text-green-700' : 'text-stone-500'}`}>
+                <Icon name="checkCircle" size={16} stroke={2} />Ít nhất 8 ký tự
+              </div>
+            </div>
+          </>
+        )}
+        {error && <FieldError>{error}</FieldError>}
+        {info && <p role="status" className="text-sm text-green-700">{info}</p>}
+        <button className="btn btn-primary h-12" disabled={busy || (sent && code.length !== 6)}>
+          {busy ? <><Spinner />Đang gửi…</> : sent ? 'Đặt lại mật khẩu' : 'Gửi mã'}
+        </button>
+        {sent && (
+          <p className="text-sm text-stone-600">
+            Chưa nhận được mã sau 1 phút?{' '}
+            <button type="button" onClick={sendCode} disabled={busy} className="font-semibold text-teal-700 underline disabled:text-stone-400">gửi lại mã</button>
+          </p>
+        )}
+        <p className="text-center text-stone-600"><Link to="/login" className="font-semibold no-underline">← Quay lại đăng nhập</Link></p>
       </form>
     </AuthLayout>
   )

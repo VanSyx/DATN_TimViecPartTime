@@ -55,6 +55,16 @@ class ResendIn(BaseModel):
     user_id: uuid.UUID
 
 
+class ForgotIn(BaseModel):
+    email: EmailStr
+
+
+class ResetIn(BaseModel):
+    email: EmailStr
+    code: str = Field(max_length=6)
+    new_password: str = Field(min_length=8, max_length=72)
+
+
 class LoginIn(BaseModel):
     email: EmailStr
     password: str = Field(max_length=72)
@@ -85,7 +95,7 @@ class TokenOut(BaseModel):
     token_type: str = "bearer"
 
 
-def send_verification_code(email: str, code: str) -> None:
+def send_verification_code(email: str, code: str, purpose: str = "xác minh email") -> None:
     """FR8: gửi mã qua Brevo. Chưa cấu hình key (dev/test) thì ghi log như tuần 1-5.
     Gửi lỗi không làm hỏng đăng ký: tài khoản đã tạo, chưa xác minh vẫn dùng được đầy đủ."""
     if not config.BREVO_API_KEY:
@@ -99,7 +109,7 @@ def send_verification_code(email: str, code: str) -> None:
                 "sender": {"name": "TimViecPartTime", "email": config.MAIL_FROM},
                 "to": [{"email": email}],
                 "subject": f"Mã xác minh TimViecPartTime: {code}",
-                "textContent": f"Mã xác minh email của bạn là {code}. "
+                "textContent": f"Mã {purpose} của bạn là {code}. "
                 f"Mã có hiệu lực {VERIFICATION_CODE_MINUTES} phút.",
             },
             timeout=10,
@@ -116,6 +126,14 @@ def issue_code(user: User) -> str:
         minutes=VERIFICATION_CODE_MINUTES
     )
     return code
+
+
+def code_on_cooldown(user: User) -> bool:
+    """Mã trước được gửi chưa tới 60s (rate limit theo IP không chặn được spam 1 hộp thư)."""
+    expires_at = user.verification_code_expires_at
+    return bool(expires_at) and expires_at > datetime.now(timezone.utc) + timedelta(
+        minutes=VERIFICATION_CODE_MINUTES - 1
+    )
 
 
 def get_current_user(
@@ -193,16 +211,48 @@ def resend_code(request: Request, body: ResendIn, db: Session = Depends(get_db))
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy tài khoản")
     if user.email_verified:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Email đã được xác minh")
-    # Mỗi tài khoản chỉ gửi lại sau 60s kể từ mã trước (rate limit theo IP không chặn được spam 1 hộp thư)
-    expires_at = user.verification_code_expires_at
-    if expires_at and expires_at - timedelta(minutes=VERIFICATION_CODE_MINUTES, seconds=-60) > datetime.now(
-        timezone.utc
-    ):
+    if code_on_cooldown(user):
         raise HTTPException(status.HTTP_429_TOO_MANY_REQUESTS, "Vui lòng đợi 1 phút rồi gửi lại mã")
 
     code = issue_code(user)
     db.commit()
     send_verification_code(user.email, code)
+
+
+@router.post("/forgot-password", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("3/minute")
+def forgot_password(request: Request, body: ForgotIn, db: Session = Depends(get_db)):
+    """Luôn trả 204 dù email có tồn tại hay không, để không dò được email nào đã đăng ký."""
+    user = db.scalar(select(User).where(User.email == body.email))
+    if user is None or code_on_cooldown(user):
+        return
+    code = issue_code(user)
+    db.commit()
+    send_verification_code(user.email, code, "đặt lại mật khẩu")
+
+
+@router.post("/reset-password", status_code=status.HTTP_204_NO_CONTENT)
+@limiter.limit("5/minute")
+def reset_password(request: Request, body: ResetIn, db: Session = Depends(get_db)):
+    user = db.scalar(select(User).where(User.email == body.email))
+    if (
+        user is None
+        or not user.verification_code
+        or user.verification_code_expires_at < datetime.now(timezone.utc)
+    ):
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mã sai hoặc đã hết hạn, vui lòng gửi lại mã")
+    if not verify_secret(body.code, user.verification_code):
+        # Sai 1 lần là huỷ mã; giữ expires_at để cooldown 60s vẫn chặn xin mã mới,
+        # nên dò mã 6 số chỉ được 1 lần/phút/tài khoản dù đổi bao nhiêu IP
+        user.verification_code = None
+        db.commit()
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Mã sai hoặc đã hết hạn, vui lòng gửi lại mã")
+
+    user.password_hash = hash_secret(body.new_password)
+    user.email_verified = True  # nhận được mã qua email = đã chứng minh sở hữu email
+    user.verification_code = None
+    user.verification_code_expires_at = None
+    db.commit()
 
 
 @router.post("/login", response_model=TokenOut)

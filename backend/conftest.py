@@ -70,5 +70,5 @@ def auth_headers(db):
 def codes(monkeypatch):
     """Bắt mã xác minh mà send_verification_code() lẽ ra gửi đi."""
     captured = []
-    monkeypatch.setattr("app.auth.send_verification_code", lambda email, code: captured.append(code))
+    monkeypatch.setattr("app.auth.send_verification_code", lambda email, code, *purpose: captured.append(code))
     return captured

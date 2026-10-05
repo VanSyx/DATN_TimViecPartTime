@@ -163,6 +163,9 @@ export const api = {
     post<User>('/auth/register', data),
   verify: (user_id: string, code: string) => post<User>('/auth/verify', { user_id, code }),
   resendCode: (user_id: string) => post<null>('/auth/resend-code', { user_id }),
+  forgotPassword: (email: string) => post<null>('/auth/forgot-password', { email }),
+  resetPassword: (email: string, code: string, new_password: string) =>
+    post<null>('/auth/reset-password', { email, code, new_password }),
   login: (email: string, password: string) => post<Tokens>('/auth/login', { email, password }),
   me: () => request<User>('/auth/me'),
   updateProfile: (description: string) => send<User>('PATCH', '/auth/me', { description }),

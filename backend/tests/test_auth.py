@@ -1,5 +1,7 @@
 import uuid
+from datetime import timedelta
 
+import httpx
 import pytest
 from fastapi import HTTPException
 
@@ -150,8 +152,6 @@ def test_login_rate_limited_after_5_per_minute(client, codes):
 
 
 def test_register_sends_code_via_brevo_and_survives_send_failure(client, monkeypatch):
-    import httpx
-
     monkeypatch.setattr("app.config.BREVO_API_KEY", "k")
     monkeypatch.setattr("app.config.MAIL_FROM", "from@example.com")
     sent = []
@@ -175,10 +175,6 @@ def test_register_sends_code_via_brevo_and_survives_send_failure(client, monkeyp
 
 
 def test_resend_code_replaces_old_code_with_cooldown(client, db, codes):
-    from datetime import timedelta
-
-    from app.models import User
-
     user_id = register(client).json()["id"]
     resend = lambda: client.post("/auth/resend-code", json={"user_id": user_id})  # noqa: E731
     assert resend().status_code == 429  # vừa gửi lúc đăng ký
@@ -194,3 +190,35 @@ def test_resend_code_replaces_old_code_with_cooldown(client, db, codes):
     assert resend().status_code == 429  # lần thứ 4 trong 1 phút: chặn theo IP
     limiter.reset()
     assert client.post("/auth/resend-code", json={"user_id": str(uuid.uuid4())}).status_code == 404
+
+
+def test_forgot_and_reset_password(client, db, codes):
+    user_id = register(client).json()["id"]
+    forgot = lambda email="js@example.com": client.post("/auth/forgot-password", json={"email": email})  # noqa: E731
+    reset = lambda code, pw="newpass123": client.post(  # noqa: E731
+        "/auth/reset-password", json={"email": "js@example.com", "code": code, "new_password": pw}
+    )
+    user = db.get(User, uuid.UUID(user_id))
+    user.verification_code_expires_at -= timedelta(seconds=61)
+    db.commit()
+
+    assert forgot("nobody@example.com").status_code == 204 and len(codes) == 1  # không lộ email
+    assert forgot().status_code == 204 and len(codes) == 2
+    assert forgot().status_code == 204 and len(codes) == 2  # cooldown: im lặng, không gửi
+    limiter.reset()
+
+    wrong = "000000" if codes[1] != "000000" else "111111"
+    assert reset(wrong).status_code == 400
+    assert reset(codes[1]).status_code == 400  # sai 1 lần là huỷ mã
+    user.verification_code_expires_at -= timedelta(seconds=61)
+    db.commit()
+    assert forgot().status_code == 204
+    assert reset(codes[2], pw="short").status_code == 422
+    assert reset(codes[2]).status_code == 204
+    assert reset(codes[2]).status_code == 400  # mã dùng 1 lần
+
+    login = lambda pw: client.post("/auth/login", json={"email": "js@example.com", "password": pw})  # noqa: E731
+    assert login("secret123").status_code == 401
+    assert login("newpass123").status_code == 200
+    db.refresh(user)
+    assert user.email_verified

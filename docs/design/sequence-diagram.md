@@ -28,9 +28,20 @@ sequenceDiagram
     else code sai hoặc hết hạn
         BE-->>FE: 400 Bad Request
     end
+
+    opt Không nhận được mã: bấm "gửi lại mã"
+        FE->>BE: POST /auth/resend-code { user_id }
+        alt mã trước gửi chưa tới 60s
+            BE-->>FE: 429 Too Many Requests
+        else
+            BE->>DB: UPDATE users SET verification_code (mã mới, mã cũ hết hiệu lực)
+            BE-->>U: Gửi mã mới qua email (Brevo)
+            BE-->>FE: 204 No Content
+        end
+    end
 ```
 
-**Ghi chú:** luồng này chia 2 giai đoạn theo `docs/PROJECT_PLAN.md` mục 3.1 — tuần 1-5 làm **khung** (sinh code, lưu hash + expiry, endpoint `/auth/verify` hoạt động đầy đủ; bước "gửi code qua email/SMS" ghi log thay vì gọi provider thật), tuần 6-12 thay log bằng provider thật. Trong cả hai giai đoạn, `email_verified=false` **không chặn đăng nhập** — xác minh là điều kiện tăng độ tin cậy, không phải cổng chặn.
+**Ghi chú:** luồng này chia 2 giai đoạn theo `docs/PROJECT_PLAN.md` mục 3.1 — tuần 1-5 làm **khung** (sinh code, lưu hash + expiry, endpoint `/auth/verify` hoạt động đầy đủ; bước "gửi code qua email/SMS" ghi log thay vì gọi provider thật), tuần 6-12 thay log bằng provider thật (✅ Tuần 8: email qua HTTP API Brevo, không làm SMS vì tốn phí; thêm "gửi lại mã"). Trong cả hai giai đoạn, `email_verified=false` **không chặn đăng nhập** — xác minh là điều kiện tăng độ tin cậy, không phải cổng chặn.
 
 ---
 
@@ -63,6 +74,39 @@ sequenceDiagram
         BE-->>FE: 401 Unauthorized → FE chuyển về trang login
     end
 ```
+
+---
+
+## 2b. Quên mật khẩu (FR1, bổ sung Tuần 8)
+
+```mermaid
+sequenceDiagram
+    actor U as User
+    participant FE as Frontend
+    participant BE as Backend chính
+    participant DB as PostgreSQL
+
+    U->>FE: Nhập email ở /forgot-password
+    FE->>BE: POST /auth/forgot-password { email }
+    BE->>DB: SELECT user WHERE email
+    opt có tài khoản và mã trước đã gửi quá 60s
+        BE->>DB: UPDATE users SET verification_code (hash), verification_code_expires_at
+        BE-->>U: Gửi mã 6 số qua email (Brevo)
+    end
+    BE-->>FE: 204 No Content (luôn như nhau, không lộ email nào đã đăng ký)
+
+    U->>FE: Nhập mã + mật khẩu mới
+    FE->>BE: POST /auth/reset-password { email, code, new_password }
+    alt mã đúng và chưa hết hạn
+        BE->>DB: UPDATE users SET password_hash, email_verified=true, xoá mã
+        BE-->>FE: 204 No Content → FE chuyển sang đăng nhập
+    else mã sai
+        BE->>DB: Xoá mã (sai 1 lần là huỷ, chống dò mã 6 số)
+        BE-->>FE: 400 Bad Request
+    end
+```
+
+**Ghi chú:** dùng chung cột `verification_code` với luồng 1. Giới hạn 60s giữa 2 lần gửi mã áp dụng theo tài khoản, nên dù đổi IP cũng chỉ dò được 1 mã/phút. Hạn chế đã biết: refresh token cấp trước khi đổi mật khẩu vẫn dùng được tới khi hết hạn (7 ngày).
 
 ---
 

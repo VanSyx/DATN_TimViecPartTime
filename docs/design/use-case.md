@@ -15,6 +15,8 @@ flowchart LR
     EMP --> UC1
     EMP --> UC2
     ADM --> UC2
+    JS --> UC21[Quên mật khẩu]
+    EMP --> UC21
 
     %% FR8 - Verification
     UC1 --> UC3[Xác minh Email / SĐT ✅]
@@ -64,7 +66,7 @@ flowchart LR
 |---|---|---|---|---|
 | UC1 | Đăng ký tài khoản | FR1 | JS, EMP | ✅ Tuần 1-5 |
 | UC2 | Đăng nhập / Refresh token | FR1 | JS, EMP, ADM | ✅ Tuần 1-5 |
-| UC3 | Xác minh Email / SĐT | FR8 | JS, EMP, Hệ thống | ✅ Tuần 1-5 (khung) — gửi mã thật: tuần 6-12 |
+| UC3 | Xác minh Email / SĐT | FR8 | JS, EMP, Hệ thống | ✅ Tuần 1-5 (khung) — ✅ Tuần 8: gửi mã thật qua email (Brevo) + gửi lại mã; không làm SMS (tốn phí) |
 | UC4 | Khai báo lịch rảnh interval | FR3 | JS | ✅ Tuần 1-5 |
 | UC5 | Tìm/lọc job theo khu vực, khung giờ | FR3 | JS | ✅ Tuần 1-5 |
 | UC6 | Xem gợi ý AI + breakdown | FR4 | JS, Hệ thống | ✅ Tuần 1-5 |
@@ -82,6 +84,7 @@ flowchart LR
 | UC18 | Nhận & xem thông báo in-app | FR9 | JS, EMP, Hệ thống | ✅ Tuần 7 |
 | UC19 | Gỡ / khôi phục tin đăng (tin hiện ngay, không duyệt trước — 2026-10-02) | FR10 | ADM | ✅ Tuần 7 |
 | UC20 | Khóa / Mở khóa tài khoản user | FR10 | ADM | ✅ Tuần 7 |
+| UC21 | Quên mật khẩu (đặt lại bằng mã gửi qua email) | FR1 | JS, EMP | ✅ Tuần 8 (bổ sung 2026-10-05) |
 
 ## Ghi chú
 - Actor **Hệ thống** đại diện cho các use case do backend tự kích hoạt (gửi mã xác minh, tính lại gợi ý khi có job mới, sinh thông báo) — không phải người dùng chủ động gọi, nhưng vẫn là một luồng nghiệp vụ cần cài đặt.

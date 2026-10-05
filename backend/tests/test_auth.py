@@ -5,7 +5,7 @@ from fastapi import HTTPException
 
 from app.auth import Role, require_role
 from app.models import User
-from app.security import hash_secret
+from app.security import hash_secret, limiter
 
 
 def register(client, email="js@example.com", password="secret123", role="job_seeker"):
@@ -172,3 +172,25 @@ def test_register_sends_code_via_brevo_and_survives_send_failure(client, monkeyp
 
     monkeypatch.setattr("app.auth.httpx.post", down)
     assert register(client, email="js2@example.com").status_code == 201
+
+
+def test_resend_code_replaces_old_code_with_cooldown(client, db, codes):
+    from datetime import timedelta
+
+    from app.models import User
+
+    user_id = register(client).json()["id"]
+    resend = lambda: client.post("/auth/resend-code", json={"user_id": user_id})  # noqa: E731
+    assert resend().status_code == 429  # vừa gửi lúc đăng ký
+
+    user = db.get(User, uuid.UUID(user_id))
+    user.verification_code_expires_at -= timedelta(seconds=61)
+    db.commit()
+    assert resend().status_code == 204
+    assert len(codes) == 2
+    assert client.post("/auth/verify", json={"user_id": user_id, "code": codes[0]}).status_code == 400
+    assert client.post("/auth/verify", json={"user_id": user_id, "code": codes[1]}).status_code == 200
+    assert resend().status_code == 400  # đã xác minh
+    assert resend().status_code == 429  # lần thứ 4 trong 1 phút: chặn theo IP
+    limiter.reset()
+    assert client.post("/auth/resend-code", json={"user_id": str(uuid.uuid4())}).status_code == 404

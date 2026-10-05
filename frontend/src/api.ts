@@ -162,6 +162,7 @@ export const api = {
   register: (data: { email: string; password: string; role: Role; phone?: string }) =>
     post<User>('/auth/register', data),
   verify: (user_id: string, code: string) => post<User>('/auth/verify', { user_id, code }),
+  resendCode: (user_id: string) => post<null>('/auth/resend-code', { user_id }),
   login: (email: string, password: string) => post<Tokens>('/auth/login', { email, password }),
   me: () => request<User>('/auth/me'),
   updateProfile: (description: string) => send<User>('PATCH', '/auth/me', { description }),

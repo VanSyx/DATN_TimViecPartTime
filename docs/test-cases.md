@@ -415,6 +415,7 @@ Merge = deploy. Production **không có dữ liệu seed**, dùng tài khoản t
 | PROD-09 | P1 | FR7/FR9 đã lên production | Sau PROD-05: token người đăng tin test `GET /notifications`; token người tìm việc test `POST /reports` về người đăng tin test; người đăng tin mở `/employer` | 200 và có thông báo `new_application` của tin test (không phải 500 = bảng đã migrate); báo cáo → 201; header có chuông kèm badge. Báo cáo test để lại cho admin production "Bỏ qua" | Đạt |
 | PROD-10 | P1 | FR8 gửi mã thật | Sau khi đặt `BREVO_API_KEY`, `MAIL_FROM` trên `timviec-backend`: đăng ký trên production bằng 1 email thật mình đọc được (vd. Gmail phụ) | Trong ≤ 1 phút nhận được email "Mã xác minh TimViecPartTime: xxxxxx" (kiểm cả mục Spam); nhập mã ở `/verify` → "Email đã được xác minh". Log backend **không** in mã | Đạt (lần 2, sau khi sửa cấu hình biến môi trường) |
 | PROD-11 | P2 | Gửi lại mã trên production | Swagger `POST /auth/resend-code` cho tài khoản thật chưa xác minh (`syx140704+prod10@gmail.com`), gọi 2 lần liền | Lần 1: 204, hộp thư nhận mã mới. Lần 2: 429 "Vui lòng đợi 1 phút rồi gửi lại mã" | Đạt |
+| PROD-12 | P1 | Quên mật khẩu trên production | Sau merge PR #23: `/login` → "Quên mật khẩu?" bằng `syx140704+prod10@gmail.com`, lấy mã trong Gmail, đặt mật khẩu mới | Đặt lại thành công; mật khẩu mới đăng nhập được (200), mật khẩu cũ → 401; tài khoản thành đã xác minh email | Đạt (2026-10-05) |
 | PROD-07 | P2 | Dọn dẹp | Đóng tin test | Tin không còn hiện với người khác | Đạt |
 
 ---
@@ -454,8 +455,8 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
-| 17. Production | 11 | 11 | 0 | 0 |
-| **Tổng** | **252** | **252** | **0** | **0** |
+| 17. Production | 12 | 12 | 0 | 0 |
+| **Tổng** | **253** | **253** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-password` (xem mục 26); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 

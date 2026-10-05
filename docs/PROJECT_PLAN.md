@@ -337,20 +337,20 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 # 11. Definition of Done
 
 ## 11.1 DoD — Mốc tuần 5 (giai đoạn 1)
-- [ ] FR1-FR5 + khung FR8 (schema xác minh + endpoint verify) hoạt động đúng trên production
-- [ ] RBAC được enforce ở backend, có rate limiting và hashing password đúng chuẩn
-- [ ] AI service chạy ổn định (bản TF-IDF): `semantic + time_feasibility + geo` đúng, `trust_modifier` mặc định 1.0 (đã xác nhận GVHD, không phải thiếu), có explainable breakdown hiển thị trên UI
-- [ ] Có cơ chế fallback khi AI service down
-- [ ] Test xanh cho các luồng chính (auth, job CRUD, AI scoring), không còn test đỏ
-- [ ] CI/CD xanh, đã deploy production, đã smoke test
-- [ ] Đã xác nhận với GVHD về phạm vi "70% cơ bản" (mục 5.1 tuần 1)
+- [x] FR1-FR5 + khung FR8 (schema xác minh + endpoint verify) hoạt động đúng trên production
+- [x] RBAC được enforce ở backend, có rate limiting và hashing password đúng chuẩn
+- [x] AI service chạy ổn định (bản TF-IDF): `semantic + time_feasibility + geo` đúng, `trust_modifier` mặc định 1.0 (đã xác nhận GVHD, không phải thiếu), có explainable breakdown hiển thị trên UI
+- [x] Có cơ chế fallback khi AI service down
+- [x] Test xanh cho các luồng chính (auth, job CRUD, AI scoring), không còn test đỏ
+- [x] CI/CD xanh, đã deploy production, đã smoke test
+- [x] Đã xác nhận với GVHD về phạm vi "70% cơ bản" (mục 5.1 tuần 1)
 
 ## 11.2 DoD — Toàn bộ dự án (tham chiếu cho tuần 6-12)
-- [ ] Tất cả FR1-FR10 hoạt động đúng trên production
+- [x] Tất cả FR1-FR10 hoạt động đúng trên production
 - [x] ~~AI service nâng cấp lên embedding + pgvector~~ — bỏ (quyết định 2026-09-30); thiết kế AI (TF-IDF) đã khoá, vẫn có explainable breakdown
 - [x] Có tối thiểu một tập dữ liệu offline evaluation (Precision@k/Recall@k/NDCG@k so sánh baseline); dữ liệu pilot test thật (nếu có) là điểm cộng, không bắt buộc
-- [ ] Có cơ chế Trust & Safety tối thiểu hoạt động (xác minh, report/block)
-- [ ] Production có logging/error tracking, đã smoke test sau mỗi lần deploy
+- [x] Có cơ chế Trust & Safety tối thiểu hoạt động (xác minh, report/block)
+- [x] Production có logging/error tracking, đã smoke test sau mỗi lần deploy (log có định dạng thời gian/mức/module trên Render; smoke test mục 17 `docs/test-cases.md`)
 - [ ] Báo cáo tốt nghiệp hoàn chỉnh theo template của trường, có nêu rõ giới hạn (không có pilot test quy mô lớn, phạm vi không triển khai CF)
 - [ ] Đã rehearsal demo, có kịch bản dự phòng nếu lỗi mạng/AI service khi trình bày
 

@@ -3,7 +3,7 @@ import { createBrowserRouter, Link, Navigate, NavLink, Outlet, RouterProvider, u
 import { api, roleHome, roleLabel, type Notification, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
 import { AdminJobsPage, AdminReportsPage, AdminUsersPage } from './pages/AdminPages'
-import { LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
+import { ForgotPasswordPage, LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
 import { EmployerJobsPage, JobApplicantsPage, JobFormPage } from './pages/EmployerPages'
 import { HomePage } from './pages/HomePage'
 import { MyApplicationsPage, ProfilePage, RecommendPage, SearchPage } from './pages/SeekerPages'
@@ -129,6 +129,7 @@ const router = createBrowserRouter([
   { path: '/login', element: <LoginPage /> },
   { path: '/register', element: <RegisterPage /> },
   { path: '/verify', element: <VerifyPage /> },
+  { path: '/forgot-password', element: <ForgotPasswordPage /> },
   {
     element: <Shell />,
     children: [

@@ -108,6 +108,9 @@ Tiền điều kiện: vừa đăng ký xong ở REG-01 (đang ở `/verify`), l
 | LOGIN-11 | P1 | Đăng xuất | Menu tài khoản (góc phải) → "Đăng xuất" | Về trang chủ khách. DevTools → Application → Local Storage không còn `access_token`/`refresh_token` | Đạt (sau khi sửa Bug #1) |
 | LOGIN-12 | P1 | Sau đăng xuất không vào lại được | Sau LOGIN-11 bấm Back của trình duyệt về `/seeker` | Bị đưa về `/login?next=%2Fseeker` | Đạt (sau khi sửa Bug #1) |
 | LOGIN-13 | P2 | Menu tài khoản | Bấm vào email ở góc phải | Hiện vai trò ("Người tìm việc"), link "Hồ sơ & lịch rảnh" (chỉ người tìm việc), "Đăng xuất" màu đỏ. Bấm 1 mục thì menu đóng | Đạt |
+| LOGIN-14 | P1 | Quên mật khẩu | Trang đăng nhập bấm "Quên mật khẩu?" → nhập email tài khoản đã có → "Gửi mã" → nhập mã 6 số (log backend) + mật khẩu mới ≥ 8 ký tự → "Đặt lại mật khẩu" | "Đã đặt lại mật khẩu"; bấm "Đăng nhập" thì email điền sẵn. Mật khẩu mới đăng nhập được, mật khẩu cũ báo "Email hoặc mật khẩu không đúng" || Đạt |
+| LOGIN-15 | P1 | **[HQ]** Quên mật khẩu, email chưa đăng ký | Nhập `khongco@example.com` → "Gửi mã" | **Cùng** thông báo "Nếu email đã đăng ký, mã 6 số vừa được gửi…" như LOGIN-14 (không lộ email nào có tài khoản); log backend không có mã cho email này || Đạt |
+| LOGIN-16 | P1 | **[HQ]** Nhập sai mã đặt lại | Ở bước 2 nhập sai mã → rồi nhập đúng mã vừa nhận → hơn 1 phút sau bấm "gửi lại mã", nhập mã mới | Sai: "Mã sai hoặc đã hết hạn, vui lòng gửi lại mã"; mã đúng cũng **không** dùng được nữa (sai 1 lần là huỷ mã, chống dò mã). Mã gửi lại đặt được mật khẩu mới || Đạt |
 
 ## 4. Phiên đăng nhập & phân quyền (bảo mật)
 
@@ -390,7 +393,7 @@ Seed mới (chưa có báo cáo, chưa có thông báo nào). J1 = "Dọn nhà s
 
 | ID | UT | Lệnh | Kết quả mong đợi | KQ |
 |---|---|---|---|---|
-| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (59 test) | Đạt |
+| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (62 test) | Đạt |
 | AUTO-02 | P1 | `cd ai-service && .venv/Scripts/python -m pytest` | Tất cả pass (22 test) | Đạt |
 | AUTO-03 | P1 | `cd frontend && npm run build` | Build thành công (cảnh báo bundle > 500 kB chấp nhận được) | Đạt |
 | AUTO-04 | P1 | `cd frontend && npm run lint` | 0 lỗi (cảnh báo chấp nhận được) | Đạt |
@@ -411,6 +414,7 @@ Merge = deploy. Production **không có dữ liệu seed**, dùng tài khoản t
 | PROD-08 | P1 | FR6 đã lên production | Swagger bằng token người tìm việc test: `GET /applications/me`, `POST /ratings` cho đơn vừa được nhận, `GET /recommendations` | Đơn có trường `ratings`; `POST /ratings` → 400 "…sau khi công việc kết thúc" (không phải 500 = bảng đã migrate); tin của người đăng mới có `trust = 1`, `rating_count = 0` | Đạt (2026-10-03, sau merge PR #15) |
 | PROD-09 | P1 | FR7/FR9 đã lên production | Sau PROD-05: token người đăng tin test `GET /notifications`; token người tìm việc test `POST /reports` về người đăng tin test; người đăng tin mở `/employer` | 200 và có thông báo `new_application` của tin test (không phải 500 = bảng đã migrate); báo cáo → 201; header có chuông kèm badge. Báo cáo test để lại cho admin production "Bỏ qua" | Đạt |
 | PROD-10 | P1 | FR8 gửi mã thật | Sau khi đặt `BREVO_API_KEY`, `MAIL_FROM` trên `timviec-backend`: đăng ký trên production bằng 1 email thật mình đọc được (vd. Gmail phụ) | Trong ≤ 1 phút nhận được email "Mã xác minh TimViecPartTime: xxxxxx" (kiểm cả mục Spam); nhập mã ở `/verify` → "Email đã được xác minh". Log backend **không** in mã | Đạt (lần 2, sau khi sửa cấu hình biến môi trường) |
+| PROD-11 | P2 | Gửi lại mã trên production | Swagger `POST /auth/resend-code` cho tài khoản thật chưa xác minh (`syx140704+prod10@gmail.com`), gọi 2 lần liền | Lần 1: 204, hộp thư nhận mã mới. Lần 2: 429 "Vui lòng đợi 1 phút rồi gửi lại mã" | Đạt |
 | PROD-07 | P2 | Dọn dẹp | Đóng tin test | Tin không còn hiện với người khác | Đạt |
 
 ---
@@ -434,7 +438,7 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 |---|---|---|---|---|
 | 1. Đăng ký | 13 | 13 | 0 | 0 |
 | 2. Xác minh email | 12 | 12 | 0 | 0 |
-| 3. Đăng nhập | 13 | 13 | 0 | 0 |
+| 3. Đăng nhập | 16 | 16 | 0 | 0 |
 | 4. Phân quyền | 15 | 15 | 0 | 0 |
 | 5. Trang chủ | 22 | 22 | 0 | 0 |
 | 6. Tìm việc | 18 | 18 | 0 | 0 |
@@ -450,10 +454,10 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
-| 17. Production | 10 | 10 | 0 | 0 |
-| **Tổng** | **248** | **248** | **0** | **0** |
+| 17. Production | 11 | 11 | 0 | 0 |
+| **Tổng** | **252** | **252** | **0** | **0** |
 
-Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` (xem mục 23); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
+Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-password` (xem mục 26); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 
 ## 20. Kết quả chạy 2026-09-30 (trước khi merge `feat/week6-ui`)
 
@@ -516,3 +520,10 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` 
 - **Thêm** `POST /auth/resend-code` và nút "gửi lại mã" ở trang `/verify`. Hai case mới: VER-11 (gửi lại → mã cũ hết hiệu lực, mã mới xác minh được), VER-12 (gửi lại trước 1 phút → 429).
 - **Mục 1–15 + 13b + 14b**: lần 1 đạt **232/233**. LOGIN-05 quá 30s ở bước cuối (đợi 61s cho hết rate limit rồi đăng nhập đúng). Chạy lại riêng thì đạt. Thay đổi không đụng tới đăng nhập, nên đây là case bấp bênh do phụ thuộc thời gian, không phải lỗi app. Kết quả **233/233**.
 - **Mục 16**: backend **61** test (thêm 1 test: chặn gửi lại trong 60s, mã cũ bị thay, đã xác minh → 400, không có tài khoản → 404, quá 3 lần/phút theo IP → 429), ai-service 22, build, lint 0 lỗi.
+
+## 26. Kết quả chạy 2026-10-05 (trước khi merge `feat/week8-forgot-password`, quên mật khẩu)
+
+- **Thêm** `POST /auth/forgot-password` (luôn trả 204, không lộ email nào đã đăng ký; cooldown 60s/tài khoản dùng chung với gửi lại mã; 3 lần/phút theo IP), `POST /auth/reset-password` (5 lần/phút theo IP; nhập sai mã 1 lần là huỷ mã; đặt lại xong thì email coi như đã xác minh), trang `/forgot-password` 2 bước, link "Quên mật khẩu?" ở trang đăng nhập (`screenshots/week8/04-quen-mat-khau.png`). Ba case mới: LOGIN-14, LOGIN-15, LOGIN-16.
+- **Mục 1–15 + 13b + 14b**: lần 1 đạt **235/236**. FORM-07 quá 15s vì dịch vụ định vị Photon (bên ngoài) trả lời chậm 15–19s (đo bằng curl). Chạy lại riêng thì đạt. Thay đổi không đụng tới đăng tin, nên đây không phải lỗi app. Kết quả **236/236**.
+- **Mục 16**: backend **62** test (thêm 1 test cho quên mật khẩu: email không tồn tại vẫn 204 và không gửi mã, cooldown im lặng, sai mã → huỷ mã, mật khẩu < 8 ký tự → 422, mã chỉ dùng 1 lần, mật khẩu cũ hết dùng được), ai-service 22, build, lint 0 lỗi.
+- **Mục 17 (production)**: PROD-11 "gửi lại mã" chạy 2026-10-05 sau merge PR #21/#22. Gọi `POST /auth/resend-code` cho `syx140704+prod10@gmail.com` → 204, email tới hộp thư; gọi lại ngay → 429 "Vui lòng đợi 1 phút rồi gửi lại mã". **Đạt.**

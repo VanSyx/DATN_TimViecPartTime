@@ -63,6 +63,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Trust & Safety đầy đủ: tích hợp provider gửi mã xác minh email/SMS thật (khung xác minh đã có từ tuần 1-5), report/block user
 - Thông báo in-app
 - Trang admin: duyệt tin, khóa/mở khóa tài khoản user, xử lý report
+- Quên mật khẩu: đặt lại bằng mã 6 số gửi qua email (bổ sung 2026-10-05, sót khi lập kế hoạch ban đầu). Hạn chế đã biết: refresh token cấp trước khi đổi mật khẩu vẫn dùng được tới khi hết hạn (7 ngày) vì token không lưu trạng thái
 - Viết báo cáo tốt nghiệp hoàn chỉnh
 
 ## 2.3 Out of Scope (toàn dự án)

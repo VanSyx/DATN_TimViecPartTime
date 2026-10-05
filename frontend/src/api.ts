@@ -108,6 +108,19 @@ export type AdminUser = {
   id: string; email: string; phone: string | null; role: Role; email_verified: boolean; is_blocked: boolean; created_at: string
 }
 export type AdminJob = Job & { employer: AdminUser }
+export type AdminReport = {
+  id: string; reason: string; status: 'pending' | 'resolved' | 'dismissed'; created_at: string; resolved_at: string | null
+  reporter: AdminUser; reported: AdminUser
+}
+
+export type Notification = {
+  id: string
+  type: 'new_application' | 'application_status' | 'job_status' | 'report_resolved'
+  message: string
+  related_id: string | null
+  is_read: boolean
+  created_at: string
+}
 
 export type Rating ={ id: string; rater_id: string; ratee_id: string; score: number; comment: string | null; created_at: string }
 
@@ -172,9 +185,16 @@ export const api = {
     send<Application>('PATCH', `/applications/${id}`, { status }),
   rate: (application_id: string, score: number, comment: string | null) =>
     post<Rating>('/ratings', { application_id, score, comment }),
+  report: (reported_id: string, reason: string) => post<unknown>('/reports', { reported_id, reason }),
+
+  notifications: () => request<Notification[]>('/notifications'),
+  readNotifications: () => send<null>('POST', '/notifications/read'),
 
   adminJobs: () => request<AdminJob[]>('/admin/jobs'),
-  setJobStatus: (id: string, status: 'open' | 'rejected') => send<AdminJob>('PATCH', `/admin/jobs/${id}`, { status }),
+  setJobStatus: (id: string, status: 'open' | 'rejected', reason?: string) =>
+    send<AdminJob>('PATCH', `/admin/jobs/${id}`, { status, reason }),
   adminUsers: (q: string) => request<AdminUser[]>(`/admin/users?${new URLSearchParams({ q })}`),
   setBlocked: (id: string, is_blocked: boolean) => send<AdminUser>('PATCH', `/admin/users/${id}`, { is_blocked }),
+  adminReports: () => request<AdminReport[]>('/admin/reports'),
+  decideReport: (id: string, decision: 'block' | 'dismiss') => send<AdminReport>('PATCH', `/admin/reports/${id}`, { decision }),
 }

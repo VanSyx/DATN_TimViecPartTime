@@ -445,6 +445,8 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
   const job = item?.job
   const rec = item?.rec
   const ended = job ? jobEnded(job) : false
+  const [reporting, setReporting] = useState<ReportTarget | null>(null)
+  const canReport = useAuth().user?.role === 'job_seeker'
   return (
     <Modal open={!!item} onClose={onClose} className="w-[760px]">
       {job && (
@@ -490,6 +492,10 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
             )}
           </div>
           <div className="flex items-center gap-3 border-t border-stone-200 px-7 py-4">
+            {canReport && (
+              <button type="button" className="btn btn-plain h-12 px-3 text-stone-600" title="Báo cáo người đăng tin này"
+                onClick={() => setReporting({ id: job.employer_id, label: 'người đăng tin' })}><Icon name="flag" size={18} />Báo cáo</button>
+            )}
             {ended
               ? <div className="flex flex-1 items-center gap-2 text-stone-700"><Icon name="info" className="text-stone-600" />Tin đã kết thúc — không nhận thêm đơn ứng tuyển.</div>
               : <><div className="flex-1" /><button type="button" className="btn btn-plain h-12" onClick={onClose}>Đóng</button></>}
@@ -497,6 +503,7 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
           </div>
         </div>
       )}
+      <ReportModal target={reporting} onClose={() => setReporting(null)} />
     </Modal>
   )
 }
@@ -620,6 +627,45 @@ function RatingForm({ app, target, onClose, onSaved }: { app: Application; targe
       <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
         <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
         <button className="btn btn-primary h-12 px-6" disabled={busy}>{busy && <Spinner />}Gửi đánh giá</button>
+      </div>
+    </form>
+  )
+}
+
+// ---------- Báo cáo vi phạm (FR7) ----------
+
+export type ReportTarget = { id: string; label: string }
+
+/** Chỉ gửi báo cáo; khoá tài khoản do quản trị viên quyết định. */
+export function ReportModal({ target, onClose }: { target: ReportTarget | null; onClose: () => void }) {
+  return (
+    <Modal open={!!target} onClose={onClose} className="w-[520px]">
+      {target && <ReportForm target={target} onClose={onClose} />}
+    </Modal>
+  )
+}
+
+function ReportForm({ target, onClose }: { target: ReportTarget; onClose: () => void }) {
+  const toast = useToast()
+  const { error, busy, wrap } = useSubmit()
+  const send = wrap(async (form) => {
+    await api.report(target.id, String(form.get('reason')))
+    toast({ title: 'Đã gửi báo cáo', body: 'Quản trị viên sẽ xem xét. Bạn nhận được thông báo khi có kết quả.' })
+    onClose()
+  })
+  return (
+    <form onSubmit={send}>
+      <ModalHeader title={`Báo cáo ${target.label}`} onClose={onClose} />
+      <div className="flex flex-col gap-[18px] px-7 py-5">
+        <label className="field"><span className="label">Lý do</span>
+          <textarea name="reason" required maxLength={1000} className="input h-auto min-h-[120px] py-3 leading-6"
+            placeholder="Ví dụ: hẹn rồi không đến, đòi đặt cọc trước, nội dung tin không đúng sự thật…" /></label>
+        <p className="text-sm text-stone-500">Người bị báo cáo không biết ai đã báo cáo. Quản trị viên có thể khoá tài khoản nếu vi phạm.</p>
+        {error && <FieldError>{error}</FieldError>}
+      </div>
+      <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
+        <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
+        <button className="btn btn-primary h-12 px-6" disabled={busy}>{busy && <Spinner />}Gửi báo cáo</button>
       </div>
     </form>
   )

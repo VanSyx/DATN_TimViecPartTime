@@ -79,7 +79,7 @@ erDiagram
     NOTIFICATIONS {
         uuid id PK
         uuid user_id FK
-        string type "application_status | new_recommendation | report_resolved | job_approved"
+        string type "new_application | application_status | job_status | report_resolved"
         string message
         uuid related_id "job_id / application_id / report_id, nullable"
         bool is_read
@@ -94,4 +94,5 @@ erDiagram
 - `JOBS.status`: `open` khi đăng (hiện ngay, không duyệt trước — quyết định 2026-10-02), `closed` khi employer đóng, `rejected` khi admin gỡ (khôi phục được về `open`). `pending_approval` giữ trong schema nhưng chưa dùng.
 - `RATINGS` là 1 dòng cho 1 chiều đánh giá (rater→ratee); rating 2 chiều của 1 application = 2 row.
 - `USERS.verification_code` dùng chung cho cả xác minh email lẫn SĐT (2 lần gọi, không cần 2 cột riêng) — mã hết hạn (`verification_code_expires_at`) thì sinh mã mới đè lên, không cần bảng OTP riêng.
-- `NOTIFICATIONS.related_id` trỏ tới entity liên quan tùy `type` (job/application/report) — không dùng FK cứng vì tham chiếu đa bảng, validate ở tầng application.
+- `NOTIFICATIONS.related_id` trỏ tới entity liên quan tùy `type` (job/application/report) — không dùng FK cứng vì tham chiếu đa bảng, validate ở tầng application. `message` lưu sẵn câu hiển thị lúc tạo (vd. lý do admin gỡ tin). Bỏ `new_recommendation` (phải tính gợi ý cho mọi seeker mỗi khi có tin mới) và `job_approved` (không duyệt trước) — Tuần 7.
+- `REPORTS`: "block" là admin khoá tài khoản bị báo cáo (`USERS.is_blocked`), không có bảng chặn giữa 2 người dùng (quyết định 2026-10-04). Mỗi cặp người báo cáo → người bị báo cáo chỉ có 1 báo cáo `pending` (unique index có điều kiện).

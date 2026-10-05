@@ -77,9 +77,9 @@ flowchart LR
 | UC13 | Đóng / Xóa tin tuyển dụng | FR2 | EMP | ✅ Tuần 1-5 |
 | UC14 | Đánh giá Employer | FR6 | JS | ✅ Tuần 7 |
 | UC15 | Đánh giá Job Seeker | FR6 | EMP | ✅ Tuần 7 |
-| UC16 | Report / Block user | FR7 | JS, EMP | Tuần 6-12 |
-| UC17 | Xử lý report | FR7 | ADM | Tuần 6-12 |
-| UC18 | Nhận & xem thông báo in-app | FR9 | JS, EMP, Hệ thống | Tuần 6-12 |
+| UC16 | Báo cáo người dùng (khoá do admin quyết định ở UC17) | FR7 | JS, EMP | ✅ Tuần 7 |
+| UC17 | Xử lý báo cáo (bỏ qua / khoá tài khoản) | FR7 | ADM | ✅ Tuần 7 |
+| UC18 | Nhận & xem thông báo in-app | FR9 | JS, EMP, Hệ thống | ✅ Tuần 7 |
 | UC19 | Gỡ / khôi phục tin đăng (tin hiện ngay, không duyệt trước — 2026-10-02) | FR10 | ADM | ✅ Tuần 7 |
 | UC20 | Khóa / Mở khóa tài khoản user | FR10 | ADM | ✅ Tuần 7 |
 

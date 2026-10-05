@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { api, type Application, type Job, type JobInput } from '../api'
 import { useAuth } from '../auth'
-import { canRate, JobCard, LocationPicker, RatingModal, RatingNotes } from '../job-ui'
+import { canRate, JobCard, LocationPicker, RatingModal, RatingNotes, ReportModal, type ReportTarget } from '../job-ui'
 import {
   AppStatusBadge, Banner, ConfirmModal, dateInput, EmptyState, FieldError, fmtHM, fmtMoney, fmtNum, fmtRating, fmtSlot, fmtStamp, fullAddress, hm,
   Icon, IconLine, jobEnded, JobStatusBadge, Spinner, toIso, useLoad, useToast,
@@ -256,6 +256,7 @@ export function JobApplicantsPage() {
   const { data: apps, error, reload } = useLoad(load)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [rating, setRating] = useState<Application | null>(null)
+  const [reporting, setReporting] = useState<ReportTarget | null>(null)
   const me = useAuth().user!.id
 
   useEffect(() => {
@@ -325,7 +326,9 @@ export function JobApplicantsPage() {
                   )}
                   <RatingNotes app={a} me={me} other="Người làm" />
                 </div>
-                <div className="flex gap-2">
+                <div className="flex items-center gap-2">
+                  <button type="button" className="btn btn-plain px-3 text-stone-600" title="Báo cáo người này" aria-label={`Báo cáo ${a.job_seeker.email}`}
+                    onClick={() => setReporting({ id: a.job_seeker.id, label: a.job_seeker.email })}><Icon name="flag" size={18} /></button>
                   {canRate(a, me) ? (
                     <button type="button" className="btn btn-primary px-5" onClick={() => setRating(a)}><Icon name="star" size={18} />Đánh giá</button>
                   ) : a.status === 'pending' ? (
@@ -346,6 +349,7 @@ export function JobApplicantsPage() {
       )}
       <RatingModal app={rating} target={rating?.job_seeker.email ?? ''} onClose={() => setRating(null)}
         onSaved={() => { toast({ title: 'Đã gửi đánh giá', body: rating?.job_seeker.email }); setRating(null); reload() }} />
+      <ReportModal target={reporting} onClose={() => setReporting(null)} />
     </main>
   )
 }

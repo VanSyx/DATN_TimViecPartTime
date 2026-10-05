@@ -13,7 +13,8 @@ from sqlalchemy.orm import Session
 from app import config
 from app.auth import Role, require_role
 from app.db import get_db
-from app.models import Application, AvailabilityInterval, Geography, Job, Rating, User
+from app.models import Application, AvailabilityInterval, Geography, Job, Rating, Report, User
+from app.notifications import notify
 
 log = logging.getLogger(__name__)
 router = APIRouter()
@@ -114,6 +115,23 @@ class RatingOut(BaseModel):
     ratee_id: uuid.UUID
     score: int
     comment: str | None
+    created_at: datetime
+
+    model_config = {"from_attributes": True}
+
+
+class ReportIn(BaseModel):
+    reported_id: uuid.UUID
+    reason: str = Field(min_length=1, max_length=1000)
+
+    model_config = {"str_strip_whitespace": True}  # lý do toàn khoảng trắng → 422
+
+
+class ReportOut(BaseModel):
+    id: uuid.UUID
+    reported_id: uuid.UUID
+    reason: str
+    status: str
     created_at: datetime
 
     model_config = {"from_attributes": True}
@@ -393,6 +411,7 @@ def apply(body: ApplicationIn, user: User = Depends(job_seeker), db: Session = D
 
     application = Application(job_id=job.id, job_seeker_id=user.id)
     db.add(application)
+    notify(db, job.employer_id, "new_application", f"{user.email} ứng tuyển “{job.title}”", job.id)
     try:
         db.commit()
     except IntegrityError:  # uq_applications_active
@@ -444,6 +463,10 @@ def change_application_status(
     if result.rowcount == 0:
         db.rollback()
         raise HTTPException(status.HTTP_409_CONFLICT, "Đơn không còn ở trạng thái chờ duyệt")
+    if body.status != "cancelled":
+        verdict = "đã được nhận" if body.status == "accepted" else "không được nhận"
+        notify(db, application.job_seeker_id, "application_status",
+               f"Đơn ứng tuyển “{application.job.title}” {verdict}", application.id)
     db.commit()
     db.refresh(application)
     return application
@@ -479,3 +502,33 @@ def rate(
         raise HTTPException(status.HTTP_409_CONFLICT, "Bạn đã đánh giá đơn này")
     db.refresh(rating)
     return rating
+
+
+# ---------- Reports (FR7) ----------
+
+@router.post("/reports", response_model=ReportOut, status_code=status.HTTP_201_CREATED, tags=["reports"])
+def report_user(
+    body: ReportIn,
+    user: User = Depends(require_role(Role.JOB_SEEKER, Role.EMPLOYER)),
+    db: Session = Depends(get_db),
+):
+    """Chỉ ghi nhận báo cáo; khoá tài khoản là quyết định của admin (PATCH /admin/reports/:id).
+
+    Không cần kiểm quan hệ 2 bên: id người dùng chỉ lộ ra cho người có liên quan
+    (employer_id trên tin công khai, id người ứng tuyển chỉ employer của tin đó thấy).
+    """
+    reported = db.get(User, body.reported_id)
+    if reported is None or reported.role == Role.ADMIN:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy người dùng")
+    if reported.id == user.id:
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Không thể tự báo cáo chính mình")
+
+    report = Report(reporter_id=user.id, reported_id=reported.id, reason=body.reason)
+    db.add(report)
+    try:
+        db.commit()
+    except IntegrityError:  # uq_reports_pending
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Bạn đã báo cáo người này, quản trị viên đang xem xét")
+    db.refresh(report)
+    return report

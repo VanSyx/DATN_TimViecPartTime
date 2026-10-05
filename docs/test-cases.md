@@ -306,10 +306,10 @@ Tiền điều kiện: đăng nhập huong, "Đăng tin mới".
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
 |---|---|---|---|---|---|
 | APPL-01 | P1 | Danh sách ứng viên | huong → J1 → "Xem đơn" | Đầu trang: tiêu đề, badge, giờ, địa chỉ, tiền, nút "Sửa tin". 2 ứng viên lan, nam: avatar chữ cái đầu email, email (link mailto), SĐT (link gọi), "Ứng tuyển dd/mm, hh:mm", badge "Chờ duyệt", nút "Từ chối" + "Nhận" | Đạt |
-| APPL-02 | P1 | Nhận | Bấm "Nhận" ở lan | Toast "Đã nhận lan.nguyen@example.com"; dòng lan nền xanh nhạt, badge "Đã nhận", "Hãy gọi để hẹn giờ và chỉ đường tới nhà."; nút thay bằng "Đã xử lý dd/mm, hh:mm" | Đạt |
+| APPL-02 | P1 | Nhận | Bấm "Nhận" ở lan | Toast "Đã nhận lan.nguyen@example.com"; dòng lan nền xanh nhạt, badge "Đã nhận", "Hãy gọi để hẹn giờ và chỉ đường tới nhà."; nút Nhận/Từ chối thay bằng "Đã xử lý dd/mm, hh:mm" (chỉ còn nút cờ báo cáo, FR7) | Đạt |
 | APPL-03 | P1 | Người tìm việc thấy kết quả | Đăng nhập lan → "Đơn ứng tuyển" | J1 "Đã nhận" | Đạt |
 | APPL-04 | P1 | Từ chối | Bấm "Từ chối" ở nam | Toast "Đã từ chối nam.do@example.com"; dòng mờ, badge "Bị từ chối"; nam thấy "Bị từ chối" | Đạt |
-| APPL-05 | P2 | Đơn đã hủy | tuan → J3 | Đơn nam: badge "Đã hủy", "Người ứng tuyển đã hủy", không có nút | Đạt |
+| APPL-05 | P2 | Đơn đã hủy | tuan → J3 | Đơn nam: badge "Đã hủy", "Người ứng tuyển đã hủy", không có nút nào ngoài nút cờ báo cáo (FR7) | Đạt |
 | APPL-06 | P2 | Ứng viên không có SĐT | nhahang → J11 (đơn của tuananh) | "Chưa có số điện thoại" | Đạt |
 | APPL-07 | P2 | Chưa ai ứng tuyển | minh → J12 | "Chưa có ai ứng tuyển" + câu nhắc có ngày giờ của tin | Đạt |
 | APPL-08 | P1 | Xử lý đơn đã bị hủy | Tab 1: huong mở đơn J1. Tab 2: lan hủy đơn J1. Tab 1 bấm "Nhận" (chưa F5) | Toast đỏ "Đơn không còn ở trạng thái chờ duyệt" | Đạt |
@@ -338,16 +338,36 @@ Tài khoản `quantri@example.com` (seed tạo sẵn, chỉ ở dev). Tin hiện
 
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
 |---|---|---|---|---|---|
-| ADM-01 | P1 | Trang tin đăng | Đăng nhập quantri | Vào `/admin`: tiêu đề "Tin đăng" + nhãn "Quản trị viên"; menu "Tin đăng", "Người dùng". Mỗi tin có badge trạng thái, giờ, địa chỉ, tiền, "Người đăng: <email>", nút "Xem tin" + "Gỡ tin" (tin đang mở) | Đạt |
+| ADM-01 | P1 | Trang tin đăng | Đăng nhập quantri | Vào `/admin`: tiêu đề "Tin đăng" + nhãn "Quản trị viên"; menu "Tin đăng", "Người dùng", "Báo cáo". Mỗi tin có badge trạng thái, giờ, địa chỉ, tiền, "Người đăng: <email>", nút "Xem tin" + "Gỡ tin" (tin đang mở) | Đạt |
 | ADM-02 | P2 | Admin vào trang vai trò khác | Mở `/seeker`, `/employer` | Bị đưa về `/admin` | Đạt |
 | ADM-03 | P2 | Xem nội dung tin | "Xem tin" ở J1 | Modal chi tiết có "Mô tả công việc"; Esc đóng | Đạt |
-| ADM-04 | P1 | Gỡ tin | "Gỡ tin" ở J1 → xác nhận | Toast "Đã gỡ tin"; badge "Bị gỡ", nút đổi thành "Khôi phục". J1 biến mất khỏi `/tim-viec`/gợi ý; ứng tuyển J1 qua API → 400. huong thấy J1 "Bị gỡ" + "Tin bị quản trị viên gỡ vì vi phạm quy định…" | Đạt |
+| ADM-04 | P1 | Gỡ tin | "Gỡ tin" ở J1 → xác nhận (để trống "Lý do gỡ") | Hộp xác nhận có ô "Lý do gỡ (gửi kèm thông báo cho người đăng)", không bắt buộc. Toast "Đã gỡ tin"; badge "Bị gỡ", nút đổi thành "Khôi phục". J1 biến mất khỏi `/tim-viec`/gợi ý; ứng tuyển J1 qua API → 400. huong thấy J1 "Bị gỡ" + "Tin bị quản trị viên gỡ vì vi phạm quy định…" | Đạt |
 | ADM-05 | P2 | Lọc | Chọn "Bị gỡ" | Chỉ còn J1 | Đạt |
 | ADM-06 | P1 | Khôi phục | "Khôi phục" ở J1 | Toast "Đã khôi phục tin", badge "Đang mở", J1 hiện lại ở `/tim-viec` | Đạt |
 | ADM-07 | P1 | Khoá tài khoản | huong đang đăng nhập ở tab khác. quantri → "Người dùng", tìm `huong.dinh` → "Khoá" → xác nhận | Hộp xác nhận nhắc tin của người đăng sẽ bị ẩn; toast "Đã khoá tài khoản", badge "Bị khoá". Tin của huong ẩn khỏi `/tim-viec`. Tab huong tải lại → về trang đăng nhập; đăng nhập lại → "Tài khoản đã bị khóa" | Đạt |
 | ADM-08 | P1 | Mở khoá | "Mở khoá" ở huong | Toast "Đã mở khoá tài khoản", hết badge, tin của huong hiện lại | Đạt |
 | ADM-09 | P1 | Không khoá được admin | Tìm `quantri`; Swagger `PATCH /admin/users/<id quantri>` `{"is_blocked": true}` | Dòng admin không có nút; API → 400 | Đạt |
-| ADM-10 | P1 | RBAC backend | Token huong/lan gọi `GET /admin/jobs`, `GET /admin/users`, `PATCH /admin/users/<id>` | 403 cả 3, không đổi dữ liệu | Đạt |
+| ADM-10 | P1 | RBAC backend | Token huong/lan gọi `GET /admin/jobs`, `GET /admin/users`, `PATCH /admin/users/<id>`, `GET /admin/reports` | 403 cả 4, không đổi dữ liệu | Đạt |
+
+## 14b. Báo cáo vi phạm & thông báo (FR7, FR9, Tuần 7)
+
+Seed mới (chưa có báo cáo, chưa có thông báo nào). J1 = "Dọn nhà sáng thứ 7", J2 = "Trông bé trai 5 tuổi buổi tối", cả hai của huong. Chạy theo thứ tự (REP-07 khoá huong rồi mở khoá lại). Thông báo tải lại khi chuyển trang, không realtime.
+
+| ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
+|---|---|---|---|---|---|
+| NOTI-01 | P1 | Có đơn mới | lan ứng tuyển J2 (API). huong mở "Tin đã đăng" | Chuông trên header có badge "1"; mở chuông thấy "lan.nguyen@example.com ứng tuyển “Trông bé trai 5 tuổi buổi tối”" (nền tô = chưa đọc); bấm vào → `/employer/jobs/<J2>`, thấy lan trong danh sách | Đạt |
+| NOTI-02 | P1 | Đơn được nhận | huong → J2 → "Nhận" trang. trang mở trang bất kỳ | Chuông trang có badge; thông báo "Đơn ứng tuyển “Trông bé trai 5 tuổi buổi tối” đã được nhận"; bấm → `/seeker/applications` | Đạt |
+| NOTI-03 | P1 | Gỡ tin kèm lý do | quantri gỡ J1, nhập lý do "Tin trùng lặp, đăng lại nhiều lần", rồi "Khôi phục". huong mở chuông | 2 thông báo: "Tin “Dọn nhà sáng thứ 7” đã bị quản trị viên gỡ. Lý do: Tin trùng lặp, đăng lại nhiều lần" và "Tin “Dọn nhà sáng thứ 7” đã được khôi phục" | Đạt |
+| NOTI-04 | P2 | Mở chuông = đã đọc | phuong ứng tuyển J2 (tạo thông báo mới). huong mở chuông rồi đóng, tải lại trang | Lúc đang mở thông báo mới vẫn được tô; đóng thì hết badge; tải lại không có badge | Đạt |
+| NOTI-05 | P2 | Ai có chuông | quantri, khách, phuong (chưa có thông báo) | Admin và khách không có chuông; phuong mở chuông thấy "Chưa có thông báo nào." | Đạt |
+| REP-01 | P1 | Người tìm việc báo cáo người đăng | lan → "Đơn ứng tuyển" → J1 "Xem việc" → "Báo cáo" (góc trái chân modal) → lý do → "Gửi báo cáo" | Modal "Báo cáo người đăng tin" nằm trên modal chi tiết; toast "Đã gửi báo cáo"; DB có 1 báo cáo `pending` về huong | Đạt |
+| REP-02 | P2 | Lý do trống / báo cáo trùng | Mở lại form: bấm gửi khi trống; rồi nhập lý do, gửi | Trống: trình duyệt chặn (ô bắt buộc). Lần 2: lỗi trong form "Bạn đã báo cáo người này, quản trị viên đang xem xét" | Đạt |
+| REP-03 | P1 | Người đăng báo cáo người ứng tuyển | huong → J1 "Xem đơn" → nút cờ ở dòng nam → lý do → gửi | Modal "Báo cáo nam.do@example.com"; toast "Đã gửi báo cáo" | Đạt |
+| REP-04 | P2 | Không có nút báo cáo | Khách mở chi tiết J1 ở `/tim-viec`; quantri "Xem tin" J1 | Chân modal không có nút "Báo cáo" | Đạt |
+| REP-05 | P1 | Admin xem báo cáo | quantri → menu "Báo cáo" | Mặc định lọc "Chờ xử lý", có 2 thẻ (huong, nam): email + vai trò người bị báo cáo, lý do trong ngoặc kép, "Người báo cáo: <email>", giờ gửi, nút "Bỏ qua" + "Khoá tài khoản" | Đạt |
+| REP-06 | P1 | Bỏ qua báo cáo | "Bỏ qua" ở thẻ nam | Toast "Đã bỏ qua báo cáo"; thẻ rời "Chờ xử lý", ở "Đã xử lý" có "Đã bỏ qua <giờ>"; nam không bị khoá; huong nhận thông báo "Báo cáo của bạn về nam.do@example.com đã được xử lý: chưa đủ căn cứ để khoá tài khoản" | Đạt |
+| REP-07 | P1 | Khoá từ báo cáo, đóng cả báo cáo khác | hung cũng báo cáo huong (API); huong đang mở tab. quantri → "Khoá tài khoản" ở 1 trong 2 thẻ huong → xác nhận "Khoá" | Hộp xác nhận nhắc tin của người đăng bị ẩn và "Các báo cáo khác đang chờ về người này cũng được đóng". Toast "Đã khoá tài khoản"; "Chờ xử lý" trống ("Không có báo cáo nào chờ xử lý"); "Đã xử lý" có 2 thẻ huong với badge "Bị khoá" + "Đã khoá tài khoản". Tab huong tải lại → về đăng nhập; J1 biến mất khỏi `/jobs`. lan và hung đều nhận "…về huong.dinh@example.com đã được xử lý: tài khoản này đã bị khoá". Dọn: mở khoá huong ở "Người dùng" | Đạt |
+| REP-08 | P1 | Phân quyền & ràng buộc API | Swagger: lan `GET /admin/reports`; huong `PATCH /admin/reports/<id>`; quantri `POST /reports`; lan tự báo cáo mình; lan báo cáo quantri; lý do toàn khoảng trắng; xử lý lại báo cáo đã đóng | 403 / 403 / 403 / 400 / 404 / 422 / 409 | Đạt |
 
 ## 15. Giao diện chung & phi chức năng
 
@@ -368,7 +388,7 @@ Tài khoản `quantri@example.com` (seed tạo sẵn, chỉ ở dev). Tin hiện
 
 | ID | UT | Lệnh | Kết quả mong đợi | KQ |
 |---|---|---|---|---|
-| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (54 test) | Đạt |
+| AUTO-01 | P1 | `cd backend && .venv/Scripts/python -m pytest` (db đang chạy) | Tất cả pass (59 test) | Đạt |
 | AUTO-02 | P1 | `cd ai-service && .venv/Scripts/python -m pytest` | Tất cả pass (22 test) | Đạt |
 | AUTO-03 | P1 | `cd frontend && npm run build` | Build thành công (cảnh báo bundle > 500 kB chấp nhận được) | Đạt |
 | AUTO-04 | P1 | `cd frontend && npm run lint` | 0 lỗi (cảnh báo chấp nhận được) | Đạt |
@@ -387,6 +407,7 @@ Merge = deploy. Production **không có dữ liệu seed**, dùng tài khoản t
 | PROD-05 | P1 | Luồng chính | Tài khoản người đăng tin test đăng 1 tin → tài khoản người tìm việc test khai lịch rảnh, xem gợi ý, ứng tuyển → người đăng tin nhận | Đi hết không lỗi | Đạt |
 | PROD-06 | P1 | AI thật, không phải dự phòng | Trang Gợi ý sau khi đã đặt `AI_SERVICE_URL` | Có vòng % và lý do, **không** có banner "AI tạm thời không phản hồi". Nếu còn banner: kiểm biến `AI_SERVICE_URL` trên `timviec-backend` | Đạt (lần 2, sau khi sửa Bug #3) |
 | PROD-08 | P1 | FR6 đã lên production | Swagger bằng token người tìm việc test: `GET /applications/me`, `POST /ratings` cho đơn vừa được nhận, `GET /recommendations` | Đơn có trường `ratings`; `POST /ratings` → 400 "…sau khi công việc kết thúc" (không phải 500 = bảng đã migrate); tin của người đăng mới có `trust = 1`, `rating_count = 0` | Đạt (2026-10-03, sau merge PR #15) |
+| PROD-09 | P1 | FR7/FR9 đã lên production | Sau PROD-05: token người đăng tin test `GET /notifications`; token người tìm việc test `POST /reports` về người đăng tin test; người đăng tin mở `/employer` | 200 và có thông báo `new_application` của tin test (không phải 500 = bảng đã migrate); báo cáo → 201; header có chuông kèm badge. Báo cáo test để lại cho admin production "Bỏ qua" | |
 | PROD-07 | P2 | Dọn dẹp | Đóng tin test | Tin không còn hiện với người khác | Đạt |
 
 ---
@@ -423,12 +444,13 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 13. Đơn của một tin | 10 | 10 | 0 | 0 |
 | 13b. Đánh giá hai chiều | 9 | 9 | 0 | 0 |
 | 14. Quản trị | 10 | 10 | 0 | 0 |
+| 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
-| 17. Production | 8 | 8 | 0 | 0 |
-| **Tổng** | **231** | **231** | **0** | **0** |
+| 17. Production | 9 | 8 | 0 | 0 |
+| **Tổng** | **245** | **244** | **0** | **0** |
 
-Mục 1–16 chạy lại toàn bộ 2026-10-03 trên `feat/week7-admin` (xem mục 22); mục 17 chạy 2026-10-03 sau merge PR #15, chạy lại sau khi merge FR10.
+Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week7-report-notif` (xem mục 23); mục 17 chạy 2026-10-05 sau merge PR #16 (FR10), chạy lại sau khi merge FR7/FR9.
 
 ## 20. Kết quả chạy 2026-09-30 (trước khi merge `feat/week6-ui`)
 
@@ -467,3 +489,14 @@ Mục 1–16 chạy lại toàn bộ 2026-10-03 trên `feat/week7-admin` (xem m�
 - **Mục 14** viết lại thành 10 case FR10 (ADM-01→10), thay 2 case khung cũ.
 - **Mục 16**: backend 54 test, ai-service 22, build, lint 0 lỗi.
 - Không phát sinh bug mới.
+
+## 23. Kết quả chạy 2026-10-05 (trước khi merge `feat/week7-report-notif`, FR7 + FR9)
+
+- **Trước đó, production sau merge PR #16 (FR10)**: mục 17 đạt **8/8**; `/admin/jobs`, `/admin/users` trả 401 khi chưa đăng nhập (route đã lên). Để lại 2 tài khoản `qa-prod-1791139199649-*@example.org`, tin test đã đóng.
+- **Mục 14b mới** (13 case): NOTI-01→05, REP-01→08. ADM-01/04/10 sửa theo menu "Báo cáo", ô "Lý do gỡ" và route `/admin/reports`.
+- **Lần 1** (mục 1–15 + 13b + 14b): 6 case lỗi, đều do script/case chưa cập nhật theo thay đổi có chủ đích, không phải lỗi app:
+  - LOGIN-11/12/13, RECO-03: script bấm phần tử `summary` đầu tiên để mở menu tài khoản, nay trúng chuông thông báo (cũng là `<details>`, đứng trước). Sửa script chọn đúng menu tài khoản.
+  - APPL-02/05: case đòi dòng người ứng tuyển đã xử lý "không có nút", nay luôn có nút cờ báo cáo (FR7: đã nhận người mà họ không đến vẫn cần báo cáo được). Sửa câu chữ case.
+  - Script RATE (mục 13b) viết lại vì bản 2026-10-03 bị mất; RATE-06 lỗi do script không biết thẻ đầu tiên đã mở sẵn bảng điểm.
+- **Lần 2**: mục 1–15 + 13b + 14b đạt **231/231**. Mục 16: backend **59** test, ai-service 22, build, lint 0 lỗi; AUTO-05 là CI trên PR.
+- **Lỗi tự phát hiện trong lúc code (đã sửa trước khi chạy suite)**: `seed.py` chưa xoá `reports`/`notifications` trước `users` → seed lại sẽ lỗi khoá ngoại; chuông làm menu người tìm việc tràn sát vào chuông (gom chuông + menu tài khoản vào 1 cụm, đo lại ở 1280/1440 px không tràn).

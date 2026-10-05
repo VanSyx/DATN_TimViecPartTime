@@ -147,3 +147,28 @@ def test_login_rate_limited_after_5_per_minute(client, codes):
         client.post("/auth/login", json={"email": "js@example.com", "password": "wrong"})
     res = client.post("/auth/login", json={"email": "js@example.com", "password": "secret123"})
     assert res.status_code == 429
+
+
+def test_register_sends_code_via_brevo_and_survives_send_failure(client, monkeypatch):
+    import httpx
+
+    monkeypatch.setattr("app.config.BREVO_API_KEY", "k")
+    monkeypatch.setattr("app.config.MAIL_FROM", "from@example.com")
+    sent = []
+
+    def fake_post(url, headers, json, timeout):
+        sent.append(json)
+        return httpx.Response(201, request=httpx.Request("POST", url))
+
+    monkeypatch.setattr("app.auth.httpx.post", fake_post)
+    assert register(client).status_code == 201
+    mail = sent[0]
+    assert mail["to"] == [{"email": "js@example.com"}] and mail["sender"]["email"] == "from@example.com"
+    code = mail["subject"].rsplit(" ", 1)[-1]
+    assert len(code) == 6 and code in mail["textContent"]
+
+    def down(*a, **kw):
+        raise httpx.ConnectError("down")
+
+    monkeypatch.setattr("app.auth.httpx.post", down)
+    assert register(client, email="js2@example.com").status_code == 201

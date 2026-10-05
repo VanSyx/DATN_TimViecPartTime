@@ -23,3 +23,4 @@
 
 ## Nguồn tham khảo
 Chi tiết đầy đủ: `docs/PROJECT_PLAN.md` mục 4.5, 9.3.
+- Mã xác minh (FR8): lưu dạng hash bcrypt, hết hạn sau 15 phút, gửi qua Brevo HTTP API (`auth.send_verification_code`). `BREVO_API_KEY` là secret, chỉ đặt trên Render (người thực hiện tự nhập); có key thì **không** ghi mã ra log. Gửi lỗi chỉ `log.warning`, không làm hỏng đăng ký.

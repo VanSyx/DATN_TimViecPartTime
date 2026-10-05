@@ -17,6 +17,9 @@ CORS_ORIGINS = [o.strip() for o in os.getenv("CORS_ORIGINS", "http://localhost:5
 AI_SERVICE_URL = os.getenv("AI_SERVICE_URL", "http://localhost:8001")
 # Render free ngủ sau 15 phút, lần gọi đầu có thể quá 5s → rơi vào fallback, đó là hành vi đúng
 AI_TIMEOUT_SECONDS = 5
+# FR8: gửi mã qua HTTP API của Brevo (Render free chặn cổng SMTP). Không có key → chỉ ghi log (dev/test)
+BREVO_API_KEY = os.getenv("BREVO_API_KEY", "")
+MAIL_FROM = os.getenv("MAIL_FROM", "")
 
 ACCESS_TOKEN_MINUTES = 15
 REFRESH_TOKEN_DAYS = 7

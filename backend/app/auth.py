@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone
 from enum import StrEnum
 from typing import Literal
 
+import httpx
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
@@ -12,6 +13,7 @@ from pydantic import BaseModel, EmailStr, Field
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
+from app import config
 from app.config import JWT_REFRESH_SECRET, JWT_SECRET, VERIFICATION_CODE_MINUTES
 from app.db import get_db
 from app.models import User
@@ -80,9 +82,26 @@ class TokenOut(BaseModel):
 
 
 def send_verification_code(email: str, code: str) -> None:
-    """Tuần 1-5: ghi log thay vì gọi provider thật (docs/PROJECT_PLAN.md mục 3.1 FR8).
-    Tuần 6-12: thay thân hàm này bằng lời gọi provider email/SMS, không đổi chỗ gọi."""
-    log.info("Verification code for %s: %s", email, code)
+    """FR8: gửi mã qua Brevo. Chưa cấu hình key (dev/test) thì ghi log như tuần 1-5.
+    Gửi lỗi không làm hỏng đăng ký: tài khoản đã tạo, chưa xác minh vẫn dùng được đầy đủ."""
+    if not config.BREVO_API_KEY:
+        log.info("Verification code for %s: %s", email, code)
+        return
+    try:
+        httpx.post(
+            "https://api.brevo.com/v3/smtp/email",
+            headers={"api-key": config.BREVO_API_KEY},
+            json={
+                "sender": {"name": "TimViecPartTime", "email": config.MAIL_FROM},
+                "to": [{"email": email}],
+                "subject": f"Mã xác minh TimViecPartTime: {code}",
+                "textContent": f"Mã xác minh email của bạn là {code}. "
+                f"Mã có hiệu lực {VERIFICATION_CODE_MINUTES} phút.",
+            },
+            timeout=10,
+        ).raise_for_status()
+    except httpx.HTTPError as e:
+        log.warning("Gửi mã xác minh tới %s thất bại: %r", email, e)
 
 
 def get_current_user(

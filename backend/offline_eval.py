@@ -71,6 +71,9 @@ def fetch() -> dict[str, list[dict]]:
     client = TestClient(app)
     out = {}
     with SessionLocal() as db:
+        # TF-IDF tính IDF trên toàn bộ tin ứng viên: thêm tin của seed_history.py là kết quả đổi theo
+        assert not db.scalar(select(User.id).where(User.email.like("%@example.net")).limit(1)), \
+            "DB có dữ liệu seed_history.py — đánh giá offline chỉ chạy trên DB chỉ có seed.py"
         for key, (email, (lat, lng), _) in PERSONAS.items():
             user = db.scalar(select(User).where(User.email == email))
             res = client.get(

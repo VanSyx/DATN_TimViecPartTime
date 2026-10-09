@@ -188,21 +188,25 @@ APPLICATIONS = [
 ]
 
 
+def wipe(db, old):
+    """Xoá các user khớp `old` (select User.id) cùng mọi dữ liệu dính tới họ."""
+    old_jobs = select(Job.id).where(Job.employer_id.in_(old))
+    # Mỗi đánh giá luôn có 1 trong 2 bên của đơn là rater/ratee nên lọc theo user là đủ
+    db.execute(delete(Rating).where(or_(Rating.rater_id.in_(old), Rating.ratee_id.in_(old))))
+    db.execute(delete(Report).where(or_(Report.reporter_id.in_(old), Report.reported_id.in_(old))))
+    db.execute(delete(Notification).where(Notification.user_id.in_(old)))
+    db.execute(delete(Application).where(
+        or_(Application.job_seeker_id.in_(old), Application.job_id.in_(old_jobs))))
+    db.execute(delete(AvailabilityInterval).where(AvailabilityInterval.job_seeker_id.in_(old)))
+    db.execute(delete(Job).where(Job.employer_id.in_(old)))
+    db.execute(delete(User).where(User.id.in_(old)))
+
+
 def main():
     emails = [s[1] for s in SEEKERS] + [e[1] for e in EMPLOYERS] + [ADMIN]
     password_hash = hash_secret(PASSWORD)
     with SessionLocal() as db:
-        old = select(User.id).where(User.email.in_(emails))
-        old_jobs = select(Job.id).where(Job.employer_id.in_(old))
-        # Mỗi đánh giá luôn có 1 trong 2 bên của đơn là rater/ratee nên lọc theo user là đủ
-        db.execute(delete(Rating).where(or_(Rating.rater_id.in_(old), Rating.ratee_id.in_(old))))
-        db.execute(delete(Report).where(or_(Report.reporter_id.in_(old), Report.reported_id.in_(old))))
-        db.execute(delete(Notification).where(Notification.user_id.in_(old)))
-        db.execute(delete(Application).where(
-            or_(Application.job_seeker_id.in_(old), Application.job_id.in_(old_jobs))))
-        db.execute(delete(AvailabilityInterval).where(AvailabilityInterval.job_seeker_id.in_(old)))
-        db.execute(delete(Job).where(Job.employer_id.in_(old)))
-        db.execute(delete(User).where(User.id.in_(old)))
+        wipe(db, select(User.id).where(User.email.in_(emails)))
 
         users = {}
         for key, email, phone, verified, description, _, _ in SEEKERS:

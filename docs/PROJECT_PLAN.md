@@ -92,6 +92,17 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR9 | Thông báo in-app khi có sự kiện liên quan | Tuần 6-12 — ✅ Tuần 7 (PR #17/#18, đã lên production): đơn mới, đơn được nhận/từ chối, tin bị gỡ (kèm lý do)/khôi phục, kết quả báo cáo; chuông trên header, tải lại khi chuyển trang (không realtime) |
 | FR10 | Admin duyệt tin đăng, khóa/mở khóa tài khoản user, xử lý report | Tuần 6-12 — ✅ Tuần 7 (PR #16, đã lên production): gỡ/khôi phục tin (tin hiện ngay, không duyệt trước — 2026-10-02), khoá/mở khoá user; xử lý report làm cùng FR7 |
 
+**Bổ sung Tuần 9 (2026-10-14)** — mở rộng FR2/FR3/FR5 theo nhu cầu thực tế, không thêm FR mới (UC22–UC26, `docs/design/use-case.md`):
+
+| Mở rộng | Nội dung | UC |
+|---|---|---|
+| FR3 | Khai lịch rảnh lặp lại: chọn các thứ trong tuần + khung giờ, lặp trong 1 tuần / 1 tháng / đến ngày (tối đa 92 ngày), xoá cả chuỗi | UC22 |
+| FR3 | Hồ sơ người tìm việc chi tiết: họ tên, giới tính, năm sinh, khu vực sinh sống (AI không dùng giới tính/tuổi) | UC23 |
+| FR5 | Employer xem hồ sơ + lịch rảnh sắp tới của người đã ứng tuyển vào tin của mình | UC24 |
+| FR2 | Employer đánh dấu tin "Đã tìm được người" (ẩn khỏi tìm kiếm/gợi ý, đơn đang chờ tự từ chối kèm thông báo, đơn đã nhận giữ nguyên) và mở lại được | UC25 |
+| FR2 | Đăng lại tin từ tin cũ: form điền sẵn nội dung, tạo tin mới, tin cũ không đổi | UC26 |
+| FR3/FR5 | Hiện số người đang ứng tuyển (đơn chờ duyệt + đã nhận) trên thẻ việc ở Tìm việc, Gợi ý và Đơn ứng tuyển của tôi | — |
+
 ## 3.2 Non-functional Requirements
 - **Hiệu năng:** TF-IDF chạy local, không phụ thuộc API ngoài — tránh độ trễ mạng và chi phí khi demo
 - **Bảo mật:** JWT + refresh token, hashing password (bcrypt/argon2), RBAC enforce ở backend (không chỉ ẩn/hiện UI), rate limiting cho endpoint nhạy cảm
@@ -129,9 +140,9 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | CI/CD & Deploy | Docker + Docker Compose + GitHub Actions + Render (Blueprint) | |
 
 ## 4.3 Database — các entity chính
-- `users` (role: job_seeker/employer/admin, thông tin xác minh)
-- `jobs` (vị trí, khung giờ cần, lương, mô tả, employer_id)
-- `availability_intervals` (lịch rảnh dạng interval của job seeker)
+- `users` (role: job_seeker/employer/admin, thông tin xác minh; hồ sơ job seeker: họ tên, giới tính, năm sinh, khu vực — Tuần 9)
+- `jobs` (vị trí, khung giờ cần, lương, mô tả, employer_id; trạng thái `open`/`filled`/`closed`/`rejected`)
+- `availability_intervals` (lịch rảnh dạng interval của job seeker; `series_id` nhóm các khoảng sinh từ 1 lần khai lặp lại — Tuần 9)
 - `applications` (trạng thái đơn ứng tuyển, liên kết user-job)
 - `ratings` (đánh giá hai chiều — tuần 6-12)
 - `reports` (báo cáo vi phạm — tuần 6-12)
@@ -215,6 +226,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Nhịp độ đề xuất mỗi tuần: xen kẽ ngày code / ngày viết báo cáo (ví dụ 3 ngày code – 3 ngày report), không dồn báo cáo về cuối
 - **Code song song:** hoàn thiện 30% chức năng còn lại (FR6-FR10), đánh giá offline + khoá thiết kế AI (xong 2026-09-30, giữ TF-IDF), security hardening, fix bug phát sinh
 - **Thiết kế lại UI (TailwindCSS), tuần 6-7, song song với AI**: brief `docs/design/ui-redesign-brief.md` → mockup → code lại frontend (chỉ thay giao diện, backend không đổi), thêm trang chủ giới thiệu S0 cho khách (quyết định 2026-09-27, tham khảo bố cục TopCV/bTaskee). Việc AI: đánh giá offline xong và khoá thiết kế 2026-09-30 (giữ TF-IDF, không làm embedding)
+- **Bổ sung Tuần 9 (2026-10-14):** 5 chức năng theo nhu cầu thực tế, UC22–UC26 (mục 3.1): lịch rảnh lặp lại, hồ sơ người tìm việc + employer xem hồ sơ người ứng tuyển, "Đã tìm được người", đăng lại tin cũ, số người đang ứng tuyển
 - **Report:** viết các chương báo cáo theo template của trường (cần bổ sung khi có template cụ thể — xem mục 10)
 - **Testing:** không ưu tiên pilot test người dùng thật quy mô lớn do giới hạn thời gian — xem chi tiết mục 7
 - Tuần 11-12: sửa theo góp ý GVHD, hoàn thiện nộp
@@ -276,7 +288,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | Report bị code "ăn" hết thời gian ở tuần 6-12 | Không giữ kỷ luật chia thời gian code/report | Trung bình | Bám lịch xen kẽ ngày code/ngày report mỗi tuần (mục 5.2) |
 | Không đủ dữ liệu pilot test thật để phân tích | Không ưu tiên thời gian tuyển pilot tester (đã xác nhận với người thực hiện) | Chấp nhận được nếu minh bạch | Nêu rõ giới hạn này trong báo cáo, không phóng đại kết luận (mục 7.1) |
 | Deploy lỗi ở phút chót | Dồn việc deploy về cuối dự án | Trung bình | Deploy Hello World từ tuần 1, deploy lại mỗi tuần để phát hiện lỗi hạ tầng sớm |
-| Render free Postgres bị xóa giữa dự án | Free tier chỉ giữ DB 90 ngày kể từ lúc tạo — ~tuần 13 tính từ tuần 1, sát mốc nộp báo cáo tuần 12 | Cao | Ghi lại ngày tạo DB; nâng lên plan trả phí (~$7/tháng) trước ngày hết hạn nếu cần production sống qua tuần 12; hoặc export/backup dữ liệu định kỳ từ tuần 9+ đề phòng |
+| Render free Postgres bị xóa giữa dự án | Free tier của Render chỉ giữ DB **30 ngày** (`timviec-db` hết hạn 15/10), bảo vệ 30/12 | ✅ Đã xử lý (2026-10-05) | Chuyển sang Neon free (Postgres 16 + PostGIS, không hết hạn, 0,5 GB). Bản dump dự phòng giữ ở `D:/DATN_backup/` (setup-log #20–22) |
 | Render free web service cold start chậm | Service free tier ngủ sau 15 phút không có traffic, request đầu tiên mất 30-50s để dậy | Thấp, ảnh hưởng lúc demo | "Đánh thức" service vài phút trước khi demo/báo cáo trực tiếp; nêu rõ giới hạn free tier nếu GVHD hỏi vì sao chậm lần đầu |
 
 ---
@@ -330,7 +342,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | `docs/design/erd.md`, `docs/design/use-case.md`, `docs/design/sequence-diagram.md` | Thiết kế hệ thống (Mermaid, render sẵn trên GitHub) — ✅ đã tạo |
 | API spec (OpenAPI/Swagger) | Hoàn thành khung tuần 1, cập nhật liên tục khi có thay đổi endpoint |
 | `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — ✅ đã tạo, cập nhật theo từng tuần |
-| Báo cáo tốt nghiệp (các chương) | **Cần template của trường:** người thực hiện xác nhận trường có template riêng nhưng chưa cung cấp chi tiết. Khi có, bổ sung cấu trúc chương cụ thể vào đây trước khi bắt đầu viết ở tuần 6. Tạm thời áp dụng cấu trúc phổ biến (Mở đầu, Cơ sở lý thuyết, Phân tích thiết kế, Cài đặt, Kiểm thử & đánh giá, Kết luận) làm khung nháp nếu cần viết sớm |
+| Báo cáo tốt nghiệp (các chương) | ✅ Đã có bộ biểu mẫu của Khoa (2026-10-05, lưu ngoài repo ở `D:/DATN_backup/MAIN_BIEU MAU THUC HIEN DO AN TOT NGHIEP v3/`). Khung chương, định dạng và đối chiếu rubric giữ ở máy (`docs/bao-cao/`, không đưa lên git) |
 
 ---
 

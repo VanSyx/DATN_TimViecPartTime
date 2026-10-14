@@ -25,6 +25,11 @@ erDiagram
         timestamptz verification_code_expires_at
         bool is_blocked "FR7/FR10 - admin block"
         text description "mô tả tự do của job seeker, cho semantic_score"
+        string full_name "họ tên (Tuần 9)"
+        string gender "male | female | other, nullable"
+        int birth_year "tuổi tính khi hiển thị"
+        string ward "khu vực sinh sống, chỉ hiển thị"
+        string city
         timestamptz created_at
     }
     JOBS {
@@ -41,7 +46,7 @@ erDiagram
         timestamptz time_start
         timestamptz time_end
         numeric salary
-        string status "pending_approval | open | closed | rejected"
+        string status "pending_approval | open | filled | closed | rejected"
         timestamptz created_at
     }
     AVAILABILITY_INTERVALS {
@@ -49,6 +54,7 @@ erDiagram
         uuid job_seeker_id FK
         timestamptz start_time
         timestamptz end_time
+        uuid series_id "nullable, chung cho các khoảng sinh từ 1 lần khai lặp"
     }
     APPLICATIONS {
         uuid id PK
@@ -91,7 +97,9 @@ erDiagram
 - `AVAILABILITY_INTERVALS.start_time/end_time` là datetime thực, **không phải enum ca cố định** — đây là điểm khác biệt cốt lõi của đề tài (xem `.claude/docs/database.md`).
 - `USERS` **không lưu vị trí** (bản thiết kế đầu có cột `location`, đã bỏ ở tuần 3-4): vị trí của job seeker lấy theo từng lần tìm/gợi ý (GPS trình duyệt hoặc ghim bản đồ), vì người làm việc theo giờ hay tìm việc quanh chỗ đang đứng chứ không cố định ở 1 địa chỉ.
 - `JOBS` không lưu vector: semantic tính runtime bằng TF-IDF, không lên embedding/pgvector (quyết định 2026-09-30).
-- `JOBS.status`: `open` khi đăng (hiện ngay, không duyệt trước — quyết định 2026-10-02), `closed` khi employer đóng, `rejected` khi admin gỡ (khôi phục được về `open`). `pending_approval` giữ trong schema nhưng chưa dùng.
+- `JOBS.status`: `open` khi đăng (hiện ngay, không duyệt trước — quyết định 2026-10-02), `filled` khi employer bấm "Đã tìm được người" (ẩn khỏi tìm kiếm/gợi ý, mở lại được về `open` — Tuần 9), `closed` khi employer đóng, `rejected` khi admin gỡ (khôi phục được về `open`). `pending_approval` giữ trong schema nhưng chưa dùng.
+- `AVAILABILITY_INTERVALS.series_id` (Tuần 9): khai lịch rảnh lặp lại (vd. T3, T5, T7 13:00–17:00 trong 1 tháng) được **sinh sẵn thành các khoảng cụ thể** dùng chung `series_id`, không lưu quy tắc lặp — AI service và truy vấn lịch rảnh giữ nguyên, xoá cả chuỗi bằng `series_id`. Khoảng khai lẻ có `series_id = NULL`.
+- `USERS.full_name/gender/birth_year/ward/city` (Tuần 9): hồ sơ chi tiết của job seeker, đều nullable (tài khoản cũ không phải khai lại). Lưu năm sinh thay vì tuổi để không lỗi thời. AI **không dùng** giới tính/tuổi.
 - `RATINGS` là 1 dòng cho 1 chiều đánh giá (rater→ratee); rating 2 chiều của 1 application = 2 row.
 - `USERS.verification_code` dùng chung cho cả xác minh email lẫn SĐT (2 lần gọi, không cần 2 cột riêng) — mã hết hạn (`verification_code_expires_at`) thì sinh mã mới đè lên, không cần bảng OTP riêng.
 - `NOTIFICATIONS.related_id` trỏ tới entity liên quan tùy `type` (job/application/report) — không dùng FK cứng vì tham chiếu đa bảng, validate ở tầng application. `message` lưu sẵn câu hiển thị lúc tạo (vd. lý do admin gỡ tin). Bỏ `new_recommendation` (phải tính gợi ý cho mọi seeker mỗi khi có tin mới) và `job_approved` (không duyệt trước) — Tuần 7.

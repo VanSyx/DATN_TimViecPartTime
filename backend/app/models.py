@@ -49,6 +49,12 @@ class User(Base):
     is_blocked: Mapped[bool] = mapped_column(Boolean, default=False)
     # Mô tả tự do của job seeker (kỹ năng/nhu cầu) cho semantic_score; employer để trống
     description: Mapped[str | None] = mapped_column(Text, default=None)
+    # Hồ sơ job seeker (Tuần 9) — chỉ để employer tham khảo, AI không dùng giới tính/tuổi
+    full_name: Mapped[str | None] = mapped_column(String(100), default=None)
+    gender: Mapped[str | None] = mapped_column(String(10), default=None)  # male | female | other
+    birth_year: Mapped[int | None] = mapped_column(Integer, default=None)
+    ward: Mapped[str | None] = mapped_column(String(100), default=None)
+    city: Mapped[str | None] = mapped_column(String(100), default=None)
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -77,7 +83,8 @@ class Job(Base):
     time_start: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     time_end: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     salary: Mapped[int] = mapped_column(Integer)  # VND
-    # open → closed (employer đóng) | rejected (admin gỡ, FR10, khôi phục được về open).
+    # open → closed (employer đóng) | filled (employer đã tìm được người, mở lại được — Tuần 9)
+    # | rejected (admin gỡ, FR10, khôi phục được về open).
     # pending_approval chưa dùng: tin hiện ngay khi đăng, admin gỡ sau (quyết định 2026-10-02)
     status: Mapped[str] = mapped_column(String(20), default="open")
     created_at: Mapped[datetime] = mapped_column(DateTime(timezone=True), server_default=func.now())
@@ -93,6 +100,8 @@ class AvailabilityInterval(Base):
     job_seeker_id: Mapped[uuid.UUID] = mapped_column(ForeignKey("users.id"), index=True)
     start_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
     end_time: Mapped[datetime] = mapped_column(DateTime(timezone=True))
+    # Chung cho các khoảng sinh từ 1 lần khai lặp lại (Tuần 9); khai lẻ thì NULL
+    series_id: Mapped[uuid.UUID | None] = mapped_column(Uuid, default=None, index=True)
 
 
 class Application(Base):

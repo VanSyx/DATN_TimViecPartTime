@@ -138,6 +138,42 @@ sequenceDiagram
 
 **Ghi chú:** kiểm tra `employer_id` khớp JWT là bắt buộc ở mọi nhánh sửa/đóng — RBAC role-level không đủ, còn cần ownership check để employer A không sửa được job của employer B.
 
+### 3b. Đánh dấu "Đã tìm được người" / mở lại, đăng lại tin cũ (FR2, bổ sung Tuần 9)
+
+```mermaid
+sequenceDiagram
+    actor E as Employer
+    participant FE as Frontend
+    participant BE as Backend chính
+    participant DB as PostgreSQL
+
+    alt Đã tìm được người (PATCH /jobs/:id/status { status: filled })
+        E->>FE: Bấm "Đã tìm được người", xác nhận
+        FE->>BE: PATCH /jobs/:id/status kèm JWT
+        BE->>DB: UPDATE jobs SET status = filled WHERE id = :id AND employer_id = :me AND status = open
+        alt Không có dòng nào đổi
+            BE-->>FE: 409 (tin không còn ở trạng thái đang tuyển)
+        else
+            BE->>DB: UPDATE applications SET status = rejected WHERE job_id = :id AND status = pending
+            BE->>DB: INSERT notifications cho từng người có đơn vừa bị từ chối
+            BE-->>FE: 200 OK (đơn accepted giữ nguyên)
+        end
+    else Mở lại tuyển (PATCH /jobs/:id/status { status: open })
+        FE->>BE: PATCH /jobs/:id/status kèm JWT
+        BE->>DB: UPDATE jobs SET status = open WHERE ... AND status = filled
+        BE-->>FE: 200 OK hoặc 409
+    else Đăng lại tin cũ
+        E->>FE: Bấm "Đăng lại" ở 1 tin bất kỳ
+        FE->>FE: Mở form đăng tin, điền sẵn nội dung tin cũ, để trống ngày làm
+        E->>FE: Chọn ngày mới, chỉnh nếu cần, bấm "Đăng tin"
+        FE->>BE: POST /jobs (như đăng tin mới)
+        BE->>DB: INSERT jobs (bản ghi mới, tin cũ không đổi)
+        BE-->>FE: 201 Created
+    end
+```
+
+**Ghi chú:** tin `filled` bị ẩn khỏi tìm kiếm/gợi ý và không nhận đơn mới mà **không cần sửa truy vấn** — `open_jobs_query` và `apply` vốn chỉ nhận tin `status = open`. Đăng lại tin là việc thuần frontend (tái dùng `POST /jobs`), không có endpoint "copy" riêng.
+
 ---
 
 ## 4. Admin: Gỡ / khôi phục tin đăng (FR10)
@@ -189,7 +225,36 @@ sequenceDiagram
     BE-->>FE: Danh sách job khớp geo + khung giờ
 ```
 
-**Ghi chú:** đây là tìm/lọc **thô** (geo + time filter trực tiếp bằng SQL/PostGIS), khác với luồng gợi ý AI ở mục 6 — user có thể dùng UC5 độc lập mà không cần AI service chạy.
+**Ghi chú:** đây là tìm/lọc **thô** (geo + time filter trực tiếp bằng SQL/PostGIS), khác với luồng gợi ý AI ở mục 6 — user có thể dùng UC5 độc lập mà không cần AI service chạy. Mỗi job trả về kèm `applicant_count` (số đơn `pending` + `accepted`, Tuần 9), đếm bằng 1 truy vấn `GROUP BY job_id` cho cả danh sách — cũng gắn vào kết quả gợi ý (mục 6) và đơn của tôi (mục 7).
+
+### 5b. Khai lịch rảnh lặp lại (FR3, bổ sung Tuần 9)
+
+```mermaid
+sequenceDiagram
+    actor JS as Job Seeker
+    participant FE as Frontend
+    participant BE as Backend chính
+    participant DB as PostgreSQL
+
+    JS->>FE: Bật "Lặp lại", chọn thứ (vd T3, T5, T7), giờ 13:00-17:00, lặp trong 1 tháng
+    FE->>BE: POST /availability/series { start_date, start, end, weekdays, until }
+    BE->>BE: Kiểm tra until không quá 92 ngày sau start_date
+    BE->>BE: Duyệt từng ngày từ start_date tới until, giữ ngày có thứ nằm trong weekdays
+    BE->>BE: Ghép ngày + giờ theo giờ Việt Nam (UTC+7), bỏ các buổi đã qua
+    alt Không sinh được buổi nào
+        BE-->>FE: 422
+    else
+        BE->>DB: INSERT các availability_intervals chung 1 series_id (1 transaction)
+        BE-->>FE: 201 + danh sách khoảng rảnh vừa tạo
+    end
+
+    JS->>FE: Xoá cả chuỗi
+    FE->>BE: DELETE /availability/series/:series_id
+    BE->>DB: DELETE availability_intervals WHERE series_id = :id AND job_seeker_id = :me
+    BE-->>FE: 204 (không có dòng nào → 404)
+```
+
+**Ghi chú:** quy tắc lặp **không được lưu**, chỉ dùng lúc sinh khoảng rảnh — AI service vẫn nhận danh sách khoảng rảnh cụ thể như trước nên không phải sửa.
 
 ---
 
@@ -343,6 +408,29 @@ sequenceDiagram
     Note over BE: Có hiệu lực ngay: get_current_user kiểm is_blocked ở mọi request (token còn hạn cũng 401),<br/>login trả 403. Tin đang mở của người bị khoá ẩn khỏi tìm kiếm/gợi ý và không nhận đơn
 ```
 
+## 11. Employer: Xem hồ sơ người ứng tuyển (FR5, bổ sung Tuần 9)
+
+```mermaid
+sequenceDiagram
+    actor E as Employer
+    participant FE as Frontend
+    participant BE as Backend chính
+    participant DB as PostgreSQL
+
+    E->>FE: Ở danh sách đơn của 1 tin, bấm vào tên người ứng tuyển
+    FE->>BE: GET /seekers/:id kèm JWT
+    BE->>DB: Có đơn nào của :id vào tin do employer này đăng không
+    alt Không có
+        BE-->>FE: 404 (không tiết lộ tài khoản có tồn tại hay không)
+    else Có
+        BE->>DB: Lấy hồ sơ (họ tên, giới tính, năm sinh, khu vực, mô tả, liên hệ)
+        BE->>DB: Lấy điểm đánh giá trung bình + lịch rảnh chưa qua
+        BE-->>FE: Hồ sơ + lịch rảnh sắp tới
+    end
+```
+
+Hồ sơ do job seeker tự khai ở trang "Hồ sơ & lịch rảnh" (`PATCH /auth/me`). Giới tính/năm sinh chỉ để employer tham khảo, AI không dùng.
+
 ## Ghi chú chung
-- Tất cả sequence diagram trên map đúng 1:1 với FR1-FR10 — không có FR nào thiếu luồng minh họa.
+- Tất cả sequence diagram trên map đúng 1:1 với FR1-FR10 — không có FR nào thiếu luồng minh họa. Mục 3b, 5b, 11 là phần bổ sung Tuần 9 (UC22–UC26).
 - 10 diagram này là **thiết kế mức API/luồng dữ liệu**, chưa phải đặc tả endpoint chi tiết — OpenAPI spec thật sinh tự động từ FastAPI khi code (`/docs`), không cần viết tay riêng.

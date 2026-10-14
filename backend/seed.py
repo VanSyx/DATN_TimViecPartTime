@@ -5,6 +5,7 @@ Chạy lại bao nhiêu lần cũng được: chỉ xóa rồi tạo lại đún
 Mật khẩu mọi tài khoản: matkhau123. Thời gian tính theo ngày chạy script (giờ Việt Nam).
 """
 
+import uuid
 from datetime import datetime, timedelta, timezone
 
 from sqlalchemy import delete, or_, select
@@ -30,13 +31,13 @@ def at(day: datetime, hhmm: str) -> datetime:
     return day.replace(hour=h, minute=m)
 
 
-def week(days: set[int], start: str, end: str) -> list[tuple[datetime, datetime]]:
-    """Lặp 1 khung giờ cho các thứ trong 7 ngày tới — đúng cách người ta khai "chiều T2-T6"."""
-    out = []
+def week(days: set[int], start: str, end: str) -> list[tuple[datetime, datetime, uuid.UUID]]:
+    """Lặp 1 khung giờ cho các thứ trong 7 ngày tới — đúng cách người ta khai "chiều T2-T6" (1 chuỗi lặp lại)."""
+    series_id, out = uuid.uuid4(), []
     for i in range(1, 8):
         d = TODAY + timedelta(days=i)
         if d.weekday() in days:
-            out.append((at(d, start), at(d, end)))
+            out.append((at(d, start), at(d, end), series_id))
     return out
 
 
@@ -49,7 +50,7 @@ SEEKERS = [
      "Em là sv năm 2 NEU, ở trọ gần Bạch Mai. Em rảnh các buổi chiều trong tuần với cả ngày cuối tuần. "
      "Em làm được dọn dẹp nhà, rửa bát, giặt ủi, trông em nhỏ cũng được ạ (nhà em có 2 đứa em nên quen rồi).",
      week(WEEKDAYS, "13:30", "17:30") + week(WEEKEND, "07:00", "20:00")
-     + [(at(next_day(T7), "08:00"), at(next_day(T7), "10:00"))],  # lỡ tay khai trùng
+     + [(at(next_day(T7), "08:00"), at(next_day(T7), "10:00"), None)],  # khai lẻ, lỡ tay khai trùng
      "Sinh viên, Hai Bà Trưng (~21.004, 105.850). Có 1 khoảng rảnh khai trùng."),
     ("hung", "hung.tran@example.com", "0987111222", True,
      "Chạy xe ôm công nghệ là chính, sáng sớm 5h30 tới 10h thì rảnh. Nhận phụ quán, bưng bê, rửa ly, "
@@ -87,6 +88,17 @@ SEEKERS = [
     ("phuong", "phuong.mai@example.com", None, False, None, [],
      "Vừa đăng ký, chưa điền mô tả, chưa khai lịch rảnh."),
 ]
+
+# Hồ sơ chi tiết (Tuần 9): (họ tên, giới tính, năm sinh, phường/xã, tỉnh/thành). tuananh, phuong chưa khai
+PROFILES = {
+    "lan": ("Nguyễn Thị Lan", "female", 2005, "Phường Bạch Mai", "Hà Nội"),
+    "hung": ("Trần Văn Hùng", "male", 1988, "Phường Cầu Giấy", "Hà Nội"),
+    "hoa": ("Lê Thị Hoa", "female", 1974, "Phường Đống Đa", "Hà Nội"),
+    "trang": ("Phạm Thu Trang", "female", 1997, "Phường Thanh Xuân", "Hà Nội"),
+    "nam": ("Đỗ Văn Nam", "male", 2002, "Phường Hai Bà Trưng", "Hà Nội"),
+    "vy": ("Huỳnh Ngọc Vy", "female", 2001, "Phường Bình Thạnh", "TP. Hồ Chí Minh"),
+    "duc": ("Ngô Minh Đức", "male", 2004, "Phường Hải Châu", "Đà Nẵng"),
+}
 
 # ---------- Chủ nhà / cơ sở ----------
 EMPLOYERS = [
@@ -188,26 +200,32 @@ APPLICATIONS = [
 ]
 
 
+def wipe(db, old):
+    """Xoá các user khớp `old` (select User.id) cùng mọi dữ liệu dính tới họ."""
+    old_jobs = select(Job.id).where(Job.employer_id.in_(old))
+    # Mỗi đánh giá luôn có 1 trong 2 bên của đơn là rater/ratee nên lọc theo user là đủ
+    db.execute(delete(Rating).where(or_(Rating.rater_id.in_(old), Rating.ratee_id.in_(old))))
+    db.execute(delete(Report).where(or_(Report.reporter_id.in_(old), Report.reported_id.in_(old))))
+    db.execute(delete(Notification).where(Notification.user_id.in_(old)))
+    db.execute(delete(Application).where(
+        or_(Application.job_seeker_id.in_(old), Application.job_id.in_(old_jobs))))
+    db.execute(delete(AvailabilityInterval).where(AvailabilityInterval.job_seeker_id.in_(old)))
+    db.execute(delete(Job).where(Job.employer_id.in_(old)))
+    db.execute(delete(User).where(User.id.in_(old)))
+
+
 def main():
     emails = [s[1] for s in SEEKERS] + [e[1] for e in EMPLOYERS] + [ADMIN]
     password_hash = hash_secret(PASSWORD)
     with SessionLocal() as db:
-        old = select(User.id).where(User.email.in_(emails))
-        old_jobs = select(Job.id).where(Job.employer_id.in_(old))
-        # Mỗi đánh giá luôn có 1 trong 2 bên của đơn là rater/ratee nên lọc theo user là đủ
-        db.execute(delete(Rating).where(or_(Rating.rater_id.in_(old), Rating.ratee_id.in_(old))))
-        db.execute(delete(Report).where(or_(Report.reporter_id.in_(old), Report.reported_id.in_(old))))
-        db.execute(delete(Notification).where(Notification.user_id.in_(old)))
-        db.execute(delete(Application).where(
-            or_(Application.job_seeker_id.in_(old), Application.job_id.in_(old_jobs))))
-        db.execute(delete(AvailabilityInterval).where(AvailabilityInterval.job_seeker_id.in_(old)))
-        db.execute(delete(Job).where(Job.employer_id.in_(old)))
-        db.execute(delete(User).where(User.id.in_(old)))
+        wipe(db, select(User.id).where(User.email.in_(emails)))
 
         users = {}
         for key, email, phone, verified, description, _, _ in SEEKERS:
+            full_name, gender, birth_year, ward, city = PROFILES.get(key, (None,) * 5)
             users[key] = User(email=email, phone=phone, role="job_seeker", password_hash=password_hash,
-                              email_verified=verified, description=description)
+                              email_verified=verified, description=description, full_name=full_name,
+                              gender=gender, birth_year=birth_year, ward=ward, city=city)
         for key, email, phone, _ in EMPLOYERS:
             users[key] = User(email=email, phone=phone, role="employer", password_hash=password_hash,
                               email_verified=True)
@@ -215,8 +233,8 @@ def main():
         db.add_all(users.values())
         db.flush()
 
-        db.add_all(AvailabilityInterval(job_seeker_id=users[key].id, start_time=s, end_time=e)
-                   for key, *_, intervals, _ in SEEKERS for s, e in intervals)
+        db.add_all(AvailabilityInterval(job_seeker_id=users[key].id, start_time=s, end_time=e, series_id=sid)
+                   for key, *_, intervals, _ in SEEKERS for s, e, sid in intervals)
 
         jobs = {}
         for key, emp, title, desc, (street, ward, city), (lat, lng), day, start, end, salary, status in JOBS:

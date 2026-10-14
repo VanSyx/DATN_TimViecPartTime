@@ -446,3 +446,107 @@ def test_notifications_follow_application_and_takedown(client, admin, employer, 
     assert all(n["is_read"] for n in notes(client, employer))
     assert not any(n["is_read"] for n in notes(client, seeker))  # chỉ đánh dấu thông báo của chính mình
     assert client.get("/notifications").status_code in (401, 403)
+
+
+# ---------- Bổ sung Tuần 9 (UC22-UC26) ----------
+
+def series(client, seeker, **kw):
+    body = {"start_date": "2030-01-01", "until": "2030-01-31", "start": "13:00", "end": "17:00", "weekdays": [1, 3, 5], **kw}
+    return client.post("/availability/series", json=body, headers=seeker)
+
+
+def test_availability_series_expands_weekdays_in_vietnam_time(client, seeker):
+    res = series(client, seeker)  # 1/1/2030 là thứ 3 → T3, T5, T7 của tháng 1/2030
+    assert res.status_code == 201, res.text
+    items = res.json()
+    assert len(items) == 14 and len({i["series_id"] for i in items}) == 1
+    first = datetime.fromisoformat(items[0]["start_time"])
+    assert first == datetime(2030, 1, 1, 6, tzinfo=timezone.utc)  # 13:00 giờ Việt Nam
+    assert {datetime.fromisoformat(i["start_time"]).weekday() for i in items} == {1, 3, 5}
+    assert len(client.get("/availability", headers=seeker).json()) == 14
+
+
+def test_availability_series_validation(client, seeker):
+    assert series(client, seeker, until="2030-04-30").status_code == 422  # quá 92 ngày
+    assert series(client, seeker, until="2029-12-31").status_code == 422  # until trước start_date
+    assert series(client, seeker, end="12:00").status_code == 422
+    assert series(client, seeker, weekdays=[]).status_code == 422
+    assert series(client, seeker, weekdays=[7]).status_code == 422
+    # Toàn buổi đã qua → không sinh được gì
+    assert series(client, seeker, start_date="2020-01-01", until="2020-01-31").status_code == 422
+
+
+def test_delete_availability_series_only_own(client, seeker, auth_headers):
+    series_id = series(client, seeker).json()[0]["series_id"]
+    single = client.post("/availability", json={"start_time": "2030-02-01T07:00:00+07:00", "end_time": "2030-02-01T11:00:00+07:00"}, headers=seeker).json()
+    assert single["series_id"] is None
+    assert client.delete(f"/availability/series/{series_id}", headers=auth_headers("job_seeker")).status_code == 404
+    assert client.delete(f"/availability/series/{series_id}", headers=seeker).status_code == 204
+    assert [i["id"] for i in client.get("/availability", headers=seeker).json()] == [single["id"]]
+
+
+def test_seeker_profile_fields_and_partial_update(client, seeker):
+    body = {"full_name": " Nguyễn Thị Lan ", "gender": "female", "birth_year": 2003, "ward": "Phường Hải Châu", "city": "Đà Nẵng"}
+    assert client.patch("/auth/me", json=body, headers=seeker).status_code == 200
+    assert client.patch("/auth/me", json={"description": "Dọn nhà"}, headers=seeker).status_code == 200
+    profile = me(client, seeker)
+    assert profile["full_name"] == "Nguyễn Thị Lan" and profile["birth_year"] == 2003 and profile["description"] == "Dọn nhà"
+    for bad in ({"gender": "x"}, {"birth_year": 1900}, {"birth_year": datetime.now().year - 10}, {"full_name": "a" * 101}):
+        assert client.patch("/auth/me", json=bad, headers=seeker).status_code == 422, bad
+
+
+def test_employer_views_profile_of_applicant_only(client, employer, seeker, auth_headers):
+    client.patch("/auth/me", json={"full_name": "Lan", "description": "Dọn nhà"}, headers=seeker)
+    series(client, seeker)
+    seeker_id = me(client, seeker)["id"]
+    assert client.get(f"/seekers/{seeker_id}", headers=employer).status_code == 404  # chưa ứng tuyển tin nào
+
+    apply(client, seeker, create_job(client, employer))
+    profile = client.get(f"/seekers/{seeker_id}", headers=employer).json()
+    assert profile["full_name"] == "Lan" and profile["description"] == "Dọn nhà" and len(profile["availability"]) == 14
+    assert client.get(f"/seekers/{seeker_id}", headers=auth_headers("employer")).status_code == 404
+    assert client.get(f"/seekers/{seeker_id}", headers=seeker).status_code == 403
+
+
+def test_applicant_count_counts_pending_and_accepted(client, employer, seeker, auth_headers):
+    job = create_job(client, employer)
+    for decision in ("accepted", "accepted", "rejected"):
+        set_status(client, employer, apply(client, auth_headers("job_seeker"), job).json(), decision)
+    quitter = auth_headers("job_seeker")
+    set_status(client, quitter, apply(client, quitter, job).json(), "cancelled")
+    apply(client, seeker, job)
+
+    count = lambda items: next(j["applicant_count"] for j in items if j["id"] == job["id"])  # noqa: E731
+    assert count(client.get("/jobs").json()) == 3  # 2 accepted + 1 pending của seeker
+    assert count(client.get("/jobs/mine", headers=employer).json()) == 3
+    assert client.get("/applications/me", headers=seeker).json()[0]["job"]["applicant_count"] == 3
+
+
+def test_mark_filled_hides_job_rejects_pending_keeps_accepted(client, employer, seeker, auth_headers):
+    job = create_job(client, employer)
+    hired = auth_headers("job_seeker")
+    accepted = apply(client, hired, job).json()
+    set_status(client, employer, accepted, "accepted")
+    pending = apply(client, seeker, job).json()
+
+    assert client.patch(f"/jobs/{job['id']}/status", json={"status": "filled"}, headers=auth_headers("employer")).status_code == 404
+    res = client.patch(f"/jobs/{job['id']}/status", json={"status": "filled"}, headers=employer)
+    assert res.status_code == 200 and res.json()["status"] == "filled"
+    assert client.patch(f"/jobs/{job['id']}/status", json={"status": "filled"}, headers=employer).status_code == 409
+
+    assert not visible(client, job)
+    assert apply(client, auth_headers("job_seeker"), job).json()["detail"] == "Tin tuyển dụng đã tìm đủ người"
+    statuses = {a["id"]: a["status"] for a in client.get(f"/jobs/{job['id']}/applications", headers=employer).json()}
+    assert statuses == {accepted["id"]: "accepted", pending["id"]: "rejected"}
+    assert "đã tìm đủ người" in messages(client, seeker)
+    assert "đã tìm đủ người" not in messages(client, hired)
+
+    assert client.patch(f"/jobs/{job['id']}/status", json={"status": "open"}, headers=employer).json()["status"] == "open"
+    assert visible(client, job)
+    assert client.patch(f"/jobs/{job['id']}/status", json={"status": "closed"}, headers=employer).status_code == 422
+
+
+def test_closed_job_cannot_be_marked_filled(client, employer):
+    job = create_job(client, employer)
+    client.delete(f"/jobs/{job['id']}", headers=employer)
+    assert client.patch(f"/jobs/{job['id']}/status", json={"status": "filled"}, headers=employer).status_code == 409

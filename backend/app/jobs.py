@@ -1,12 +1,12 @@
 import logging
 import uuid
-from datetime import datetime, timezone
+from datetime import date, datetime, time, timedelta, timezone
 from typing import Literal
 
 import httpx
 from fastapi import APIRouter, Depends, HTTPException, Query, Response, status
-from pydantic import AwareDatetime, BaseModel, Field, model_validator
-from sqlalchemy import cast, func, select, update
+from pydantic import AwareDatetime, BaseModel, Field, field_validator, model_validator
+from sqlalchemy import cast, delete, func, select, update
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm import Session
 
@@ -62,8 +62,14 @@ class JobOut(BaseModel):
     # Gắn bởi attach_ratings() ở trang gợi ý: uy tín người đăng tin (đầu vào trust_modifier)
     rating_avg: float | None = None
     rating_count: int = 0
+    # Gắn bởi attach_applicant_counts(): số đơn đang chờ + đã nhận
+    applicant_count: int = 0
 
     model_config = {"from_attributes": True}
+
+
+class JobStatusIn(BaseModel):
+    status: Literal["filled", "open"]
 
 
 class AvailabilityIn(BaseModel):
@@ -77,10 +83,41 @@ class AvailabilityIn(BaseModel):
         return self
 
 
+MAX_SERIES_DAYS = 92
+# ponytail: cố định UTC+7 (Việt Nam không đổi giờ mùa hè), đổi sang zoneinfo nếu mở ra nước khác
+VN_TZ = timezone(timedelta(hours=7))
+
+
+class AvailabilitySeriesIn(BaseModel):
+    """Lịch rảnh lặp lại: các thứ trong tuần (0 = thứ 2 … 6 = chủ nhật) + khung giờ, từ start_date tới until."""
+
+    start_date: date
+    until: date
+    start: time
+    end: time
+    weekdays: set[int] = Field(min_length=1)
+
+    @field_validator("weekdays")
+    @classmethod
+    def _check_weekdays(cls, v):
+        if not v <= set(range(7)):
+            raise ValueError("weekdays chỉ gồm 0 (thứ 2) tới 6 (chủ nhật)")
+        return v
+
+    @model_validator(mode="after")
+    def _check_range(self):
+        if self.end <= self.start:
+            raise ValueError("end phải sau start (khoảng rảnh qua nửa đêm thì tách 2 chuỗi)")
+        if not self.start_date <= self.until <= self.start_date + timedelta(days=MAX_SERIES_DAYS):
+            raise ValueError(f"until phải từ start_date tới tối đa {MAX_SERIES_DAYS} ngày sau")
+        return self
+
+
 class AvailabilityOut(BaseModel):
     id: uuid.UUID
     start_time: datetime
     end_time: datetime
+    series_id: uuid.UUID | None = None
 
     model_config = {"from_attributes": True}
 
@@ -97,6 +134,7 @@ class ApplicantOut(BaseModel):
     id: uuid.UUID
     email: str
     phone: str | None
+    full_name: str | None = None
     rating_avg: float | None = None  # gắn bởi attach_ratings(), chỉ ở danh sách đơn của employer
     rating_count: int = 0
 
@@ -137,6 +175,15 @@ class ReportOut(BaseModel):
     model_config = {"from_attributes": True}
 
 
+class SeekerProfileOut(ApplicantOut):
+    gender: str | None
+    birth_year: int | None
+    ward: str | None
+    city: str | None
+    description: str | None
+    availability: list[AvailabilityOut] = []
+
+
 class ApplicationOut(BaseModel):
     id: uuid.UUID
     status: str
@@ -170,6 +217,20 @@ def attach_ratings(db: Session, items: list, user_id_of) -> None:
         i.rating_avg, i.rating_count = stats.get(user_id_of(i), (None, 0))
 
 
+def attach_applicant_counts(db: Session, jobs: list[Job]) -> list[Job]:
+    """Gắn applicant_count (đơn pending + accepted) vào từng job, 1 query GROUP BY cho cả lô."""
+    counts = dict(
+        db.execute(
+            select(Application.job_id, func.count())
+            .where(Application.job_id.in_({j.id for j in jobs}), Application.status.in_(("pending", "accepted")))
+            .group_by(Application.job_id)
+        ).all()
+    )
+    for j in jobs:
+        j.applicant_count = counts.get(j.id, 0)
+    return jobs
+
+
 # ---------- Jobs (FR2, FR3) ----------
 
 @router.get("/jobs", response_model=list[JobOut], tags=["jobs"])
@@ -193,8 +254,8 @@ def search_jobs(
         query = query.where(Job.time_start < end)
 
     if lat is None:
-        return db.scalars(query.order_by(Job.created_at.desc()).limit(100)).all()
-    return nearby_jobs(db, query, lat, lng, radius_km)
+        return attach_applicant_counts(db, db.scalars(query.order_by(Job.created_at.desc()).limit(100)).all())
+    return attach_applicant_counts(db, nearby_jobs(db, query, lat, lng, radius_km))
 
 
 def open_jobs_query():
@@ -255,6 +316,7 @@ def recommendations(
     if not jobs:
         return RecommendationsOut(source="ai", items=[])
     attach_ratings(db, jobs, lambda j: j.employer_id)
+    attach_applicant_counts(db, jobs)
 
     # Khoảng rảnh đã qua không giúp gì cho job còn mở (job quá hạn đã bị lọc ở trên)
     availability = db.scalars(
@@ -316,9 +378,9 @@ def recommendations(
 
 @router.get("/jobs/mine", response_model=list[JobOut], tags=["jobs"])
 def my_jobs(user: User = Depends(employer), db: Session = Depends(get_db)):
-    return db.scalars(
-        select(Job).where(Job.employer_id == user.id).order_by(Job.created_at.desc())
-    ).all()
+    return attach_applicant_counts(
+        db, db.scalars(select(Job).where(Job.employer_id == user.id).order_by(Job.created_at.desc())).all()
+    )
 
 
 @router.post("/jobs", response_model=JobOut, status_code=status.HTTP_201_CREATED, tags=["jobs"])
@@ -348,6 +410,40 @@ def close_job(job_id: uuid.UUID, user: User = Depends(employer), db: Session = D
     get_own_job(job_id, user, db).status = "closed"
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
+# Đích ← nguồn hợp lệ khi employer tự đổi trạng thái tin (đóng tin đi qua DELETE)
+EMPLOYER_JOB_TRANSITIONS = {"filled": "open", "open": "filled"}
+
+
+@router.patch("/jobs/{job_id}/status", response_model=JobOut, tags=["jobs"])
+def set_job_status(
+    job_id: uuid.UUID, body: JobStatusIn, user: User = Depends(employer), db: Session = Depends(get_db)
+):
+    """Đã tìm được người (open → filled): ẩn tin, từ chối các đơn đang chờ, giữ đơn đã nhận. Mở lại: filled → open."""
+    job = get_own_job(job_id, user, db)
+    result = db.execute(
+        update(Job)
+        .where(Job.id == job.id, Job.status == EMPLOYER_JOB_TRANSITIONS[body.status])
+        .values(status=body.status)
+    )
+    if result.rowcount == 0:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tin không còn ở trạng thái phù hợp để đổi")
+    if body.status == "filled":
+        # UPDATE có điều kiện: đơn người làm vừa tự hủy thì giữ nguyên là cancelled
+        rejected = db.execute(
+            update(Application)
+            .where(Application.job_id == job.id, Application.status == "pending")
+            .values(status="rejected", updated_at=func.now())
+            .returning(Application.id, Application.job_seeker_id)
+        ).all()
+        for app_id, seeker_id in rejected:
+            notify(db, seeker_id, "application_status",
+                   f"Tin “{job.title}” đã tìm đủ người, đơn của bạn không được nhận", app_id)
+    db.commit()
+    db.refresh(job)
+    return attach_applicant_counts(db, [job])[0]
 
 
 @router.get("/jobs/{job_id}/applications", response_model=list[ApplicationOut], tags=["applications"])
@@ -384,6 +480,45 @@ def add_availability(body: AvailabilityIn, user: User = Depends(job_seeker), db:
     return interval
 
 
+@router.post(
+    "/availability/series", response_model=list[AvailabilityOut], status_code=status.HTTP_201_CREATED,
+    tags=["availability"],
+)
+def add_availability_series(
+    body: AvailabilitySeriesIn, user: User = Depends(job_seeker), db: Session = Depends(get_db)
+):
+    """Sinh sẵn các khoảng rảnh cụ thể chung 1 series_id — không lưu quy tắc lặp, AI đọc như khoảng khai lẻ."""
+    series_id, now = uuid.uuid4(), datetime.now(timezone.utc)
+    intervals = []
+    for n in range((body.until - body.start_date).days + 1):
+        day = body.start_date + timedelta(days=n)
+        start, end = (datetime.combine(day, t, VN_TZ) for t in (body.start, body.end))
+        if day.weekday() in body.weekdays and end > now:
+            intervals.append(
+                AvailabilityInterval(job_seeker_id=user.id, start_time=start, end_time=end, series_id=series_id)
+            )
+    if not intervals:
+        raise HTTPException(status.HTTP_422_UNPROCESSABLE_CONTENT, "Không có buổi rảnh nào trong khoảng ngày đã chọn")
+    db.add_all(intervals)
+    db.commit()
+    return intervals
+
+
+@router.delete("/availability/series/{series_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["availability"])
+def delete_availability_series(
+    series_id: uuid.UUID, user: User = Depends(job_seeker), db: Session = Depends(get_db)
+):
+    result = db.execute(
+        delete(AvailabilityInterval).where(
+            AvailabilityInterval.series_id == series_id, AvailabilityInterval.job_seeker_id == user.id
+        )
+    )
+    if result.rowcount == 0:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy chuỗi lịch rảnh")
+    db.commit()
+    return Response(status_code=status.HTTP_204_NO_CONTENT)
+
+
 @router.delete("/availability/{interval_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["availability"])
 def delete_availability(interval_id: uuid.UUID, user: User = Depends(job_seeker), db: Session = Depends(get_db)):
     interval = db.get(AvailabilityInterval, interval_id)
@@ -404,6 +539,8 @@ def apply(body: ApplicationIn, user: User = Depends(job_seeker), db: Session = D
     if job is None:
         raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy tin tuyển dụng")
     # Cùng điều kiện ẩn tin với open_jobs_query: gọi thẳng API cũng không ứng tuyển được tin đã gỡ/của người bị khoá
+    if job.status == "filled":
+        raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tin tuyển dụng đã tìm đủ người")
     if job.status != "open" or db.get(User, job.employer_id).is_blocked:
         raise HTTPException(status.HTTP_400_BAD_REQUEST, "Tin tuyển dụng đã đóng")
     if job.time_end <= datetime.now(timezone.utc):
@@ -423,11 +560,35 @@ def apply(body: ApplicationIn, user: User = Depends(job_seeker), db: Session = D
 
 @router.get("/applications/me", response_model=list[ApplicationOut], tags=["applications"])
 def my_applications(user: User = Depends(job_seeker), db: Session = Depends(get_db)):
-    return db.scalars(
+    apps = db.scalars(
         select(Application)
         .where(Application.job_seeker_id == user.id)
         .order_by(Application.created_at.desc())
     ).all()
+    attach_applicant_counts(db, [a.job for a in apps])
+    return apps
+
+
+@router.get("/seekers/{seeker_id}", response_model=SeekerProfileOut, tags=["applications"])
+def seeker_profile(seeker_id: uuid.UUID, user: User = Depends(employer), db: Session = Depends(get_db)):
+    """Hồ sơ + lịch rảnh sắp tới của người đã ứng tuyển vào ít nhất 1 tin của employer này."""
+    applied = db.scalar(
+        select(Application.id)
+        .join(Job)
+        .where(Application.job_seeker_id == seeker_id, Job.employer_id == user.id)
+        .limit(1)
+    )
+    # 404 thay vì 403: không tiết lộ tài khoản có tồn tại hay không
+    if applied is None:
+        raise HTTPException(status.HTTP_404_NOT_FOUND, "Không tìm thấy người ứng tuyển")
+    seeker = db.get(User, seeker_id)
+    attach_ratings(db, [seeker], lambda u: u.id)
+    seeker.availability = db.scalars(
+        select(AvailabilityInterval)
+        .where(AvailabilityInterval.job_seeker_id == seeker_id, AvailabilityInterval.end_time > func.now())
+        .order_by(AvailabilityInterval.start_time)
+    ).all()
+    return seeker
 
 
 # Ai được chuyển đơn sang trạng thái nào; mọi chuyển đổi đều chỉ đi từ pending

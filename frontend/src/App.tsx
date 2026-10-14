@@ -4,7 +4,7 @@ import { api, roleHome, roleLabel, type Notification, type Role } from './api'
 import { AuthProvider, RequireRole, useAuth } from './auth'
 import { AdminJobsPage, AdminReportsPage, AdminUsersPage } from './pages/AdminPages'
 import { ForgotPasswordPage, LoginPage, RegisterPage, VerifyPage } from './pages/AuthPages'
-import { EmployerJobsPage, JobApplicantsPage, JobFormPage } from './pages/EmployerPages'
+import { EmployerJobsPage, JobApplicantsPage, JobFormPage, SeekerProfilePage } from './pages/EmployerPages'
 import { HomePage } from './pages/HomePage'
 import { MyApplicationsPage, ProfilePage, RecommendPage, SearchPage } from './pages/SeekerPages'
 import { fmtStamp, Icon, Logo, ToastProvider } from './ui'
@@ -150,7 +150,9 @@ const router = createBrowserRouter([
           // key khác nhau: chuyển giữa "Đăng tin mới" và "Sửa tin" thì form khởi tạo lại
           { path: '/employer/new', element: <JobFormPage key="new" /> },
           { path: '/employer/jobs/:id/edit', element: <JobFormPage key="edit" /> },
+          { path: '/employer/jobs/:id/copy', element: <JobFormPage key="copy" copy /> },
           { path: '/employer/jobs/:id', element: <JobApplicantsPage /> },
+          { path: '/employer/seekers/:id', element: <SeekerProfilePage /> },
         ],
       },
       {

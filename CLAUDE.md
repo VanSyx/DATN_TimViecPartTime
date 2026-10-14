@@ -22,6 +22,7 @@ docker compose up -d                          # db (postgis) + backend :8000 + a
 cd backend && .venv/Scripts/python -m pytest  # test backend (cần db đang chạy)
 cd ai-service && .venv/Scripts/python -m pytest  # unit test AI scoring (không cần db)
 docker compose exec backend python seed.py    # dữ liệu mẫu kiểu người dùng thật (19 tài khoản + admin quantri@example.com, mật khẩu matkhau123), chạy lại được
+docker compose exec backend python seed_history.py  # ~3 tháng lịch sử mô phỏng (70 tài khoản @example.net), dùng cho production — setup-log #24. offline_eval từ chối chạy khi có dữ liệu này
 docker compose exec backend python offline_eval.py  # đánh giá offline P@k/R@k/NDCG@k trên seed (chạy seed trước)
 cd frontend && npm run dev                    # frontend → http://localhost:5173
 cd frontend && npm run build                  # build production
@@ -51,7 +52,8 @@ Container tự chạy `alembic upgrade head` khi khởi động, không cần up
 - **Không tự động xử lý secret/credential production** — deploy lần đầu và nhập secret cần xác nhận thủ công từ người thực hiện, agent không tự ý làm.
 - **Mốc cuối tuần 5 = 70% chức năng, không phải 100%** — đừng giả định toàn bộ FR đã xong chỉ vì đang ở tuần 5.
 - Endpoint gợi ý AI luôn phải trả breakdown điểm (explainable), không chỉ 1 số `final_score`.
-- `availability_intervals` là interval thời gian thực, không phải enum ca cố định — đừng đơn giản hóa lại.
+- `availability_intervals` là interval thời gian thực, không phải enum ca cố định — đừng đơn giản hóa lại. Lịch rảnh lặp lại (Tuần 9) được **sinh sẵn thành các interval cụ thể** chung `series_id` (giờ UTC+7, tối đa 92 ngày), không lưu quy tắc lặp — AI service đọc như interval khai lẻ.
+- **Giới tính/năm sinh của job seeker chỉ để employer tham khảo, AI không dùng khi chấm điểm** (tránh phân biệt đối xử).
 - **Vị trí nhập bằng địa chỉ + ghép ghim trên bản đồ, không bắt người dùng tự gõ lat/lng.** Form địa chỉ theo địa giới 2 cấp (từ 1/7/2025): số nhà + đường / phường-xã / tỉnh-thành phố + bản đồ Leaflet để chọn toạ độ chính xác. 3 cách lấy toạ độ: tra địa chỉ (nút "Định vị trên bản đồ"), bấm/kéo ghim, GPS trình duyệt.
 - **Geocoding chỉ chạy phía client, không bao giờ ở backend.** Dùng Photon (`photon.komoot.io`, dữ liệu OSM, miễn phí, không cần API key) gọi thẳng từ trình duyệt — tránh đúng 2 lý do đã loại Goong (cần admin duyệt key) và Nominatim (chặn IP server/cloud). **Đừng thêm geocoding vào backend mà không hỏi trước.** Giới hạn đã biết, không phải bug: OSM Việt Nam thiếu dữ liệu số nhà nên kết quả chỉ chính xác tới mức tên đường/địa danh, và địa chỉ không tồn tại vẫn có thể trả match sai — vì vậy **luôn hiện danh sách kết quả cho người dùng chọn, không tự ghim theo kết quả đầu tiên**, và toạ độ cuối cùng do người dùng xác nhận bằng ghim.
 - **Tile bản đồ dùng `tile.openstreetmap.de`** (mirror của OSM), không dùng `tile.openstreetmap.org` (hay bị chặn/timeout tuỳ mạng) và không dùng CARTO (`basemaps.cartocdn.com` nay trả tile watermark "API KEY REQUIRED").

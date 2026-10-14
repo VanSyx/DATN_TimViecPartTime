@@ -6,9 +6,9 @@ PostgreSQL 15+. Extension bắt buộc: **PostGIS** (geo query). Không dùng pg
 
 | Entity | Nội dung | Cần từ |
 |---|---|---|
-| `users` | role (`job_seeker` / `employer` / `admin`), thông tin xác minh (SĐT/email), `description` (mô tả tự do của job seeker — đầu vào `semantic_score`) | Tuần 1-5 |
+| `users` | role (`job_seeker` / `employer` / `admin`), thông tin xác minh (SĐT/email), `description` (mô tả tự do của job seeker — đầu vào `semantic_score`); hồ sơ `full_name`/`gender`/`birth_year`/`ward`/`city` (Tuần 9, chỉ hiển thị, AI không dùng) | Tuần 1-5 |
 | `jobs` | địa chỉ (`street`/`ward`/`city`, hiển thị) + toạ độ chọn trên bản đồ (`lat`/`lng`, cột `location` geography sinh tự động), khung giờ cần, lương, mô tả tự do, `employer_id` | Tuần 1-5 |
-| `availability_intervals` | lịch rảnh dạng interval thời gian thực của job seeker — **không phải ca cố định (sáng/chiều/tối)** | Tuần 1-5 |
+| `availability_intervals` | lịch rảnh dạng interval thời gian thực của job seeker — **không phải ca cố định (sáng/chiều/tối)**; `series_id` nhóm các khoảng sinh từ 1 lần khai lặp (Tuần 9) | Tuần 1-5 |
 | `applications` | trạng thái đơn ứng tuyển, liên kết user–job | Tuần 1-5 |
 | `ratings` | đánh giá hai chiều (điểm 1-5 + nhận xét) sau khi hoàn thành job; 1 dòng = 1 chiều, `UNIQUE(application_id, rater_id)` | ✅ Tuần 7 |
 | `reports` | báo cáo vi phạm, trạng thái xử lý bởi admin | Tuần 6-12 |

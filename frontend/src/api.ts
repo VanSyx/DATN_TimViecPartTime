@@ -17,6 +17,17 @@ export type User = {
   email_verified: boolean
   phone_verified: boolean
   description: string | null
+} & Profile
+
+export type Gender = 'male' | 'female' | 'other'
+
+/** Hồ sơ người tìm việc (Tuần 9) — PATCH /auth/me chỉ ghi đè trường được gửi */
+export type Profile = {
+  full_name: string | null
+  gender: Gender | null
+  birth_year: number | null
+  ward: string | null
+  city: string | null
 }
 
 type Tokens = { access_token: string; refresh_token: string }
@@ -96,12 +107,14 @@ export type JobInput = {
 export type Job = JobInput & {
   id: string
   employer_id: string
-  status: 'open' | 'closed' | 'pending_approval' | 'rejected'
+  status: 'open' | 'filled' | 'closed' | 'pending_approval' | 'rejected'
   created_at: string
   distance_km: number | null
   // Uy tín người đăng tin, chỉ có ở trang gợi ý
   rating_avg?: number | null
   rating_count?: number
+  // Số đơn đang chờ + đã nhận
+  applicant_count?: number
 }
 
 export type AdminUser = {
@@ -133,11 +146,20 @@ export type Application = {
   updated_at: string
   job: Job
   // rating_*: uy tín người ứng tuyển, chỉ có ở danh sách đơn của employer
-  job_seeker: { id: string; email: string; phone: string | null; rating_avg: number | null; rating_count: number }
+  job_seeker: { id: string; email: string; phone: string | null; full_name: string | null; rating_avg: number | null; rating_count: number }
   ratings: Rating[]
 }
 
-export type Interval = { id: string; start_time: string; end_time: string }
+// series_id: chung cho các khoảng sinh từ 1 lần khai lặp lại, khai lẻ thì null
+export type Interval = { id: string; start_time: string; end_time: string; series_id?: string | null }
+
+/** weekdays: 0 = thứ 2 … 6 = chủ nhật */
+export type SeriesInput = { start_date: string; until: string; start: string; end: string; weekdays: number[] }
+
+export type SeekerProfile = Application['job_seeker'] & Omit<Profile, 'full_name'> & {
+  description: string | null
+  availability: Interval[]
+}
 
 export type JobSearch = {
   lat?: string
@@ -168,7 +190,7 @@ export const api = {
     post<null>('/auth/reset-password', { email, code, new_password }),
   login: (email: string, password: string) => post<Tokens>('/auth/login', { email, password }),
   me: () => request<User>('/auth/me'),
-  updateProfile: (description: string) => send<User>('PATCH', '/auth/me', { description }),
+  updateProfile: (data: Partial<Profile & { description: string }>) => send<User>('PATCH', '/auth/me', data),
 
   searchJobs: (params: JobSearch) => request<Job[]>(`/jobs?${query(params)}`),
   recommendations: (params: JobSearch) => request<Recommendations>(`/recommendations?${query(params)}`),
@@ -176,12 +198,16 @@ export const api = {
   createJob: (data: JobInput) => post<Job>('/jobs', data),
   updateJob: (id: string, data: JobInput) => send<Job>('PUT', `/jobs/${id}`, data),
   closeJob: (id: string) => send<null>('DELETE', `/jobs/${id}`),
+  markJob: (id: string, status: 'filled' | 'open') => send<Job>('PATCH', `/jobs/${id}/status`, { status }),
+  seekerProfile: (id: string) => request<SeekerProfile>(`/seekers/${id}`),
   jobApplications: (id: string) => request<Application[]>(`/jobs/${id}/applications`),
 
   availability: () => request<Interval[]>('/availability'),
   addAvailability: (start_time: string, end_time: string) =>
     post<Interval>('/availability', { start_time, end_time }),
   deleteAvailability: (id: string) => send<null>('DELETE', `/availability/${id}`),
+  addAvailabilitySeries: (data: SeriesInput) => post<Interval[]>('/availability/series', data),
+  deleteAvailabilitySeries: (id: string) => send<null>('DELETE', `/availability/series/${id}`),
 
   apply: (job_id: string) => post<Application>('/applications', { job_id }),
   myApplications: () => request<Application[]>('/applications/me'),

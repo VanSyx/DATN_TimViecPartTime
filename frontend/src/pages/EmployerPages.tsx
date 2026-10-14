@@ -1,8 +1,8 @@
 import { useCallback, useEffect, useState, type FormEvent, type ReactNode } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { api, type Application, type Job, type JobInput } from '../api'
+import { api, type Application, type Gender, type Job, type JobInput } from '../api'
 import { useAuth } from '../auth'
-import { canRate, JobCard, LocationPicker, RatingModal, RatingNotes, ReportModal, type ReportTarget } from '../job-ui'
+import { canRate, JobCard, LocationPicker, RatingModal, RatingNotes, ReportModal, UpcomingDays, type ReportTarget } from '../job-ui'
 import {
   AppStatusBadge, Banner, ConfirmModal, dateInput, EmptyState, FieldError, fmtHM, fmtMoney, fmtNum, fmtRating, fmtSlot, fmtStamp, fullAddress, hm,
   Icon, IconLine, jobEnded, JobStatusBadge, Spinner, toIso, useLoad, useToast,
@@ -13,8 +13,40 @@ import {
 function jobNote(job: Job) {
   if (job.status === 'pending_approval') return 'Tin đang chờ quản trị viên duyệt trước khi hiện cho người tìm việc.'
   if (job.status === 'rejected') return 'Tin bị quản trị viên gỡ vì vi phạm quy định — không còn hiện với người tìm việc.'
+  if (job.status === 'filled') return 'Đã tìm được người — tin không còn hiện với người tìm việc. Đơn đã nhận vẫn giữ nguyên.'
   if (job.status === 'open' && jobEnded(job)) return 'Đã qua giờ làm — tin không còn hiện với người tìm việc.'
   return null
+}
+
+/** Nút "Đã tìm được người" (kèm hỏi lại) cho tin đang mở, "Mở lại tuyển" cho tin đã tìm được người. */
+function FillButton({ job, onDone }: { job: Job; onDone: () => void }) {
+  const toast = useToast()
+  const [asking, setAsking] = useState(false)
+  const [busy, setBusy] = useState(false)
+  if (job.status !== 'open' && job.status !== 'filled') return null
+  if (job.status === 'open' && jobEnded(job)) return null
+
+  function mark(status: 'filled' | 'open') {
+    setBusy(true)
+    api.markJob(job.id, status)
+      .then(() => {
+        toast({ title: status === 'filled' ? 'Đã đánh dấu tìm được người' : 'Đã mở lại tuyển', body: job.title })
+        onDone()
+      }, (err: Error) => toast({ error: true, title: err.message }))
+      .finally(() => { setBusy(false); setAsking(false) })
+  }
+
+  if (job.status === 'filled') {
+    return <button type="button" className="btn btn-neutral px-4" disabled={busy || jobEnded({ ...job, status: 'open' })} onClick={() => mark('open')}>{busy && <Spinner />}Mở lại tuyển</button>
+  }
+  return (
+    <>
+      <button type="button" className="btn btn-neutral px-4" onClick={() => setAsking(true)}><Icon name="userCheck" size={18} />Đã tìm được người</button>
+      <ConfirmModal open={asking} title="Đã tìm được người?" keep="Chưa" confirm="Đã tìm được người" busy={busy} onConfirm={() => mark('filled')} onClose={() => setAsking(false)}>
+        Tin “{job.title}” sẽ ẩn khỏi tìm kiếm và gợi ý. Các đơn đang chờ sẽ tự chuyển sang không được nhận và người ứng tuyển được thông báo. Đơn đã nhận giữ nguyên. Bạn có thể mở lại tuyển sau.
+      </ConfirmModal>
+    </>
+  )
 }
 
 export function EmployerJobsPage() {
@@ -60,12 +92,15 @@ export function EmployerJobsPage() {
                 <IconLine icon="clock">{fmtSlot(job.time_start, job.time_end)}</IconLine>
                 <IconLine icon="pin">{fullAddress(job)}</IconLine>
                 <span className="font-semibold text-stone-900">{fmtMoney(job.salary)}</span>
+                {!!job.applicant_count && <IconLine icon="users">{job.applicant_count} người đang ứng tuyển</IconLine>}
               </div>
               {jobNote(job) && <div className="text-sm text-stone-600">{jobNote(job)}</div>}
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center justify-end gap-2">
               {job.status === 'open' && <button type="button" className="btn px-3.5 text-red-700 hover:not-disabled:bg-red-50" onClick={() => setClosing(job)}>Đóng tin</button>}
+              <FillButton job={job} onDone={reload} />
               {job.status !== 'closed' && <Link to={`/employer/jobs/${job.id}/edit`} className="btn btn-neutral px-4"><Icon name="pencil" size={16} />Sửa</Link>}
+              <Link to={`/employer/jobs/${job.id}/copy`} className="btn btn-neutral px-4" title="Tạo tin mới từ nội dung tin này, tin cũ giữ nguyên"><Icon name="copy" size={16} />Đăng lại</Link>
               <Link to={`/employer/jobs/${job.id}`} className="btn btn-secondary">Xem đơn</Link>
             </div>
           </article>
@@ -81,7 +116,8 @@ export function EmployerJobsPage() {
 
 // ---------- S10: Đăng / sửa tin ----------
 
-export function JobFormPage() {
+/** copy: đăng lại — form điền sẵn nội dung tin cũ nhưng lưu thành tin mới, tin cũ không đổi. */
+export function JobFormPage({ copy = false }: { copy?: boolean }) {
   const { id } = useParams()
   const [job, setJob] = useState<Job | null | undefined>(id ? undefined : null)
   useEffect(() => {
@@ -92,7 +128,7 @@ export function JobFormPage() {
   if (id && !job) {
     return <main className="page"><EmptyState icon="file" title="Không tìm thấy tin" actions={<Link to="/employer" className="btn btn-secondary">← Tin đã đăng</Link>} /></main>
   }
-  return <JobForm key={job?.id ?? 'new'} job={job} />
+  return <JobForm key={job?.id ?? 'new'} job={job} copy={copy} />
 }
 
 function Step({ n, id, title, children }: { n: number; id: string; title: string; children: ReactNode }) {
@@ -110,12 +146,14 @@ function Step({ n, id, title, children }: { n: number; id: string; title: string
 const DRAFT_KEYS = ['title', 'ward', 'city', 'date', 'start', 'end', 'salary'] as const
 type Draft = Record<(typeof DRAFT_KEYS)[number], string>
 
-function JobForm({ job }: { job: Job | null }) {
+function JobForm({ job, copy }: { job: Job | null; copy: boolean }) {
   const navigate = useNavigate()
   const toast = useToast()
+  const editing = job && !copy
   const [draft, setDraft] = useState<Draft>(() => ({
     title: job?.title ?? '', ward: job?.ward ?? '', city: job?.city ?? '',
-    date: job ? dateInput(new Date(job.time_start)) : '',
+    // Đăng lại: ngày của tin cũ thường đã qua, để trống cho người đăng chọn ngày mới
+    date: editing ? dateInput(new Date(job.time_start)) : '',
     start: job ? fmtHM(job.time_start) : '08:00', end: job ? fmtHM(job.time_end) : '11:00',
     salary: job ? String(job.salary) : '',
   }))
@@ -132,7 +170,7 @@ function JobForm({ job }: { job: Job | null }) {
   const shownInvalid = invalid === 'time' && !timeMsg ? null : invalid
   const when = date && start && end
   const preview = {
-    ...job, title: draft.title || 'Tiêu đề công việc', ward: draft.ward || 'Phường/xã', city: draft.city || 'Tỉnh/thành phố',
+    ...job, applicant_count: 0, title: draft.title || 'Tiêu đề công việc', ward: draft.ward || 'Phường/xã', city: draft.city || 'Tỉnh/thành phố',
     time_start: when ? `${date}T${start}` : '', time_end: when ? `${date}T${end}` : '', salary: Number(draft.salary) || 0, distance_km: null,
   } as Job
 
@@ -158,8 +196,8 @@ function JobForm({ job }: { job: Job | null }) {
     }
     setBusy(true)
     try {
-      await (job ? api.updateJob(job.id, data) : api.createJob(data))
-      toast({ title: job ? 'Đã lưu thay đổi' : 'Đã đăng tin', body: data.title })
+      await (editing ? api.updateJob(job.id, data) : api.createJob(data))
+      toast({ title: editing ? 'Đã lưu thay đổi' : 'Đã đăng tin', body: data.title })
       navigate('/employer')
     } catch (err) {
       setError((err as Error).message)
@@ -172,8 +210,10 @@ function JobForm({ job }: { job: Job | null }) {
     <main className="page">
       <div className="flex flex-col gap-1.5">
         <Link to="/employer" className="text-sm font-semibold no-underline">← Tin đã đăng</Link>
-        <h1 className="h1">{job ? 'Sửa tin' : 'Đăng tin mới'}</h1>
-        <p className="text-stone-500">Một tin là một khung giờ liền trong một ngày. Tiền công tính cho cả buổi.</p>
+        <h1 className="h1">{editing ? 'Sửa tin' : copy ? 'Đăng lại tin' : 'Đăng tin mới'}</h1>
+        <p className="text-stone-500">
+          {copy ? `Nội dung lấy từ tin “${job?.title}”. Chọn ngày mới rồi đăng — tin cũ giữ nguyên.` : 'Một tin là một khung giờ liền trong một ngày. Tiền công tính cho cả buổi.'}
+        </p>
       </div>
       <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-7">
         <form className="flex min-w-0 flex-col gap-5" onSubmit={onSubmit} onInput={onInput}>
@@ -209,7 +249,7 @@ function JobForm({ job }: { job: Job | null }) {
           <Step n={3} id="muc-3" title="Thời gian & tiền công">
             <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4">
               <label className="field"><span className="label">Ngày</span>
-                <input name="date" type="date" className="input" required defaultValue={date} min={job ? undefined : dateInput(new Date())} /></label>
+                <input name="date" type="date" className="input" required defaultValue={date} min={editing ? undefined : dateInput(new Date())} /></label>
               <label className="field"><span className="label">Giờ bắt đầu</span>
                 <input name="start" type="time" className="input text-lg font-semibold tabular-nums" required defaultValue={start} /></label>
               <label className="field"><span className="label">Giờ kết thúc</span>
@@ -230,7 +270,7 @@ function JobForm({ job }: { job: Job | null }) {
           {error && <Banner tone="error" title="Chưa lưu được tin">{error}</Banner>}
           <div className="flex justify-end gap-3">
             <Link to="/employer" className="btn btn-plain h-[52px] px-5">Huỷ</Link>
-            <button className="btn btn-primary h-[52px] px-7 text-lg" disabled={busy}>{busy && <Spinner />}{job ? 'Lưu thay đổi' : 'Đăng tin'}</button>
+            <button className="btn btn-primary h-[52px] px-7 text-lg" disabled={busy}>{busy && <Spinner />}{editing ? 'Lưu thay đổi' : 'Đăng tin'}</button>
           </div>
         </form>
 
@@ -269,8 +309,8 @@ export function JobApplicantsPage() {
       .then(() => {
         reload()
         toast(status === 'accepted'
-          ? { title: `Đã nhận ${a.job_seeker.email}`, body: 'Người ứng tuyển sẽ thấy trạng thái “Đã nhận”.' }
-          : { title: `Đã từ chối ${a.job_seeker.email}` })
+          ? { title: `Đã nhận ${seekerName(a.job_seeker)}`, body: 'Người ứng tuyển sẽ thấy trạng thái “Đã nhận”.' }
+          : { title: `Đã từ chối ${seekerName(a.job_seeker)}` })
       }, (err: Error) => toast({ error: true, title: err.message }))
       .finally(() => setBusyId(null))
   }
@@ -286,6 +326,7 @@ export function JobApplicantsPage() {
               <span>{fmtSlot(job.time_start, job.time_end)}</span><span>{fullAddress(job)}</span><b className="font-semibold text-stone-900">{fmtMoney(job.salary)}</b>
             </div>
           </div>
+          <FillButton job={job} onDone={() => { reload(); api.myJobs().then((js) => setJob(js.find((j) => j.id === id) ?? null)) }} />
           {job.status !== 'closed' && <Link to={`/employer/jobs/${job.id}/edit`} className="btn btn-neutral">Sửa tin</Link>}
         </section>
       )}
@@ -305,13 +346,14 @@ export function JobApplicantsPage() {
             return (
               <div key={a.id} className={`grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-4 border-b border-stone-100 px-6 py-[18px] last:border-0 ${a.status === 'accepted' ? 'bg-green-50/40' : ''}`}>
                 <span className={`grid size-12 place-items-center rounded-full text-xl font-bold ${faded ? 'bg-stone-100 text-stone-500' : 'bg-teal-100 text-teal-800'}`}>
-                  {a.job_seeker.email[0].toUpperCase()}
+                  {seekerName(a.job_seeker)[0].toUpperCase()}
                 </span>
                 <div className="flex min-w-0 flex-col gap-1">
                   <div className="flex flex-wrap items-center gap-2.5">
-                    <a href={`mailto:${a.job_seeker.email}`} className="truncate text-lg font-semibold text-stone-900 no-underline hover:underline">{a.job_seeker.email}</a>
+                    <Link to={`/employer/seekers/${a.job_seeker.id}`} title="Xem hồ sơ và lịch rảnh" className="truncate text-lg font-semibold text-stone-900 no-underline hover:underline">{seekerName(a.job_seeker)}</Link>
                     <AppStatusBadge status={a.status} />
                   </div>
+                  {a.job_seeker.full_name && <a href={`mailto:${a.job_seeker.email}`} className="w-fit text-sm text-stone-600 no-underline hover:underline">{a.job_seeker.email}</a>}
                   <div className="flex flex-wrap items-center gap-4 text-stone-600">
                     {phone
                       ? <a href={`tel:${phone.replace(/\s/g, '')}`} className="flex items-center gap-1.5 font-semibold no-underline"><Icon name="phone" size={16} />{phone}</a>
@@ -347,9 +389,66 @@ export function JobApplicantsPage() {
           })}
         </div>
       )}
-      <RatingModal app={rating} target={rating?.job_seeker.email ?? ''} onClose={() => setRating(null)}
-        onSaved={() => { toast({ title: 'Đã gửi đánh giá', body: rating?.job_seeker.email }); setRating(null); reload() }} />
+      <RatingModal app={rating} target={rating ? seekerName(rating.job_seeker) : ''} onClose={() => setRating(null)}
+        onSaved={() => { toast({ title: 'Đã gửi đánh giá', body: rating && seekerName(rating.job_seeker) }); setRating(null); reload() }} />
       <ReportModal target={reporting} onClose={() => setReporting(null)} />
+    </main>
+  )
+}
+
+const seekerName = (s: { full_name: string | null; email: string }) => s.full_name || s.email
+
+// ---------- S12: Hồ sơ người ứng tuyển (Tuần 9) ----------
+
+const GENDER: Record<Gender, string> = { female: 'Nữ', male: 'Nam', other: 'Khác' }
+
+export function SeekerProfilePage() {
+  const { id } = useParams()
+  const navigate = useNavigate()
+  const load = useCallback(() => api.seekerProfile(id!), [id])
+  const { data: p, error } = useLoad(load)
+  const facts = p && [
+    p.gender && GENDER[p.gender],
+    p.birth_year && `${new Date().getFullYear() - p.birth_year} tuổi (sinh năm ${p.birth_year})`,
+    [p.ward, p.city].filter(Boolean).join(', '),
+  ].filter(Boolean)
+
+  return (
+    <main className="page max-w-[960px] gap-5 pt-7">
+      <button type="button" onClick={() => navigate(-1)} className="w-fit cursor-pointer text-sm font-semibold text-teal-700 hover:underline">← Quay lại</button>
+      {error && <EmptyState icon="userCheck" title="Không tìm thấy hồ sơ">Bạn chỉ xem được hồ sơ của người đã ứng tuyển vào tin của mình.</EmptyState>}
+      {!p && !error && <p className="text-stone-500">Đang tải…</p>}
+      {p && (
+        <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-6">
+          <section className="card flex flex-col gap-5 p-6">
+            <div className="flex items-center gap-5">
+              <span className="grid size-16 shrink-0 place-items-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800">{seekerName(p)[0].toUpperCase()}</span>
+              <div className="flex min-w-0 flex-col gap-1">
+                <h1 className="text-2xl leading-8 font-semibold">{seekerName(p)}</h1>
+                {!!facts?.length && <div className="text-stone-600">{facts.join(' · ')}</div>}
+                <span className="flex items-center gap-1.5 text-stone-600">
+                  <Icon name="star" size={16} className={p.rating_count ? 'text-amber-500' : 'text-stone-400'} />{fmtRating(p.rating_avg, p.rating_count)}
+                </span>
+              </div>
+            </div>
+            <div className="flex flex-col gap-2">
+              <h2 className="text-lg font-semibold">Mô tả bản thân</h2>
+              <p className={`leading-[26px] text-pretty whitespace-pre-line ${p.description?.trim() ? 'text-stone-800' : 'text-stone-500'}`}>{p.description?.trim() || 'Người này chưa viết mô tả.'}</p>
+            </div>
+            <div className="flex flex-col gap-2">
+              <h2 className="text-lg font-semibold">Liên hệ</h2>
+              <a href={`mailto:${p.email}`} className="flex w-fit items-center gap-2 no-underline hover:underline"><Icon name="mail" size={18} />{p.email}</a>
+              {p.phone
+                ? <a href={`tel:${p.phone.replace(/\s/g, '')}`} className="flex w-fit items-center gap-2 font-semibold no-underline"><Icon name="phone" size={18} />{p.phone}</a>
+                : <span className="text-stone-500">Chưa có số điện thoại</span>}
+            </div>
+          </section>
+          <section className="card flex flex-col gap-3.5 p-5">
+            <h2 className="text-lg font-semibold">Lịch rảnh sắp tới</h2>
+            <UpcomingDays intervals={p.availability} limit={14} />
+          </section>
+        </div>
+      )}
     </main>
   )
 }

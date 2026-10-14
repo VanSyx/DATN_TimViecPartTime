@@ -282,6 +282,37 @@ export function spanStyle(a: number, b: number, from = 6, to = 22) {
   return { left: `${x(a)}%`, width: `${x(b) - x(a)}%` }
 }
 
+/** Lịch rảnh sắp tới dạng dải giờ 6h–22h theo từng ngày (chỉ xem). */
+export function UpcomingDays({ intervals, limit }: { intervals: Interval[]; limit?: number }) {
+  const days = upcomingByDay(intervals).slice(0, limit)
+  if (!days.length) return <p className="text-stone-500">Chưa có khoảng rảnh sắp tới.</p>
+  return (
+    <>
+      <div className="flex justify-between pl-[68px] text-sm text-stone-400"><span>6h</span><span>14h</span><span>22h</span></div>
+      {days.map(([day, items]) => (
+        <div key={day} className="grid grid-cols-[56px_minmax(0,1fr)] items-start gap-3 text-sm">
+          <DayLabel day={day} />
+          <div className="flex flex-col gap-1">
+            <div className="relative h-4 overflow-hidden rounded-[5px] bg-stone-100">
+              {items.map((i) => <div key={i.id} className="absolute inset-y-0 rounded bg-teal-300" style={spanStyle(hoursFrom(day, i.start_time), hoursFrom(day, i.end_time))} />)}
+            </div>
+            <div className="text-stone-700 tabular-nums">{items.map((i) => `${fmtHM(i.start_time)}–${fmtHM(i.end_time)}`).join(', ')}</div>
+          </div>
+        </div>
+      ))}
+    </>
+  )
+}
+
+export function DayLabel({ day }: { day: string }) {
+  const [weekday, dm] = fmtDay(`${day}T00:00`).split(', ')
+  return <div className="leading-5"><div className="font-semibold">{weekday}</div><div className="text-sm text-stone-500">{dm}</div></div>
+}
+
+function ApplicantCount({ job }: { job: Job }) {
+  return job.applicant_count ? <IconLine icon="users">{job.applicant_count} người đang ứng tuyển</IconLine> : null
+}
+
 // ---------- JobCard + giải thích AI ----------
 
 const descWord = (s: number) => (s >= 0.3 ? 'Khớp tốt' : s >= 0.1 ? 'Có liên quan' : 'Ít liên quan')
@@ -384,6 +415,7 @@ export function JobCard({ job, rec, intervals = [], radius, onDetail, action, de
         <div className="flex flex-col gap-2 text-stone-600">
           <IconLine icon="pin">{job.ward}, {job.city}{job.distance_km != null && ` · ${fmtNum(job.distance_km)} km`}</IconLine>
           <IconLine icon="clock">{fmtSlot(job.time_start, job.time_end)}</IconLine>
+          <ApplicantCount job={job} />
         </div>
         <div className="mt-auto flex flex-wrap items-center justify-between gap-3 border-t border-stone-100 pt-3.5">{money}{action}</div>
       </article>
@@ -404,6 +436,7 @@ export function JobCard({ job, rec, intervals = [], radius, onDetail, action, de
           <h3 className="text-xl leading-7 font-semibold text-pretty text-stone-900">{title}</h3>
           <IconLine icon="pin">{fullAddress(job)}</IconLine>
           {!ai && <IconLine icon="clock">{fmtSlot(job.time_start, job.time_end)}</IconLine>}
+          <ApplicantCount job={job} />
         </div>
         <div className="shrink-0 pt-1 text-right">{money}</div>
       </div>
@@ -453,7 +486,7 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
         <div className="flex max-h-[calc(100vh-48px)] flex-col">
           <div className="flex items-start gap-4 border-b border-stone-100 pt-6 pr-6 pb-[18px] pl-7">
             <div className="flex flex-1 flex-col gap-2">
-              {job.status === 'rejected' ? <span className="w-fit"><JobStatusBadge status="rejected" /></span> : ended ? (
+              {job.status === 'rejected' || job.status === 'filled' ? <span className="w-fit"><JobStatusBadge status={job.status} /></span> : ended ? (
                 <span className="inline-flex h-7 w-fit items-center gap-1.5 rounded-full border border-stone-200 bg-stone-100 px-3 text-sm font-semibold text-stone-700">
                   <Icon name="lock" size={14} stroke={2.25} />Đã kết thúc
                 </span>

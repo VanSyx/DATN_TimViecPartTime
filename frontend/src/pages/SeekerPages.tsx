@@ -1,10 +1,10 @@
 import L from 'leaflet'
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { api, type Application, type ApplicationStatus, type Interval, type Job, type Recommendations } from '../api'
+import { api, type Application, type ApplicationStatus, type Gender, type Interval, type Job, type Recommendations, type User } from '../api'
 import { useAuth } from '../auth'
 import {
-  canRate, createMap, hoursFrom, JobCard, JobDetailModal, PlaceSearch, RatingModal, RatingNotes, spanStyle, upcomingByDay, useApplyButton, VN_CENTER,
+  canRate, createMap, DayLabel, hoursFrom, JobCard, JobDetailModal, PlaceSearch, RatingModal, RatingNotes, spanStyle, upcomingByDay, UpcomingDays, useApplyButton, VN_CENTER,
   type Detail, type Place,
 } from '../job-ui'
 import {
@@ -13,11 +13,6 @@ import {
 } from '../ui'
 
 const RADII: [number, string][] = [[2, '2 km'], [5, '5 km'], [10, '10 km']]
-
-function DayLabel({ day }: { day: string }) {
-  const [weekday, dm] = fmtDay(`${day}T00:00`).split(', ')
-  return <div className="leading-5"><div className="font-semibold">{weekday}</div><div className="text-sm text-stone-500">{dm}</div></div>
-}
 
 // ---------- S4: Gợi ý cho tôi ----------
 
@@ -165,22 +160,7 @@ export function RecommendPage() {
         <aside className="flex flex-col gap-4">
           <section className="card flex flex-col gap-3.5 p-5">
             <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Lịch rảnh sắp tới</h2><Link to="/seeker/profile" className="font-semibold no-underline">Sửa</Link></div>
-            {upcoming?.length ? (
-              <>
-                <div className="flex justify-between pl-[68px] text-sm text-stone-400"><span>6h</span><span>14h</span><span>22h</span></div>
-                {upcoming.slice(0, 5).map(([day, items]) => (
-                  <div key={day} className="grid grid-cols-[56px_minmax(0,1fr)] items-start gap-3 text-sm">
-                    <DayLabel day={day} />
-                    <div className="flex flex-col gap-1">
-                      <div className="relative h-4 overflow-hidden rounded-[5px] bg-stone-100">
-                        {items.map((i) => <div key={i.id} className="absolute inset-y-0 rounded bg-teal-300" style={spanStyle(hoursFrom(day, i.start_time), hoursFrom(day, i.end_time))} />)}
-                      </div>
-                      <div className="text-stone-700 tabular-nums">{items.map((i) => `${fmtHM(i.start_time)}–${fmtHM(i.end_time)}`).join(', ')}</div>
-                    </div>
-                  </div>
-                ))}
-              </>
-            ) : upcoming && <p className="text-stone-500">Chưa có khoảng rảnh sắp tới.</p>}
+            {intervals && <UpcomingDays intervals={intervals} limit={5} />}
           </section>
           <section className="card flex flex-col gap-2.5 p-5">
             <div className="flex items-center justify-between"><h2 className="text-lg font-semibold">Mô tả của bạn</h2><Link to="/seeker/profile" className="font-semibold no-underline">Sửa</Link></div>
@@ -410,16 +390,50 @@ export function SearchPage() {
 const QUICK: [string, string, string][] = [['Sáng 7–11', '07:00', '11:00'], ['Chiều 13–17', '13:00', '17:00'], ['Tối 18–21', '18:00', '21:00']]
 const GRID_3H = { backgroundImage: 'repeating-linear-gradient(90deg, transparent 0 calc(12.5% - 1px), #F5F5F4 calc(12.5% - 1px) 12.5%)' }
 
-function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => void; onSaved: (i: Interval) => void }) {
+const WEEKDAYS = ['T2', 'T3', 'T4', 'T5', 'T6', 'T7', 'CN']
+const SPANS: [string, string][] = [['week', '1 tuần'], ['month', '1 tháng'], ['custom', 'Đến ngày…']]
+const MAX_SERIES_DAYS = 92
+const addDays = (day: string, n: number) => {
+  const d = new Date(`${day}T00:00`)
+  d.setDate(d.getDate() + n)
+  return dateInput(d)
+}
+/** Thứ trong tuần theo quy ước API: 0 = thứ 2 … 6 = chủ nhật */
+const weekdayOf = (day: string) => (new Date(`${day}T00:00`).getDay() + 6) % 7
+
+/** Các ngày sẽ có buổi rảnh — cùng quy tắc với backend (bỏ buổi đã qua), để xem trước trước khi lưu. */
+function seriesDays(from: string, until: string, weekdays: number[], end: string) {
+  const days: string[] = []
+  for (let d = from; d <= until && days.length <= MAX_SERIES_DAYS; d = addDays(d, 1)) {
+    if (weekdays.includes(weekdayOf(d)) && new Date(`${d}T${end}`) > new Date()) days.push(d)
+  }
+  return days
+}
+
+function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => void; onSaved: (title: string, body: string) => void }) {
   const [date, setDate] = useState(day)
   const [start, setStart] = useState('07:00')
   const [end, setEnd] = useState('11:00')
+  const [repeat, setRepeat] = useState(false)
+  const [weekdays, setWeekdays] = useState(() => [weekdayOf(day)])
+  const [span, setSpan] = useState('month')
+  const [customUntil, setCustomUntil] = useState(() => addDays(day, 13))
   const { error, busy, wrap } = useSubmit()
   const bad = end <= start
+  const until = span === 'week' ? addDays(date, 6) : span === 'month' ? addDays(date, 29) : customUntil
+  const days = repeat && !bad ? seriesDays(date, until, weekdays, end) : []
+  const toggle = (w: number) => setWeekdays((ws) => (ws.includes(w) ? ws.filter((x) => x !== w) : [...ws, w].sort()))
 
   const save = wrap(async () => {
+    if (repeat) {
+      if (!days.length) throw new Error('Không có buổi rảnh nào trong khoảng ngày đã chọn.')
+      const items = await api.addAvailabilitySeries({ start_date: date, until, start, end, weekdays })
+      onSaved(`Đã lưu ${items.length} buổi rảnh`, `${weekdays.map((w) => WEEKDAYS[w]).join(', ')} · ${start}–${end}`)
+      return
+    }
     if (new Date(`${date}T${end}`) <= new Date()) throw new Error('Khoảng rảnh này đã qua, hãy chọn giờ trong tương lai.')
-    onSaved(await api.addAvailability(toIso(date, start), toIso(date, end)))
+    const i = await api.addAvailability(toIso(date, start), toIso(date, end))
+    onSaved('Đã lưu lịch rảnh', fmtSlot(i.start_time, i.end_time))
   })
 
   return (
@@ -427,7 +441,7 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
       <ModalHeader title="Thêm khoảng rảnh" onClose={onClose} />
       <div className="flex flex-col gap-[18px] px-7 py-5">
         <label className="field">
-          <span className="label">Ngày</span>
+          <span className="label">{repeat ? 'Bắt đầu từ ngày' : 'Ngày'}</span>
           <input type="date" required className="input" value={date} min={dateInput(new Date())} onChange={(e) => setDate(e.target.value)} />
         </label>
         <div className="field">
@@ -456,27 +470,83 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
             <div className="flex justify-between text-sm text-stone-500"><span>0h</span><span>6h</span><span>12h</span><span>18h</span><span>24h</span></div>
           </div>
         )}
+        <label className="flex w-fit cursor-pointer items-center gap-2.5 font-semibold">
+          <input type="checkbox" className="size-5 accent-teal-700" checked={repeat} onChange={(e) => setRepeat(e.target.checked)} />
+          <Icon name="repeat" size={18} className="text-teal-700" />Lặp lại hằng tuần
+        </label>
+        {repeat && (
+          <div className="flex flex-col gap-4 rounded-xl border border-stone-200 bg-stone-50 p-4">
+            <div className="field">
+              <span className="label">Rảnh vào các thứ</span>
+              <div className="flex flex-wrap gap-2">
+                {WEEKDAYS.map((w, i) => {
+                  const on = weekdays.includes(i)
+                  return (
+                    <button key={w} type="button" aria-pressed={on} onClick={() => toggle(i)}
+                      className={`h-10 min-w-12 cursor-pointer rounded-full border px-3 font-semibold ${on ? 'border-teal-700 bg-teal-700 text-white' : 'border-stone-300 bg-white hover:border-teal-600'}`}>{w}</button>
+                  )
+                })}
+              </div>
+            </div>
+            <div className="field">
+              <span className="label">Lặp trong</span>
+              <div className="flex flex-wrap items-center gap-3">
+                <Segmented label="Lặp trong" value={span} onChange={setSpan} options={SPANS} />
+                {span === 'custom' && (
+                  <input type="date" aria-label="Lặp đến ngày" required className="input w-[180px]" value={customUntil} min={date} max={addDays(date, MAX_SERIES_DAYS)} onChange={(e) => setCustomUntil(e.target.value)} />
+                )}
+              </div>
+            </div>
+            <div className={`text-sm ${days.length ? 'text-teal-800' : 'text-amber-800'}`}>
+              {days.length
+                ? `Sẽ tạo ${days.length} buổi rảnh ${start}–${end}, từ ${fmtDay(`${days[0]}T00:00`)} đến ${fmtDay(`${days[days.length - 1]}T00:00`)}.`
+                : bad ? '' : 'Không có buổi nào khớp các thứ đã chọn trong khoảng ngày này.'}
+            </div>
+          </div>
+        )}
         {error && <FieldError>{error}</FieldError>}
       </div>
       <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
         <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
-        <button className="btn btn-primary h-12 px-6" disabled={busy || bad}>{busy && <Spinner />}Lưu khoảng rảnh</button>
+        <button className="btn btn-primary h-12 px-6" disabled={busy || bad || (repeat && !days.length)}>
+          {busy && <Spinner />}{repeat ? `Lưu ${days.length} buổi rảnh` : 'Lưu khoảng rảnh'}
+        </button>
       </div>
     </form>
   )
 }
 
-function DescriptionCard({ initial }: { initial: string }) {
+function ProfileCard({ me }: { me: User }) {
   const toast = useToast()
-  const [text, setText] = useState(initial)
+  const [text, setText] = useState(me.description ?? '')
   const { error, busy, wrap } = useSubmit()
-  const save = wrap(async () => {
-    await api.updateProfile(text)
-    toast({ title: 'Đã lưu mô tả', body: 'Gợi ý sẽ dùng mô tả mới từ lần tải tiếp theo.' })
+  const save = wrap(async (f) => {
+    const val = (k: string) => String(f.get(k) ?? '').trim() || null
+    await api.updateProfile({
+      full_name: val('full_name'), gender: val('gender') as Gender | null, birth_year: f.get('birth_year') ? Number(f.get('birth_year')) : null,
+      ward: val('ward'), city: val('city'), description: text,
+    })
+    toast({ title: 'Đã lưu hồ sơ', body: 'Gợi ý sẽ dùng mô tả mới từ lần tải tiếp theo.' })
   })
   return (
     <form onSubmit={save} className="card flex flex-col gap-3 p-5">
-      <h2 className="text-lg font-semibold">Mô tả bản thân</h2>
+      <h2 className="text-lg font-semibold">Thông tin cá nhân</h2>
+      <label className="field"><span className="label">Họ tên</span>
+        <input name="full_name" className="input" maxLength={100} defaultValue={me.full_name ?? ''} placeholder="Nguyễn Thị Lan" /></label>
+      <div className="grid grid-cols-2 gap-3">
+        <label className="field"><span className="label">Giới tính</span>
+          <select name="gender" className="input" defaultValue={me.gender ?? ''}>
+            <option value="">Không nêu</option><option value="female">Nữ</option><option value="male">Nam</option><option value="other">Khác</option>
+          </select></label>
+        <label className="field"><span className="label">Năm sinh</span>
+          <input name="birth_year" type="number" className="input tabular-nums" min={1940} max={new Date().getFullYear() - 15} defaultValue={me.birth_year ?? ''} placeholder="2003" /></label>
+      </div>
+      <label className="field"><span className="label">Phường / xã đang sống</span>
+        <input name="ward" className="input" maxLength={100} defaultValue={me.ward ?? ''} placeholder="Phường Hải Châu" /></label>
+      <label className="field"><span className="label">Tỉnh / thành phố</span>
+        <input name="city" className="input" maxLength={100} defaultValue={me.city ?? ''} placeholder="Đà Nẵng" /></label>
+      <p className="text-sm leading-5 text-stone-500">Người đăng tin xem được hồ sơ và lịch rảnh của bạn khi bạn ứng tuyển. AI không dùng giới tính, tuổi để gợi ý.</p>
+      <h2 className="mt-2 text-lg font-semibold">Mô tả bản thân</h2>
       <textarea className="input h-auto min-h-[132px] py-3 leading-6" maxLength={2000} value={text} onChange={(e) => setText(e.target.value)} aria-label="Mô tả bản thân"
         placeholder="VD: Sinh viên năm 2, quen dọn dẹp và nấu ăn đơn giản, không làm buổi tối…" />
       <div className="flex justify-between text-sm text-stone-500"><span>Không cần CV, vài câu là đủ</span><span>{text.length}/2000</span></div>
@@ -487,7 +557,7 @@ function DescriptionCard({ initial }: { initial: string }) {
         <span>• Điều cần lưu ý: dị ứng, không làm buổi tối…</span>
       </div>
       {error && <FieldError>{error}</FieldError>}
-      <button className="btn btn-secondary w-fit" disabled={busy}>{busy && <Spinner />}Lưu mô tả</button>
+      <button className="btn btn-secondary w-fit" disabled={busy}>{busy && <Spinner />}Lưu hồ sơ</button>
     </form>
   )
 }
@@ -497,11 +567,14 @@ export function ProfilePage() {
   const { data: intervals, error, reload } = useLoad(api.availability)
   const { data: me } = useLoad(api.me)
   const [adding, setAdding] = useState<string | null>(null)
+  const [removing, setRemoving] = useState<Interval | null>(null)
   const days = intervals ? upcomingByDay(intervals) : null
 
-  function remove(i: Interval) {
-    api.deleteAvailability(i.id).then(
-      () => { reload(); toast({ title: 'Đã xoá khoảng rảnh', body: fmtSlot(i.start_time, i.end_time) }) },
+  function remove(i: Interval, wholeSeries = false) {
+    setRemoving(null)
+    const done = wholeSeries ? api.deleteAvailabilitySeries(i.series_id!) : api.deleteAvailability(i.id)
+    done.then(
+      () => { reload(); toast({ title: wholeSeries ? 'Đã xoá cả chuỗi lịch rảnh' : 'Đã xoá khoảng rảnh', body: fmtSlot(i.start_time, i.end_time) }) },
       (err: Error) => toast({ error: true, title: err.message }),
     )
   }
@@ -555,8 +628,9 @@ export function ProfilePage() {
                         return (
                           <div key={i.id} title={label} style={spanStyle(hoursFrom(day, i.start_time), hoursFrom(day, i.end_time), 0, 24)}
                             className="group absolute inset-y-[5px] flex items-center justify-center overflow-hidden rounded-md border border-teal-300 bg-teal-100 text-sm font-semibold whitespace-nowrap text-teal-900 tabular-nums">
+                            {i.series_id && <Icon name="repeat" size={13} stroke={2.25} className="ml-1 shrink-0 text-teal-700" />}
                             <span className="truncate px-1">{label}</span>
-                            <button type="button" title={`Xoá khoảng rảnh ${label}`} onClick={() => remove(i)}
+                            <button type="button" title={`Xoá khoảng rảnh ${label}`} onClick={() => (i.series_id ? setRemoving(i) : remove(i))}
                               className="absolute right-1 grid size-6 cursor-pointer place-items-center rounded-full border border-teal-200 bg-white text-red-700 opacity-0 group-hover:opacity-100 focus:opacity-100">
                               <Icon name="x" size={14} stroke={2.25} />
                             </button>
@@ -579,7 +653,7 @@ export function ProfilePage() {
         </section>
 
         <div className="flex flex-col gap-4">
-          {me && <DescriptionCard initial={me.description ?? ''} />}
+          {me && <ProfileCard me={me} />}
           {me && (
             <section className="card flex flex-col gap-3 p-5">
               <h2 className="text-lg font-semibold">Liên hệ</h2>
@@ -600,7 +674,22 @@ export function ProfilePage() {
       <Modal open={!!adding} onClose={() => setAdding(null)} className="w-[580px]">
         {adding && (
           <AddSlotForm day={adding} onClose={() => setAdding(null)}
-            onSaved={(i) => { setAdding(null); reload(); toast({ title: 'Đã lưu lịch rảnh', body: fmtSlot(i.start_time, i.end_time) }) }} />
+            onSaved={(title, body) => { setAdding(null); reload(); toast({ title, body }) }} />
+        )}
+      </Modal>
+      <Modal open={!!removing} onClose={() => setRemoving(null)} className="w-[480px]">
+        {removing && (
+          <div className="flex flex-col gap-3.5 p-6">
+            <h2 className="text-2xl leading-8 font-semibold">Xoá khoảng rảnh lặp lại?</h2>
+            <p className="text-stone-700">
+              {fmtSlot(removing.start_time, removing.end_time)} thuộc một chuỗi {intervals?.filter((x) => x.series_id === removing.series_id).length} buổi lặp lại.
+            </p>
+            <div className="mt-1.5 flex justify-end gap-2.5">
+              <button type="button" className="btn btn-plain" onClick={() => setRemoving(null)}>Huỷ</button>
+              <button type="button" className="btn btn-neutral" onClick={() => remove(removing)}>Chỉ buổi này</button>
+              <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" onClick={() => remove(removing, true)}>Xoá cả chuỗi</button>
+            </div>
+          </div>
         )}
       </Modal>
     </main>
@@ -623,6 +712,14 @@ const NOTE: Record<ApplicationStatus, (a: Application) => string> = {
   pending: () => 'Đang chờ người đăng tin xem đơn.',
   rejected: () => 'Đơn không được nhận lần này. Xem thêm việc khác trong Gợi ý cho tôi.',
   cancelled: () => 'Bạn đã hủy đơn này.',
+}
+
+/** applicant_count gồm cả đơn của chính mình nếu đơn đang chờ/đã nhận. */
+function competitors(a: Application) {
+  const mine = a.status === 'pending' || a.status === 'accepted'
+  const others = (a.job.applicant_count ?? 0) - (mine ? 1 : 0)
+  if (others > 0) return mine ? `Bạn và ${others} người khác đang ứng tuyển` : `${others} người đang ứng tuyển`
+  return mine ? 'Chỉ có bạn ứng tuyển việc này' : null
 }
 
 export function MyApplicationsPage() {
@@ -681,6 +778,7 @@ export function MyApplicationsPage() {
                     <IconLine icon="clock">{fmtSlot(a.job.time_start, a.job.time_end)}</IconLine>
                     <IconLine icon="pin">{a.job.ward}, {a.job.city}</IconLine>
                     <span className="font-semibold text-stone-900">{fmtMoney(a.job.salary)}</span>
+                    {competitors(a) && <IconLine icon="users">{competitors(a)}</IconLine>}
                   </div>
                 </div>
                 <AppStatusBadge status={a.status} />

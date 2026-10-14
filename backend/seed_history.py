@@ -437,6 +437,54 @@ COMMENTS = {
     },
 }
 
+# Hồ sơ chi tiết (Tuần 9), khớp với mô tả ở trên: (họ tên, giới tính, năm sinh, phường/xã).
+# Vài người không khai — như người dùng thật. Tỉnh/thành lấy theo cột thành phố của SEEKERS.
+PROFILES = {
+    "lannguyen.neu": ("Nguyễn Thị Lan", "female", 2005, "Phường Bạch Mai"),
+    "hungtran.xeom": ("Trần Văn Hùng", "male", 1988, "Phường Cầu Giấy"),
+    "lehoa1974": ("Lê Thị Hoa", "female", 1974, "Phường Đống Đa"),
+    "trangpham.tx": ("Phạm Thu Trang", "female", 1997, "Phường Thanh Xuân"),
+    "namdo.nd96": ("Đỗ Văn Nam", "male", 2002, "Phường Hai Bà Trưng"),
+    "thuhuong.ftu": ("Nguyễn Thu Hương", "female", 2005, "Phường Láng"),
+    "ngocanh.k65": ("Vũ Ngọc Anh", "female", 2007, "Phường Kim Liên"),
+    "bichngoc1999": ("Đặng Bích Ngọc", "female", 1999, "Phường Hoàng Mai"),
+    "minhquan.dhxd": ("Lê Minh Quân", "male", 2004, "Phường Bạch Mai"),
+    "vanthanh.hp": ("Phạm Thị Vân Thanh", "female", 1972, "Phường Thanh Xuân"),
+    "phuongthao.hvnh": ("Trần Phương Thảo", "female", 2005, "Phường Kim Liên"),
+    "ducanh.dog": ("Nguyễn Đức Anh", "male", 2001, "Phường Tây Hồ"),
+    "haiyen.dieuduong": ("Hoàng Hải Yến", "female", 1990, "Phường Đống Đa"),
+    "quynhchi.2004": ("Bùi Quỳnh Chi", "female", 2004, "Phường Cầu Giấy"),
+    "bacminh.huutri": ("Nguyễn Văn Minh", "male", 1965, "Phường Ba Đình"),
+    "thanhtam.hd": ("Lê Thanh Tâm", "female", 1985, "Phường Hà Đông"),
+    "kimchi.bep": ("Phạm Kim Chi", "female", 1987, "Phường Hoàng Mai"),
+    "longpham.gym": ("Phạm Hoàng Long", "male", 2000, "Phường Cầu Giấy"),
+    "maianh.mamnon": ("Đỗ Mai Anh", "female", 1992, "Phường Thanh Xuân"),
+    "hoangviet.sv": (None, "male", 2005, None),
+    "thuyduong.88": ("Trịnh Thùy Dương", "female", 1988, "Phường Long Biên"),
+    "ngoctram.ketoan": ("Ngô Ngọc Trâm", "female", 1994, "Phường Ô Chợ Dừa"),
+    "huyhoang.bk": ("Đinh Huy Hoàng", "male", 2004, "Phường Bạch Mai"),
+    "linhchi.meomeo": ("Nguyễn Linh Chi", "female", 2003, "Phường Tây Hồ"),
+    "tranloan.1970": ("Trần Thị Loan", "female", 1970, "Phường Hai Bà Trưng"),
+    "duyanh.music": ("Lương Duy Anh", "male", 2001, "Phường Văn Miếu - Quốc Tử Giám"),
+    "vietha.mydinh": ("Nguyễn Việt Hà", "male", 1996, "Phường Từ Liêm"),
+    "hongnhung.qn": ("Vũ Hồng Nhung", "female", 2006, "Phường Hoàng Mai"),
+    "thanhnga.lb": ("Lê Thanh Nga", "female", 1980, "Phường Long Biên"),
+    "dangkhoa.it": ("Trần Đăng Khoa", "male", 1995, "Phường Cầu Giấy"),
+    "trinhthu.1995": ("Trịnh Thu", "female", 1995, "Phường Hoàn Kiếm"),
+    "buiquang.shipper": ("Bùi Văn Quang", "male", 1998, None),
+    "vyhuynh.bt": ("Huỳnh Ngọc Vy", "female", 2001, "Phường Bình Thạnh"),
+    "tuankiet.hcmus": ("Lâm Tuấn Kiệt", "male", 2004, "Phường Chợ Quán"),
+    "colan.govap": ("Nguyễn Thị Lan", "female", 1968, "Phường Gò Vấp"),
+    "baotran.2003": ("Phạm Bảo Trân", "female", 2003, "Phường Bình Thạnh"),
+    "minhthu.uel": ("Võ Minh Thư", "female", 2005, None),
+    "anhkhoa.pn": ("Đặng Anh Khoa", "male", 1999, "Phường Phú Nhuận"),
+    "ducngo.dut": ("Ngô Minh Đức", "male", 2004, "Phường Hải Châu"),
+    "thaovy.dn": ("Trần Thảo Vy", "female", 2003, "Phường Sơn Trà"),
+    "chinh.camle": ("Hồ Thị Chinh", "female", 1983, "Phường Cẩm Lệ"),
+    "hoangnam.due": ("Nguyễn Hoàng Nam", "male", 2004, "Phường Thanh Khê"),
+    "myle.sontra": (None, "female", None, "Phường Sơn Trà"),
+}
+
 
 def between(lo, hi):
     """Thời điểm ngẫu nhiên trong [lo, hi], tránh 0h-6h sáng nếu được. None nếu khoảng rỗng."""
@@ -486,9 +534,13 @@ def build():
                           until=at(day(-until), "10:00") if until else None)
         users.append(u)
     for email, phone, verified, days_ago, city, skills, pattern, desc, quality, until in SEEKERS:
+        full_name, gender, birth_year, ward = PROFILES.get(email, (None,) * 4)
         u = User(id=uuid.uuid4(), role="job_seeker", email=email + DOMAIN, phone=phone, email_verified=verified,
-                 description=desc, created_at=joined(days_ago))
+                 description=desc, created_at=joined(days_ago), full_name=full_name, gender=gender,
+                 birth_year=birth_year, ward=ward, city=city if ward else None)
+        # Mỗi dòng lịch rảnh hằng tuần = 1 lần khai lặp lại (UC22), chung 1 series_id
         seek[email] = dict(user=u, city=city, skills=skills, pattern=pattern, quality=quality, busy=[],
+                           series=[uuid.uuid4() for _ in pattern],
                            until=at(day(-until), "22:00") if until else None)
         users.append(u)
 
@@ -567,7 +619,12 @@ def build():
         if j.time_end < NOW:
             j.status = "closed" if rng.random() < (0.75 if accepted else 0.5) else "open"
         elif accepted >= t["heads"] and rng.random() < 0.6:
-            j.status = "closed"
+            j.status = "filled"  # đủ người: chủ bấm "Đã tìm được người" (UC25) → đơn còn chờ tự bị từ chối
+            for a, s in mine:
+                if a.status == "pending":
+                    a.status, a.updated_at = "rejected", decide + timedelta(minutes=31)
+                    note(s["user"].id, "application_status",
+                         f"Tin “{j.title}” đã tìm đủ người, đơn của bạn không được nhận", a.id, a.updated_at)
 
     # ---------- Đánh giá 2 chiều sau khi xong việc ----------
     def rate(a, rater, ratee, side, quality, created):
@@ -687,10 +744,10 @@ def build():
         for d in range(-10, horizon + 1):
             if rng.random() < 0.1:
                 continue  # hôm đó bận
-            for days, a, b in s["pattern"]:
+            for (days, a, b), series_id in zip(s["pattern"], s["series"]):
                 if day(d).weekday() in days:
                     intervals.append(AvailabilityInterval(job_seeker_id=s["user"].id, start_time=at(day(d), a),
-                                                          end_time=at(day(d), b)))
+                                                          end_time=at(day(d), b), series_id=series_id))
 
     return users, jobs, apps, list(ratings.values()), reports, notes, intervals, app_meta
 
@@ -729,7 +786,8 @@ def main():
     summary = (  # tính trước commit: commit xong các object bị expire
         f"{sum(u.role == 'job_seeker' for u in users)} người tìm việc, {sum(u.role == 'employer' for u in users)} "
         f"người giao việc ({sum(bool(u.is_blocked) for u in users)} bị khoá)\n"
-        f"{len(jobs)} tin ({sum(j.status == 'open' and j.time_end > NOW for j in jobs)} đang mở sắp tới), "
+        f"{len(jobs)} tin ({sum(j.status == 'open' and j.time_end > NOW for j in jobs)} đang mở sắp tới, "
+        f"{sum(j.status == 'filled' for j in jobs)} đã tìm được người), "
         f"{len(apps)} đơn {dict(Counter(a.status for a in apps))}\n"
         f"{len(ratings)} đánh giá, {len(reports)} báo cáo ({sum(r.status == 'pending' for r in reports)} chờ xử lý), "
         f"{len(notes)} thông báo, {len(intervals)} khoảng rảnh")

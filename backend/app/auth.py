@@ -105,7 +105,7 @@ class ProfileIn(BaseModel):
     @field_validator("birth_year")
     @classmethod
     def _check_birth_year(cls, v):
-        # Lao động từ đủ 15 tuổi (Bộ luật Lao động 2019, Điều 143)
+        # Độ tuổi lao động tối thiểu là đủ 15 tuổi (Bộ luật Lao động 2019, khoản 1 Điều 3)
         if v is not None and not 1940 <= v <= datetime.now().year - 15:
             raise ValueError("Năm sinh không hợp lệ (phải từ đủ 15 tuổi)")
         return v

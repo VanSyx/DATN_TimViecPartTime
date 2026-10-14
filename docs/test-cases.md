@@ -576,3 +576,25 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-passwor
 - **Mục 1–15 còn lại (hồi quy)**: chưa chạy lại toàn bộ — bộ script tự động của các lần trước nằm trong thư mục tạm và đã bị dọn. Kết quả "Đạt" ở các mục này là của lần chạy 2026-10-05 (mục 26).
 - **Góp ý khi xem bản local (2026-10-14)**: bật "Lặp lại hằng tuần" thì nút Lưu/Huỷ bị cắt khỏi modal ở màn 900px (modal `overflow-hidden`, form cao hơn màn hình) — sửa: thân form cuộn, chân cố định. Giao diện lặp gây hiểu lầm (thanh "Xem trước ngày T5" vẫn hiện dù T5 không được chọn; câu "từ … đến …" là ngày buổi đầu/cuối) — sửa: ẩn thanh xem trước 1 ngày, nhãn "Lặp từ ngày" + dòng giải thích, liệt kê các ngày sẽ tạo, chip mặc định theo ngày bắt đầu. Logic sinh buổi không đổi. Chạy lại 13c: **24/24** (thêm SER-08).
 
+## 29. Smoke test production sau khi deploy Tuần 9 (2026-10-14)
+
+Chạy tự động sau setup-log #25, bằng tài khoản mô phỏng `@example.net` (chỉ đọc; chuỗi lịch rảnh tạo ở W9-06 được xoá ngay ở W9-07).
+
+| ID | Kiểm tra | Kết quả | KQ |
+|---|---|---|---|
+| W9-01 | `/health` backend và ai-service | 200, 200 | Đạt |
+| W9-02 | Khách `GET /jobs` | 22 tin, mọi tin có `applicant_count`, không có tin `filled` | Đạt |
+| W9-03 | `lannguyen.neu` `GET /auth/me` | "Nguyễn Thị Lan", female, 2005, Phường Bạch Mai | Đạt |
+| W9-04 | `GET /availability` | 21 khoảng thuộc 2 chuỗi lặp | Đạt |
+| W9-05 | `GET /recommendations` quanh Bạch Mai, 10 km | `source=ai`, 16 tin, có `applicant_count` | Đạt |
+| W9-06 | `POST /availability/series` (1 buổi, ngày mai 06:00–06:30) | 201, 1 buổi | Đạt |
+| W9-07 | `DELETE /availability/series/{id}` | 204 (dọn dữ liệu thử) | Đạt |
+| W9-08 | `GET /applications/me` | 17 đơn, có `applicant_count` | Đạt |
+| W9-09 | `huongdinh.bd` `GET /jobs/mine` | 8 tin có `applicant_count` | Đạt |
+| W9-10 | `GET /seekers/{id}` của người đã ứng tuyển | 200, có hồ sơ + lịch rảnh | Đạt |
+| W9-11 | `GET /seekers/{uuid ngẫu nhiên}` | 404 | Đạt |
+| W9-UI-1 | Giao diện production: Hồ sơ & lịch rảnh, mở form lặp lại | Họ tên điền sẵn, dòng "Sẽ tạo N buổi rảnh" (`screenshots/week9/prod-ho-so.png`, `prod-form-lap.png`) | Đạt |
+| W9-UI-2 | Giao diện production: Tin đã đăng → Xem đơn → bấm tên ứng viên | Có nút "Đăng lại"; trang hồ sơ có lịch rảnh sắp tới (`prod-tin-da-dang.png`, `prod-ho-so-ung-vien.png`) | Đạt |
+
+Kết quả **13/13 Đạt**. Ghi chú: hồi quy toàn bộ mục 1–15 chưa chạy lại cho lần merge này (bộ script cũ đã mất, xem mục 28); merge theo yêu cầu của người thực hiện, với phạm vi kiểm thử hiện có (70 + 22 test tự động, 24 case mục 13c, 4 case cũ đổi kỳ vọng, smoke 13/13).
+

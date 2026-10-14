@@ -140,9 +140,9 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | CI/CD & Deploy | Docker + Docker Compose + GitHub Actions + Render (Blueprint) | |
 
 ## 4.3 Database — các entity chính
-- `users` (role: job_seeker/employer/admin, thông tin xác minh)
-- `jobs` (vị trí, khung giờ cần, lương, mô tả, employer_id)
-- `availability_intervals` (lịch rảnh dạng interval của job seeker)
+- `users` (role: job_seeker/employer/admin, thông tin xác minh; hồ sơ job seeker: họ tên, giới tính, năm sinh, khu vực — Tuần 9)
+- `jobs` (vị trí, khung giờ cần, lương, mô tả, employer_id; trạng thái `open`/`filled`/`closed`/`rejected`)
+- `availability_intervals` (lịch rảnh dạng interval của job seeker; `series_id` nhóm các khoảng sinh từ 1 lần khai lặp lại — Tuần 9)
 - `applications` (trạng thái đơn ứng tuyển, liên kết user-job)
 - `ratings` (đánh giá hai chiều — tuần 6-12)
 - `reports` (báo cáo vi phạm — tuần 6-12)
@@ -226,6 +226,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 - Nhịp độ đề xuất mỗi tuần: xen kẽ ngày code / ngày viết báo cáo (ví dụ 3 ngày code – 3 ngày report), không dồn báo cáo về cuối
 - **Code song song:** hoàn thiện 30% chức năng còn lại (FR6-FR10), đánh giá offline + khoá thiết kế AI (xong 2026-09-30, giữ TF-IDF), security hardening, fix bug phát sinh
 - **Thiết kế lại UI (TailwindCSS), tuần 6-7, song song với AI**: brief `docs/design/ui-redesign-brief.md` → mockup → code lại frontend (chỉ thay giao diện, backend không đổi), thêm trang chủ giới thiệu S0 cho khách (quyết định 2026-09-27, tham khảo bố cục TopCV/bTaskee). Việc AI: đánh giá offline xong và khoá thiết kế 2026-09-30 (giữ TF-IDF, không làm embedding)
+- **Bổ sung Tuần 9 (2026-10-14):** 5 chức năng theo nhu cầu thực tế, UC22–UC26 (mục 3.1): lịch rảnh lặp lại, hồ sơ người tìm việc + employer xem hồ sơ người ứng tuyển, "Đã tìm được người", đăng lại tin cũ, số người đang ứng tuyển
 - **Report:** viết các chương báo cáo theo template của trường (cần bổ sung khi có template cụ thể — xem mục 10)
 - **Testing:** không ưu tiên pilot test người dùng thật quy mô lớn do giới hạn thời gian — xem chi tiết mục 7
 - Tuần 11-12: sửa theo góp ý GVHD, hoàn thiện nộp

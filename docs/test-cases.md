@@ -241,11 +241,11 @@ Tiền điều kiện: seed sạch. Vị trí test chính: **Bạch Mai, Hà N�
 | PROF-06 | P2 | Không chọn ngày quá khứ | Mở lịch | Không chọn được ngày trước hôm nay | Đạt |
 | PROF-07 | P2 | Thêm vào ngày có sẵn | Bấm nút "+" cuối hàng 1 ngày | Modal mở với ngày đó điền sẵn | Đạt |
 | PROF-08 | P2 | Khoảng chồng nhau | lan: xem ngày T7 | 2 khối chồng nhau đều hiện (07:00–20:00 và 08:00–10:00); hệ thống chấp nhận | Đạt |
-| PROF-09 | P1 | Xoá khoảng rảnh | Rê chuột lên 1 khối → bấm X đỏ | Toast "Đã xoá khoảng rảnh"; khối biến mất; ngày không còn khoảng nào thì mất hàng | Đạt |
+| PROF-09 | P1 | Xoá khoảng rảnh | Rê chuột lên 1 khối **khai lẻ** (lan T7 08:00–10:00) → bấm X đỏ | Toast "Đã xoá khoảng rảnh"; khối biến mất; ngày không còn khoảng nào thì mất hàng. *Tuần 9: khối thuộc chuỗi lặp lại (có biểu tượng lặp) thì hỏi "Chỉ buổi này / Xoá cả chuỗi" — xem SER-04, SER-05* | Đạt (SER-06) |
 | PROF-10 | P2 | Xoá bằng bàn phím | Tab tới nút X của khối | Nút X hiện khi được focus, Enter xoá được | Đạt |
 | PROF-11 | P2 | Không hiện khoảng đã qua | SQL thêm 1 khoảng hôm qua cho lan | Không hiện trên trang | Đạt |
 | PROF-12 | P2 | Đóng modal | Huỷ / X / Esc / bấm nền | Đóng, không lưu | Đạt |
-| PROF-13 | P1 | Lưu mô tả | Sửa mô tả → "Lưu mô tả" | Toast "Đã lưu mô tả"; F5 vẫn còn; trang Gợi ý dùng mô tả mới (điểm Mô tả thay đổi) | Đạt |
+| PROF-13 | P1 | Lưu mô tả | Sửa mô tả → "Lưu hồ sơ" (Tuần 9: mô tả lưu chung với thông tin cá nhân) | Toast "Đã lưu hồ sơ"; F5 vẫn còn; trang Gợi ý dùng mô tả mới (điểm Mô tả thay đổi) | Đạt |
 | PROF-14 | P2 | Giới hạn 2000 ký tự | Dán 2100 ký tự | Chỉ nhận 2000; bộ đếm "2000/2000" | Đạt |
 | PROF-15 | P2 | Xoá trắng mô tả | Xoá hết → Lưu | Lưu được; trang Gợi ý hiện nhắc "…mô tả bản thân" | Đạt |
 | PROF-16 | P3 | Liên hệ | Xem khối "Liên hệ" với lan và tuananh | lan: badge xanh "Đã xác minh"; tuananh: badge vàng "Chưa xác minh" | Đạt |
@@ -272,9 +272,9 @@ Tiền điều kiện: seed sạch. Vị trí test chính: **Bạch Mai, Hà N�
 
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
 |---|---|---|---|---|---|
-| EMP-01 | P1 | Danh sách | Đăng nhập huong | Có J1, J2 (tin tạo sau nằm trên); mỗi tin có tiêu đề, badge "Đang mở", giờ, địa chỉ đầy đủ, tiền; nút "Đóng tin", "Sửa", "Xem đơn"; nút cam "Đăng tin mới" nổi bật | Đạt |
+| EMP-01 | P1 | Danh sách | Đăng nhập huong | Có J1, J2 (tin tạo sau nằm trên); mỗi tin có tiêu đề, badge "Đang mở", giờ, địa chỉ đầy đủ, tiền, số người đang ứng tuyển; nút "Đóng tin", "Đã tìm được người", "Sửa", "Đăng lại", "Xem đơn"; nút cam "Đăng tin mới" nổi bật | Đạt (CNT-04, FILL-01) |
 | EMP-02 | P2 | Tin đã qua giờ làm | Đăng nhập minh | J13 ghi "Đã qua giờ làm — tin không còn hiện với người tìm việc." | Đạt |
-| EMP-03 | P2 | Tin đã đóng | Đăng nhập nhahang | J11 badge "Đã đóng", **chỉ** có "Xem đơn" (không có Đóng tin, Sửa) | Đạt |
+| EMP-03 | P2 | Tin đã đóng | Đăng nhập nhahang | J11 badge "Đã đóng", chỉ có "Đăng lại" và "Xem đơn" (không có Đóng tin, Sửa, Đã tìm được người) | Đạt (FILL-05, COPY-02) |
 | EMP-04 | P1 | Đóng tin | huong → J2 → "Đóng tin" → "Đóng tin" | Modal "Đóng tin này?" nói rõ đơn cũ vẫn giữ. Sau xác nhận: toast "Đã đóng tin", badge "Đã đóng". J2 biến mất khỏi `/tim-viec` và trang gợi ý; đơn của trang ở J2 vẫn còn | Đạt |
 | EMP-05 | P2 | Giữ tin | "Đóng tin" → "Giữ tin" | Không đổi gì | Đạt |
 | EMP-06 | P2 | Chưa có tin | Đăng nhập hai | "Bạn chưa đăng tin nào" + nút "Đăng tin đầu tiên" | Đạt |
@@ -310,16 +310,16 @@ Tiền điều kiện: đăng nhập huong, "Đăng tin mới".
 
 | ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
 |---|---|---|---|---|---|
-| APPL-01 | P1 | Danh sách ứng viên | huong → J1 → "Xem đơn" | Đầu trang: tiêu đề, badge, giờ, địa chỉ, tiền, nút "Sửa tin". 2 ứng viên lan, nam: avatar chữ cái đầu email, email (link mailto), SĐT (link gọi), "Ứng tuyển dd/mm, hh:mm", badge "Chờ duyệt", nút "Từ chối" + "Nhận" | Đạt |
-| APPL-02 | P1 | Nhận | Bấm "Nhận" ở lan | Toast "Đã nhận lan.nguyen@example.com"; dòng lan nền xanh nhạt, badge "Đã nhận", "Hãy gọi để hẹn giờ và chỉ đường tới nhà."; nút Nhận/Từ chối thay bằng "Đã xử lý dd/mm, hh:mm" (chỉ còn nút cờ báo cáo, FR7) | Đạt |
+| APPL-01 | P1 | Danh sách ứng viên | huong → J1 → "Xem đơn" | Đầu trang: tiêu đề, badge, giờ, địa chỉ, tiền, nút "Đã tìm được người", "Sửa tin". 2 ứng viên lan, nam: avatar chữ cái đầu **họ tên** (chưa khai thì email), họ tên (link tới hồ sơ, Tuần 9), email (link mailto), SĐT (link gọi), "Ứng tuyển dd/mm, hh:mm", badge "Chờ duyệt", nút "Từ chối" + "Nhận" | Đạt |
+| APPL-02 | P1 | Nhận | Bấm "Nhận" ở lan | Toast "Đã nhận Nguyễn Thị Lan" (Tuần 9: hiện họ tên); dòng lan nền xanh nhạt, badge "Đã nhận", "Hãy gọi để hẹn giờ và chỉ đường tới nhà."; nút Nhận/Từ chối thay bằng "Đã xử lý dd/mm, hh:mm" (chỉ còn nút cờ báo cáo, FR7) | Đạt |
 | APPL-03 | P1 | Người tìm việc thấy kết quả | Đăng nhập lan → "Đơn ứng tuyển" | J1 "Đã nhận" | Đạt |
-| APPL-04 | P1 | Từ chối | Bấm "Từ chối" ở nam | Toast "Đã từ chối nam.do@example.com"; dòng mờ, badge "Bị từ chối"; nam thấy "Bị từ chối" | Đạt |
+| APPL-04 | P1 | Từ chối | Bấm "Từ chối" ở nam | Toast "Đã từ chối Đỗ Văn Nam"; dòng mờ, badge "Bị từ chối"; nam thấy "Bị từ chối" | Đạt |
 | APPL-05 | P2 | Đơn đã hủy | tuan → J3 | Đơn nam: badge "Đã hủy", "Người ứng tuyển đã hủy", không có nút nào ngoài nút cờ báo cáo (FR7) | Đạt |
 | APPL-06 | P2 | Ứng viên không có SĐT | nhahang → J11 (đơn của tuananh) | "Chưa có số điện thoại" | Đạt |
 | APPL-07 | P2 | Chưa ai ứng tuyển | minh → J12 | "Chưa có ai ứng tuyển" + câu nhắc có ngày giờ của tin | Đạt |
 | APPL-08 | P1 | Xử lý đơn đã bị hủy | Tab 1: huong mở đơn J1. Tab 2: lan hủy đơn J1. Tab 1 bấm "Nhận" (chưa F5) | Toast đỏ "Đơn không còn ở trạng thái chờ duyệt" | Đạt |
 | APPL-09 | P2 | Chống bấm 2 lần | Bấm "Nhận" liên tục | Nút khoá + spinner trong lúc gửi, chỉ 1 request | Đạt |
-| APPL-10 | P3 | Nhận nhiều người cho 1 tin | Nhận cả lan và nam ở J1 | Hệ thống cho phép (chưa có giới hạn số người) — ghi nhận hành vi | Đạt |
+| APPL-10 | P3 | Nhận nhiều người cho 1 tin | Nhận cả lan và nam ở J1 | Hệ thống cho phép (không giới hạn số người); đủ người thì người đăng tự bấm "Đã tìm được người" (FILL-01) | Đạt |
 
 ## 13b. Đánh giá hai chiều (FR6, Tuần 7)
 
@@ -336,6 +336,36 @@ Chuẩn bị: huong đăng tin A ở Bạch Mai, lan ứng tuyển, huong nhận
 | RATE-07 | P1 | Điểm trust đúng công thức | Swagger `GET /recommendations` bằng token lan | Tin B: `breakdown.trust = 0.75` (= (4−1)/4); tin của người đăng chưa có đánh giá vẫn `1` | Đạt |
 | RATE-08 | P1 | Không đánh giá 2 lần / sai người | Swagger `POST /ratings` lần 2 cho cùng đơn; bằng token employer khác; đơn còn chờ duyệt | 409 / 404 / 400 (có trong pytest) | Đạt |
 | RATE-09 | P2 | Không lỗi Console | Đi hết RATE-01→06 | Không lỗi đỏ | Đạt |
+
+## 13c. Bổ sung Tuần 9 (UC22–UC26)
+
+Seed lại trước khi chạy. Chạy theo thứ tự bảng (CNT trước FILL vì FILL làm đổi trạng thái đơn của J1). Tự động bằng playwright (Edge headless, token tạo trong container backend).
+
+| ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
+|---|---|---|---|---|---|
+| CNT-01 | P1 | Số người đang ứng tuyển ở Tìm việc | Khách mở `/tim-viec` | Thẻ J1 "2 người đang ứng tuyển" (lan, nam chờ duyệt); J3 "1 người đang ứng tuyển" (hung đã nhận, đơn đã hủy của nam không tính); J12 chưa ai ứng tuyển thì không có dòng này | Đạt |
+| CNT-02 | P1 | Đơn ứng tuyển của tôi | lan → "Đơn ứng tuyển" | J1 "Bạn và 1 người khác đang ứng tuyển"; J7 "Chỉ có bạn ứng tuyển việc này" | Đạt |
+| CNT-03 | P2 | Đơn đã hủy/bị từ chối | nam → "Đơn ứng tuyển" | J3 (nam đã hủy) "1 người đang ứng tuyển"; J10 (nam bị từ chối, không còn ai) không có dòng đếm | Đạt |
+| CNT-04 | P2 | Phía người đăng | huong → "Tin đã đăng" | J1 "2 người đang ứng tuyển" | Đạt |
+| PFL-01 | P1 | Khai hồ sơ cá nhân | phuong → "Hồ sơ & lịch rảnh" → họ tên, giới tính Nữ, năm sinh 2004, phường, tỉnh → "Lưu hồ sơ" | Toast "Đã lưu hồ sơ"; F5 vẫn còn đủ các trường | Đạt |
+| PFL-02 | P2 | Năm sinh dưới 15 tuổi | Năm sinh = năm nay − 10 → "Lưu hồ sơ"; gọi thẳng `PATCH /auth/me {birth_year: 2020}` | Trình duyệt chặn; API trả 422 | Đạt |
+| SPR-01 | P1 | Employer xem hồ sơ người ứng tuyển | huong → J1 → "Xem đơn" → bấm "Nguyễn Thị Lan" | Trang hồ sơ: "Nữ · N tuổi (sinh năm 2005) · Phường Bạch Mai, Hà Nội", đánh giá, mô tả, email, SĐT, lịch rảnh sắp tới theo ngày (`screenshots/week9/spr-01-ho-so-ung-vien.png`) | Đạt |
+| SPR-02 | P1 | Không xem được người không ứng tuyển tin mình | tuan mở `/employer/seekers/<id lan>` | "Không tìm thấy hồ sơ" (API 404, không lộ tài khoản có tồn tại) | Đạt |
+| SPR-03 | P2 | Chưa khai họ tên | nhahang → J11 → bấm tên tuananh | Hiện email thay tên; "Chưa có số điện thoại" | Đạt |
+| SER-01 | P1 | Khai lịch rảnh lặp lại | phuong → "Thêm khoảng rảnh" → tick "Lặp lại hằng tuần" → chọn T3, T5, 13:00–17:00, "1 tháng" → "Lưu N buổi rảnh" | Dòng xem trước "Sẽ tạo N buổi rảnh … từ … đến …" (8–9 buổi); toast "Đã lưu N buổi rảnh"; DB có N dòng cùng 1 `series_id`, đều rơi vào T3/T5 lúc 13:00 giờ VN | Đạt |
+| SER-02 | P2 | Bỏ hết các thứ | Tick "Lặp lại" rồi bỏ chọn mọi thứ | "Không có buổi nào khớp…"; nút "Lưu 0 buổi rảnh" bị khoá | Đạt |
+| SER-03 | P2 | Giới hạn "Đến ngày…" | Chọn "Đến ngày…"; đổi ngày bắt đầu thành ngày mai rồi chọn "1 tuần" | Ô ngày kết thúc tối đa 92 ngày sau ngày bắt đầu; "1 tuần" tạo đúng 1 buổi | Đạt |
+| SER-04 | P1 | Xoá 1 buổi trong chuỗi | Bấm X trên 1 khối có biểu tượng lặp → "Chỉ buổi này" | Hỏi "Xoá khoảng rảnh lặp lại?" kèm số buổi của chuỗi; chỉ mất đúng 1 buổi | Đạt |
+| SER-05 | P1 | Xoá cả chuỗi | Bấm X → "Xoá cả chuỗi" | Toast "Đã xoá cả chuỗi lịch rảnh"; toàn bộ chuỗi biến mất | Đạt |
+| SER-06 | P2 | Khoảng khai lẻ vẫn xoá ngay | lan → X trên khối T7 08:00–10:00 | Xoá ngay, không hỏi chuỗi | Đạt |
+| SER-07 | P2 | Gợi ý AI dùng lịch lặp | lan (lịch rảnh seed là các chuỗi lặp) → "Gợi ý cho tôi" | Có "Lịch rảnh sắp tới", không có nhắc thiếu lịch rảnh (AI đọc các buổi cụ thể như trước) | Đạt |
+| FILL-01 | P1 | Đã tìm được người | huong → J1 → "Đã tìm được người" → xác nhận | Modal nói rõ đơn chờ sẽ bị từ chối, đơn đã nhận giữ nguyên. Sau xác nhận: toast, badge xanh "Đã tìm được người", ghi chú "…tin không còn hiện với người tìm việc", nút "Mở lại tuyển" | Đạt |
+| FILL-02 | P1 | Tin bị ẩn | Khách gọi `/jobs`; token hoa gọi `POST /applications` J1 | J1 không còn trong `/jobs`; ứng tuyển trả 400 "Tin tuyển dụng đã tìm đủ người" | Đạt |
+| FILL-03 | P1 | Đơn chờ bị từ chối kèm thông báo | lan → "Đơn ứng tuyển" → chuông | J1 "Bị từ chối"; J7 (đã nhận, tin khác) giữ nguyên; thông báo "Tin “Dọn nhà sáng thứ 7” đã tìm đủ người, đơn của bạn không được nhận" | Đạt |
+| FILL-04 | P1 | Mở lại tuyển | huong → J1 → "Mở lại tuyển" | Badge "Đang mở"; J1 hiện lại ở `/tim-viec` | Đạt |
+| FILL-05 | P2 | Nút ở trang đơn của tin; tin đã đóng không có | huong → J1 "Xem đơn"; nhahang → J11 | Có nút "Đã tìm được người" ở đầu trang đơn; tin đã đóng không có nút | Đạt |
+| COPY-01 | P1 | Đăng lại tin | huong → J2 → "Đăng lại" → chọn ngày mới → "Đăng tin" | Form "Đăng lại tin" điền sẵn tiêu đề, mô tả, địa chỉ, ghim, giờ, tiền; **ngày để trống**; toast "Đã đăng tin"; huong có 2 tin cùng tiêu đề, tin cũ không đổi (id, giờ) | Đạt |
+| COPY-02 | P2 | Đăng lại tin đã đóng | nhahang → J11 → "Đăng lại" | Mở form "Đăng lại tin", ghi "…tin cũ giữ nguyên" | Đạt |
 
 ## 14. Quản trị (S12, FR10)
 
@@ -451,12 +481,13 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 12. Đăng / sửa tin | 19 | 19 | 0 | 0 |
 | 13. Đơn của một tin | 10 | 10 | 0 | 0 |
 | 13b. Đánh giá hai chiều | 9 | 9 | 0 | 0 |
+| 13c. Bổ sung Tuần 9 | 23 | 23 | 0 | 0 |
 | 14. Quản trị | 10 | 10 | 0 | 0 |
 | 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
 | 17. Production | 12 | 12 | 0 | 0 |
-| **Tổng** | **253** | **253** | **0** | **0** |
+| **Tổng** | **276** | **276** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-password` (xem mục 26); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 
@@ -535,3 +566,10 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-passwor
 - Trước khi chuyển: checksum nội dung 8 bảng (`users`, `jobs`, `applications`, `availability_intervals`, `ratings`, `reports`, `notifications`, `alembic_version`) ở 2 DB giống hệt.
 - Sau khi chuyển: `POST /auth/forgot-password` cho `+prod10` chỉ làm đổi dòng ở Neon (xác nhận backend đã dùng Neon). Chạy lại PROD-01…09 tự động: **9/9 Đạt**. Neon có thêm 2 tài khoản `qa-prod-1791212607616-*@example.org`, 1 tin test (đã đóng ở PROD-07) và 1 báo cáo test chờ admin "Bỏ qua".
 
+## 28. Kết quả chạy 2026-10-14 (nhánh `feat/week9-extras`, 5 chức năng bổ sung UC22–UC26)
+
+- **Thêm**: lịch rảnh lặp lại theo thứ (`POST/DELETE /availability/series`), hồ sơ chi tiết (`PATCH /auth/me` thêm họ tên, giới tính, năm sinh, khu vực), employer xem hồ sơ người ứng tuyển (`GET /seekers/:id`), "Đã tìm được người" / mở lại (`PATCH /jobs/:id/status`), đăng lại tin cũ (chỉ frontend), số người đang ứng tuyển (`applicant_count`). Migration `3f9a1c2d7b10` (lên/xuống đều chạy).
+- **Mục 13c**: lần 1 đạt 20/23. Ba case lỗi do kịch bản test, không phải app: FILL-02 và COPY-01 lọc theo tiêu đề nhưng DB local còn tin trùng tiêu đề của tài khoản E2E cũ (đổi sang lọc theo id/người đăng); SER-03 mở modal với ngày hôm nay khi buổi 07:00–11:00 đã qua nên "1 tuần" ra 0 buổi — đúng nghiệp vụ, kịch bản đổi sang bắt đầu từ ngày mai. Chạy lại **23/23**.
+- **Mục 16**: backend **70** test (thêm 8: sinh chuỗi đúng thứ và giờ VN, giới hạn 92 ngày, bỏ buổi đã qua, xoá chuỗi chỉ của mình, hồ sơ cập nhật từng phần + validate năm sinh, chỉ employer có đơn mới xem được hồ sơ, `applicant_count` không đếm đơn hủy/bị từ chối, filled ẩn tin + từ chối đơn chờ + giữ đơn đã nhận + mở lại), ai-service 22, build, lint 0 lỗi, `offline_eval.py` chạy được.
+- **Case cũ đổi kỳ vọng vì Tuần 9** (PROF-09, PROF-13, EMP-01, EMP-03, APPL-01, APPL-02, APPL-04, APPL-10): sửa kỳ vọng ở bảng trên; PROF-13, APPL-01, APPL-02, APPL-04 chạy lại tự động **4/4 Đạt**; các case còn lại được case 13c kiểm (ghi kèm ID).
+- **Mục 1–15 còn lại (hồi quy)**: chưa chạy lại toàn bộ — bộ script tự động của các lần trước nằm trong thư mục tạm và đã bị dọn. Kết quả "Đạt" ở các mục này là của lần chạy 2026-10-05 (mục 26).

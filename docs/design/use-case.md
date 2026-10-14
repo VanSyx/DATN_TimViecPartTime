@@ -25,6 +25,9 @@ flowchart LR
     %% FR3 - Availability + Search
     JS --> UC4[Khai báo lịch rảnh interval ✅]
     JS --> UC5[Tìm/lọc job theo khu vực, khung giờ ✅]
+    UC22[Khai lịch rảnh lặp lại theo thứ trong tuần] -.->|extend| UC4
+    JS --> UC22
+    JS --> UC23[Cập nhật hồ sơ cá nhân]
 
     %% FR4 - AI Recommendation
     JS --> UC6[Xem gợi ý AI + breakdown lý do ✅]
@@ -35,11 +38,14 @@ flowchart LR
     JS --> UC8[Theo dõi trạng thái đơn ✅]
     JS --> UC9[Hủy đơn ứng tuyển ✅]
     EMP --> UC10[Duyệt / Từ chối đơn ứng tuyển ✅]
+    EMP --> UC24[Xem hồ sơ người ứng tuyển]
 
     %% FR2 - Job CRUD
     EMP --> UC11[Đăng tin tuyển dụng ✅]
     EMP --> UC12[Sửa tin tuyển dụng ✅]
     EMP --> UC13[Đóng / Xóa tin tuyển dụng ✅]
+    EMP --> UC25[Đánh dấu tin đã tìm được người / mở lại]
+    EMP --> UC26[Đăng lại tin từ tin cũ]
 
     %% FR6 - Rating
     JS --> UC14[Đánh giá Employer sau khi hoàn thành]
@@ -85,8 +91,16 @@ flowchart LR
 | UC19 | Gỡ / khôi phục tin đăng (tin hiện ngay, không duyệt trước — 2026-10-02) | FR10 | ADM | ✅ Tuần 7 |
 | UC20 | Khóa / Mở khóa tài khoản user | FR10 | ADM | ✅ Tuần 7 |
 | UC21 | Quên mật khẩu (đặt lại bằng mã gửi qua email) | FR1 | JS, EMP | ✅ Tuần 8 (bổ sung 2026-10-05) |
+| UC22 | Khai lịch rảnh lặp lại (chọn các thứ trong tuần + khung giờ, lặp trong 1 tuần / 1 tháng / đến ngày) — mở rộng UC4 | FR3 | JS | Tuần 9 (bổ sung 2026-10-14) |
+| UC23 | Cập nhật hồ sơ cá nhân (họ tên, giới tính, năm sinh, khu vực sinh sống, mô tả) | FR3 | JS | Tuần 9 (bổ sung 2026-10-14) |
+| UC24 | Xem hồ sơ người ứng tuyển (hồ sơ + lịch rảnh sắp tới) | FR5 | EMP | Tuần 9 (bổ sung 2026-10-14) |
+| UC25 | Đánh dấu tin đã tìm được người / mở lại tuyển | FR2 | EMP | Tuần 9 (bổ sung 2026-10-14) |
+| UC26 | Đăng lại tin từ tin cũ (tạo tin mới, tin cũ giữ nguyên) | FR2 | EMP | Tuần 9 (bổ sung 2026-10-14) |
 
 ## Ghi chú
 - Actor **Hệ thống** đại diện cho các use case do backend tự kích hoạt (gửi mã xác minh, tính lại gợi ý khi có job mới, sinh thông báo) — không phải người dùng chủ động gọi, nhưng vẫn là một luồng nghiệp vụ cần cài đặt.
 - `UC3` (xác minh) **tách làm 2 phần** theo quyết định đã chốt (`docs/PROJECT_PLAN.md` mục 3.1): khung xác minh (cột `verification_code`/`verification_code_expires_at` trên `users` + endpoint `/auth/verify`) làm ở tuần 1-5 vì nằm chung luồng đăng ký, tách sau sẽ phải sửa lại schema đã có; phần tích hợp provider gửi email/SMS thật để tuần 6-12. Trong giai đoạn tuần 1-5, `email_verified`/`phone_verified = false` **không chặn đăng nhập**.
 - `UC9` (hủy đơn) và `UC20` (khóa/mở khóa) là chi tiết hóa FR5/FR10 đã có, không phải tính năng mới — đã cập nhật vào bảng FR gốc. `UC9` vào tuần 1-5 (chỉ là 1 transition trạng thái `pending → cancelled`); `UC20` theo FR10 ở tuần 6-12.
+- `UC22`–`UC26` bổ sung Tuần 9 (2026-10-14) theo nhu cầu thực tế, không đổi số UC cũ. Số người đang ứng tuyển một việc (đếm đơn `pending` + `accepted`) **không tách thành UC riêng**: chỉ là thông tin hiển thị thêm trong `UC5`, `UC6`, `UC8`.
+- `UC23`: giới tính và năm sinh **chỉ để employer tham khảo**, AI không dùng khi chấm điểm gợi ý (tránh phân biệt đối xử theo giới tính/tuổi).
+- `UC24`: employer chỉ xem được hồ sơ người **đã ứng tuyển vào tin của mình**; người khác → 404 (không tiết lộ tài khoản có tồn tại hay không).

@@ -92,6 +92,17 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | FR9 | Thông báo in-app khi có sự kiện liên quan | Tuần 6-12 — ✅ Tuần 7 (PR #17/#18, đã lên production): đơn mới, đơn được nhận/từ chối, tin bị gỡ (kèm lý do)/khôi phục, kết quả báo cáo; chuông trên header, tải lại khi chuyển trang (không realtime) |
 | FR10 | Admin duyệt tin đăng, khóa/mở khóa tài khoản user, xử lý report | Tuần 6-12 — ✅ Tuần 7 (PR #16, đã lên production): gỡ/khôi phục tin (tin hiện ngay, không duyệt trước — 2026-10-02), khoá/mở khoá user; xử lý report làm cùng FR7 |
 
+**Bổ sung Tuần 9 (2026-10-14)** — mở rộng FR2/FR3/FR5 theo nhu cầu thực tế, không thêm FR mới (UC22–UC26, `docs/design/use-case.md`):
+
+| Mở rộng | Nội dung | UC |
+|---|---|---|
+| FR3 | Khai lịch rảnh lặp lại: chọn các thứ trong tuần + khung giờ, lặp trong 1 tuần / 1 tháng / đến ngày (tối đa 92 ngày), xoá cả chuỗi | UC22 |
+| FR3 | Hồ sơ người tìm việc chi tiết: họ tên, giới tính, năm sinh, khu vực sinh sống (AI không dùng giới tính/tuổi) | UC23 |
+| FR5 | Employer xem hồ sơ + lịch rảnh sắp tới của người đã ứng tuyển vào tin của mình | UC24 |
+| FR2 | Employer đánh dấu tin "Đã tìm được người" (ẩn khỏi tìm kiếm/gợi ý, đơn đang chờ tự từ chối kèm thông báo, đơn đã nhận giữ nguyên) và mở lại được | UC25 |
+| FR2 | Đăng lại tin từ tin cũ: form điền sẵn nội dung, tạo tin mới, tin cũ không đổi | UC26 |
+| FR3/FR5 | Hiện số người đang ứng tuyển (đơn chờ duyệt + đã nhận) trên thẻ việc ở Tìm việc, Gợi ý và Đơn ứng tuyển của tôi | — |
+
 ## 3.2 Non-functional Requirements
 - **Hiệu năng:** TF-IDF chạy local, không phụ thuộc API ngoài — tránh độ trễ mạng và chi phí khi demo
 - **Bảo mật:** JWT + refresh token, hashing password (bcrypt/argon2), RBAC enforce ở backend (không chỉ ẩn/hiện UI), rate limiting cho endpoint nhạy cảm

@@ -416,13 +416,23 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
   const [end, setEnd] = useState('11:00')
   const [repeat, setRepeat] = useState(false)
   const [weekdays, setWeekdays] = useState(() => [weekdayOf(day)])
+  // Chưa tự chọn thứ nào thì thứ mặc định đi theo ngày bắt đầu
+  const [touched, setTouched] = useState(false)
   const [span, setSpan] = useState('month')
   const [customUntil, setCustomUntil] = useState(() => addDays(day, 13))
   const { error, busy, wrap } = useSubmit()
   const bad = end <= start
   const until = span === 'week' ? addDays(date, 6) : span === 'month' ? addDays(date, 29) : customUntil
   const days = repeat && !bad ? seriesDays(date, until, weekdays, end) : []
-  const toggle = (w: number) => setWeekdays((ws) => (ws.includes(w) ? ws.filter((x) => x !== w) : [...ws, w].sort()))
+  const shortDay = (d: string) => fmtDay(`${d}T00:00`).replace(', ', ' ')  // "T3 27/10" không bị ngắt dòng giữa
+  function toggle(w: number) {
+    setTouched(true)
+    setWeekdays((ws) => (ws.includes(w) ? ws.filter((x) => x !== w) : [...ws, w].sort()))
+  }
+  function pickDate(d: string) {
+    setDate(d)
+    if (!touched && d) setWeekdays([weekdayOf(d)])
+  }
 
   const save = wrap(async () => {
     if (repeat) {
@@ -437,12 +447,14 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
   })
 
   return (
-    <form onSubmit={save}>
+    // Thân form cuộn được, chân (Huỷ/Lưu) luôn ở đáy: bật lặp lại thì form cao hơn màn hình
+    <form onSubmit={save} className="flex max-h-[calc(100vh-48px)] flex-col">
       <ModalHeader title="Thêm khoảng rảnh" onClose={onClose} />
-      <div className="flex flex-col gap-[18px] px-7 py-5">
+      <div className="flex min-h-0 flex-col gap-[18px] overflow-auto px-7 py-5">
         <label className="field">
-          <span className="label">{repeat ? 'Bắt đầu từ ngày' : 'Ngày'}</span>
-          <input type="date" required className="input" value={date} min={dateInput(new Date())} onChange={(e) => setDate(e.target.value)} />
+          <span className="label">{repeat ? 'Lặp từ ngày' : 'Ngày'}</span>
+          <input type="date" required className="input" value={date} min={dateInput(new Date())} onChange={(e) => pickDate(e.target.value)} />
+          {repeat && <span className="text-sm text-stone-500">Chỉ tạo buổi vào các thứ bạn chọn bên dưới, tính từ ngày này.</span>}
         </label>
         <div className="field">
           <div className="flex items-baseline justify-between"><span className="label">Điền nhanh</span><span className="text-sm text-stone-500">Chỉ điền sẵn giờ, bạn vẫn sửa được</span></div>
@@ -459,7 +471,7 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
           <label className="field"><span className="label">Giờ kết thúc</span>
             <input type="time" required className="input text-lg font-semibold tabular-nums" value={end} aria-invalid={bad} onChange={(e) => setEnd(e.target.value)} /></label>
         </div>
-        {bad ? <FieldError>Giờ kết thúc phải sau giờ bắt đầu. Khoảng rảnh qua nửa đêm thì tách thành 2 khoảng.</FieldError> : (
+        {bad ? <FieldError>Giờ kết thúc phải sau giờ bắt đầu. Khoảng rảnh qua nửa đêm thì tách thành 2 khoảng.</FieldError> : !repeat && (
           <div className="flex flex-col gap-1.5">
             <span className="text-sm text-stone-600">Xem trước ngày {fmtDay(`${date}T00:00`)}</span>
             <div className="relative h-9 rounded-lg border border-stone-200 bg-stone-50">
@@ -498,15 +510,19 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
               </div>
             </div>
             <div className={`text-sm ${days.length ? 'text-teal-800' : 'text-amber-800'}`}>
-              {days.length
-                ? `Sẽ tạo ${days.length} buổi rảnh ${start}–${end}, từ ${fmtDay(`${days[0]}T00:00`)} đến ${fmtDay(`${days[days.length - 1]}T00:00`)}.`
-                : bad ? '' : 'Không có buổi nào khớp các thứ đã chọn trong khoảng ngày này.'}
+              {days.length ? (
+                <>
+                  <b className="font-semibold">Sẽ tạo {days.length} buổi rảnh {start}–{end}:</b>{' '}
+                  {days.slice(0, 8).map(shortDay).join(' · ')}
+                  {days.length > 8 && ` … đến ${shortDay(days[days.length - 1])}`}
+                </>
+              ) : bad ? '' : 'Không có buổi nào khớp các thứ đã chọn trong khoảng ngày này.'}
             </div>
           </div>
         )}
         {error && <FieldError>{error}</FieldError>}
       </div>
-      <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
+      <div className="flex shrink-0 justify-end gap-3 border-t border-stone-200 px-7 py-4">
         <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
         <button className="btn btn-primary h-12 px-6" disabled={busy || bad || (repeat && !days.length)}>
           {busy && <Spinner />}{repeat ? `Lưu ${days.length} buổi rảnh` : 'Lưu khoảng rảnh'}

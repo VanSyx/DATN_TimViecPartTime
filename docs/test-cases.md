@@ -352,9 +352,10 @@ Seed lại trước khi chạy. Chạy theo thứ tự bảng (CNT trước FILL
 | SPR-01 | P1 | Employer xem hồ sơ người ứng tuyển | huong → J1 → "Xem đơn" → bấm "Nguyễn Thị Lan" | Trang hồ sơ: "Nữ · N tuổi (sinh năm 2005) · Phường Bạch Mai, Hà Nội", đánh giá, mô tả, email, SĐT, lịch rảnh sắp tới theo ngày (`screenshots/week9/spr-01-ho-so-ung-vien.png`) | Đạt |
 | SPR-02 | P1 | Không xem được người không ứng tuyển tin mình | tuan mở `/employer/seekers/<id lan>` | "Không tìm thấy hồ sơ" (API 404, không lộ tài khoản có tồn tại) | Đạt |
 | SPR-03 | P2 | Chưa khai họ tên | nhahang → J11 → bấm tên tuananh | Hiện email thay tên; "Chưa có số điện thoại" | Đạt |
-| SER-01 | P1 | Khai lịch rảnh lặp lại | phuong → "Thêm khoảng rảnh" → tick "Lặp lại hằng tuần" → chọn T3, T5, 13:00–17:00, "1 tháng" → "Lưu N buổi rảnh" | Dòng xem trước "Sẽ tạo N buổi rảnh … từ … đến …" (8–9 buổi); toast "Đã lưu N buổi rảnh"; DB có N dòng cùng 1 `series_id`, đều rơi vào T3/T5 lúc 13:00 giờ VN | Đạt |
+| SER-01 | P1 | Khai lịch rảnh lặp lại | phuong → "Thêm khoảng rảnh" → tick "Lặp lại hằng tuần" → chọn T3, T5, 13:00–17:00, "1 tháng" → "Lưu N buổi rảnh" | Nhãn ngày đổi thành "Lặp từ ngày"; dòng xem trước "Sẽ tạo N buổi rảnh 13:00–17:00: T3 dd/mm · T5 dd/mm · …" liệt kê đúng các ngày (8–9 buổi, quá 8 thì "… đến <ngày cuối>"); nút Lưu/Huỷ luôn thấy được ở màn 1440×900 (thân modal cuộn); toast "Đã lưu N buổi rảnh"; DB có N dòng cùng 1 `series_id`, đều rơi vào T3/T5 lúc 13:00 giờ VN | Đạt |
 | SER-02 | P2 | Bỏ hết các thứ | Tick "Lặp lại" rồi bỏ chọn mọi thứ | "Không có buổi nào khớp…"; nút "Lưu 0 buổi rảnh" bị khoá | Đạt |
 | SER-03 | P2 | Giới hạn "Đến ngày…" | Chọn "Đến ngày…"; đổi ngày bắt đầu thành ngày mai rồi chọn "1 tuần" | Ô ngày kết thúc tối đa 92 ngày sau ngày bắt đầu; "1 tuần" tạo đúng 1 buổi | Đạt |
+| SER-08 | P2 | Thứ mặc định theo ngày bắt đầu | Mở "Thêm khoảng rảnh" → tick "Lặp lại" → đổi "Lặp từ ngày"; bấm thêm CN rồi đổi ngày lần nữa | Thanh "Xem trước ngày …" (chỉ dành cho khai 1 ngày) ẩn đi; chưa bấm chip thì chip đổi theo thứ của ngày mới; đã bấm chip thì đổi ngày không ghi đè lựa chọn | Đạt |
 | SER-04 | P1 | Xoá 1 buổi trong chuỗi | Bấm X trên 1 khối có biểu tượng lặp → "Chỉ buổi này" | Hỏi "Xoá khoảng rảnh lặp lại?" kèm số buổi của chuỗi; chỉ mất đúng 1 buổi | Đạt |
 | SER-05 | P1 | Xoá cả chuỗi | Bấm X → "Xoá cả chuỗi" | Toast "Đã xoá cả chuỗi lịch rảnh"; toàn bộ chuỗi biến mất | Đạt |
 | SER-06 | P2 | Khoảng khai lẻ vẫn xoá ngay | lan → X trên khối T7 08:00–10:00 | Xoá ngay, không hỏi chuỗi | Đạt |
@@ -481,13 +482,13 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 12. Đăng / sửa tin | 19 | 19 | 0 | 0 |
 | 13. Đơn của một tin | 10 | 10 | 0 | 0 |
 | 13b. Đánh giá hai chiều | 9 | 9 | 0 | 0 |
-| 13c. Bổ sung Tuần 9 | 23 | 23 | 0 | 0 |
+| 13c. Bổ sung Tuần 9 | 24 | 24 | 0 | 0 |
 | 14. Quản trị | 10 | 10 | 0 | 0 |
 | 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
 | 17. Production | 12 | 12 | 0 | 0 |
-| **Tổng** | **276** | **276** | **0** | **0** |
+| **Tổng** | **277** | **277** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-password` (xem mục 26); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 
@@ -573,3 +574,5 @@ Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-passwor
 - **Mục 16**: backend **70** test (thêm 8: sinh chuỗi đúng thứ và giờ VN, giới hạn 92 ngày, bỏ buổi đã qua, xoá chuỗi chỉ của mình, hồ sơ cập nhật từng phần + validate năm sinh, chỉ employer có đơn mới xem được hồ sơ, `applicant_count` không đếm đơn hủy/bị từ chối, filled ẩn tin + từ chối đơn chờ + giữ đơn đã nhận + mở lại), ai-service 22, build, lint 0 lỗi, `offline_eval.py` chạy được.
 - **Case cũ đổi kỳ vọng vì Tuần 9** (PROF-09, PROF-13, EMP-01, EMP-03, APPL-01, APPL-02, APPL-04, APPL-10): sửa kỳ vọng ở bảng trên; PROF-13, APPL-01, APPL-02, APPL-04 chạy lại tự động **4/4 Đạt**; các case còn lại được case 13c kiểm (ghi kèm ID).
 - **Mục 1–15 còn lại (hồi quy)**: chưa chạy lại toàn bộ — bộ script tự động của các lần trước nằm trong thư mục tạm và đã bị dọn. Kết quả "Đạt" ở các mục này là của lần chạy 2026-10-05 (mục 26).
+- **Góp ý khi xem bản local (2026-10-14)**: bật "Lặp lại hằng tuần" thì nút Lưu/Huỷ bị cắt khỏi modal ở màn 900px (modal `overflow-hidden`, form cao hơn màn hình) — sửa: thân form cuộn, chân cố định. Giao diện lặp gây hiểu lầm (thanh "Xem trước ngày T5" vẫn hiện dù T5 không được chọn; câu "từ … đến …" là ngày buổi đầu/cuối) — sửa: ẩn thanh xem trước 1 ngày, nhãn "Lặp từ ngày" + dòng giải thích, liệt kê các ngày sẽ tạo, chip mặc định theo ngày bắt đầu. Logic sinh buổi không đổi. Chạy lại 13c: **24/24** (thêm SER-08).
+

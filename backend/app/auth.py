@@ -9,7 +9,7 @@ import httpx
 import jwt
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
-from pydantic import BaseModel, EmailStr, Field
+from pydantic import BaseModel, EmailStr, Field, field_validator
 from sqlalchemy import select
 from sqlalchemy.orm import Session
 
@@ -81,12 +81,34 @@ class UserOut(BaseModel):
     email_verified: bool
     phone_verified: bool
     description: str | None
+    full_name: str | None = None
+    gender: Literal["male", "female", "other"] | None = None
+    birth_year: int | None = None
+    ward: str | None = None
+    city: str | None = None
 
     model_config = {"from_attributes": True}
 
 
 class ProfileIn(BaseModel):
-    description: str = Field(max_length=2000)
+    """PATCH: chỉ trường được gửi mới ghi đè; gửi null để xoá."""
+
+    description: str | None = Field(None, max_length=2000)
+    full_name: str | None = Field(None, max_length=100)
+    gender: Literal["male", "female", "other"] | None = None
+    birth_year: int | None = None
+    ward: str | None = Field(None, max_length=100)
+    city: str | None = Field(None, max_length=100)
+
+    model_config = {"str_strip_whitespace": True}
+
+    @field_validator("birth_year")
+    @classmethod
+    def _check_birth_year(cls, v):
+        # Lao động từ đủ 15 tuổi (Bộ luật Lao động 2019, Điều 143)
+        if v is not None and not 1940 <= v <= datetime.now().year - 15:
+            raise ValueError("Năm sinh không hợp lệ (phải từ đủ 15 tuổi)")
+        return v
 
 
 class TokenOut(BaseModel):
@@ -297,8 +319,9 @@ def me(user: User = Depends(get_current_user)):
 def update_profile(
     body: ProfileIn, user: User = Depends(require_role(Role.JOB_SEEKER)), db: Session = Depends(get_db)
 ):
-    """Mô tả tự do của job seeker — đầu vào của semantic_score."""
-    user.description = body.description
+    """Hồ sơ job seeker. Riêng description là đầu vào của semantic_score."""
+    for key, value in body.model_dump(exclude_unset=True).items():
+        setattr(user, key, value)
     db.commit()
     db.refresh(user)
     return user

@@ -330,7 +330,7 @@ Thiết kế này giải quyết cold-start **bằng kiến trúc** (không cầ
 | `docs/design/erd.md`, `docs/design/use-case.md`, `docs/design/sequence-diagram.md` | Thiết kế hệ thống (Mermaid, render sẵn trên GitHub) — ✅ đã tạo |
 | API spec (OpenAPI/Swagger) | Hoàn thành khung tuần 1, cập nhật liên tục khi có thay đổi endpoint |
 | `CLAUDE.md` | Hướng dẫn workflow cho AI agent, quy tắc coding, giới hạn tuyệt đối — ✅ đã tạo, cập nhật theo từng tuần |
-| Báo cáo tốt nghiệp (các chương) | ✅ Đã có bộ biểu mẫu của Khoa (2026-10-05, lưu ngoài repo ở `D:/DATN_backup/MAIN_BIEU MAU THUC HIEN DO AN TOT NGHIEP v3/`). Khung chương, định dạng và đối chiếu rubric: `docs/bao-cao/00-khung-bao-cao.md` |
+| Báo cáo tốt nghiệp (các chương) | ✅ Đã có bộ biểu mẫu của Khoa (2026-10-05, lưu ngoài repo ở `D:/DATN_backup/MAIN_BIEU MAU THUC HIEN DO AN TOT NGHIEP v3/`). Khung chương, định dạng và đối chiếu rubric giữ ở máy (`docs/bao-cao/`, không đưa lên git) |
 
 ---
 

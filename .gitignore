@@ -16,3 +16,7 @@ dist/
 
 # báo cáo Word nộp GVHD — giữ ở máy, không đưa lên git
 *.docx
+
+# báo cáo và tài liệu bảo vệ — giữ ở máy, không đưa lên git
+docs/bao-cao/
+docs/bao-ve/

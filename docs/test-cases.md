@@ -131,6 +131,7 @@ Tiền điều kiện: vừa đăng ký xong ở REG-01 (đang ở `/verify`), l
 | SEC-13 | P1 | Xoá lịch rảnh của người khác | Token của hung → `DELETE /availability/{id lịch của lan}` | 404 | Đạt |
 | SEC-14 | P2 | Đường dẫn không tồn tại | Mở `/abc/xyz` | Về trang chủ `/` | Đạt |
 | SEC-15 | P2 | Mật khẩu không lưu dạng rõ | SQL `SELECT email, password_hash FROM users LIMIT 3;` | Cột hash dạng `$2b$…` (bcrypt), không thấy `matkhau123`. Mã xác minh cũng lưu dạng hash | Đạt |
+| SEC-16 | P1 | Đóng tin đã bị quản trị viên gỡ | Admin gỡ tin X → token chủ tin `DELETE /jobs/{X}` → admin khôi phục X → chủ tin bấm "Đã tìm được người" rồi `DELETE /jobs/{X}` | Lần đầu 409 "Tin không còn ở trạng thái đóng được", tin vẫn ở trạng thái bị gỡ nên admin khôi phục được (200); tin "đã tìm được người" thì đóng được (204) | Đạt (pytest `test_employer_cannot_close_job_removed_by_admin`, 2026-11-23) |
 
 ## 5. Trang chủ giới thiệu (S0, khách)
 
@@ -471,7 +472,7 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 1. Đăng ký | 13 | 13 | 0 | 0 |
 | 2. Xác minh email | 12 | 12 | 0 | 0 |
 | 3. Đăng nhập | 16 | 16 | 0 | 0 |
-| 4. Phân quyền | 15 | 15 | 0 | 0 |
+| 4. Phân quyền | 16 | 16 | 0 | 0 |
 | 5. Trang chủ | 22 | 22 | 0 | 0 |
 | 6. Tìm việc | 18 | 18 | 0 | 0 |
 | 7. Chi tiết việc | 6 | 6 | 0 | 0 |
@@ -488,7 +489,7 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
 | 17. Production | 12 | 12 | 0 | 0 |
-| **Tổng** | **277** | **277** | **0** | **0** |
+| **Tổng** | **278** | **278** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-password` (xem mục 26); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 

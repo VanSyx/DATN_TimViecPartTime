@@ -406,8 +406,13 @@ def update_job(
 
 @router.delete("/jobs/{job_id}", status_code=status.HTTP_204_NO_CONTENT, tags=["jobs"])
 def close_job(job_id: uuid.UUID, user: User = Depends(employer), db: Session = Depends(get_db)):
-    # Đóng mềm: giữ lại bản ghi vì applications còn tham chiếu tới job
-    get_own_job(job_id, user, db).status = "closed"
+    # Đóng mềm: giữ lại bản ghi vì applications còn tham chiếu tới job.
+    # Chỉ đóng tin open/filled: tin admin đã gỡ mà chủ đóng được thì admin không khôi phục được nữa
+    job = get_own_job(job_id, user, db)
+    result = db.execute(update(Job).where(Job.id == job.id, Job.status.in_(("open", "filled"))).values(status="closed"))
+    if result.rowcount == 0:
+        db.rollback()
+        raise HTTPException(status.HTTP_409_CONFLICT, "Tin không còn ở trạng thái đóng được")
     db.commit()
     return Response(status_code=status.HTTP_204_NO_CONTENT)
 

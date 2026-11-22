@@ -361,6 +361,15 @@ def test_admin_cannot_reopen_job_closed_by_employer(client, admin, employer):
     assert client.patch(f"/admin/jobs/{job['id']}", json={"status": "open"}, headers=admin).status_code == 409
 
 
+def test_employer_cannot_close_job_removed_by_admin(client, admin, employer):
+    job = create_job(client, employer)
+    client.patch(f"/admin/jobs/{job['id']}", json={"status": "rejected"}, headers=admin)
+    assert client.delete(f"/jobs/{job['id']}", headers=employer).status_code == 409
+    assert client.patch(f"/admin/jobs/{job['id']}", json={"status": "open"}, headers=admin).status_code == 200
+    client.patch(f"/jobs/{job['id']}/status", json={"status": "filled"}, headers=employer)
+    assert client.delete(f"/jobs/{job['id']}", headers=employer).status_code == 204  # filled vẫn đóng được
+
+
 def test_block_user_takes_effect_immediately_and_hides_their_jobs(client, admin, employer, seeker):
     job = create_job(client, employer)
     emp = me(client, employer)

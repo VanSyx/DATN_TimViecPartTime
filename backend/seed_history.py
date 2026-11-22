@@ -1,7 +1,7 @@
 """Giả lập ~3 tháng sử dụng: người tìm việc, người giao việc, tin, đơn, đánh giá, báo cáo, thông báo.
 
 Khác seed.py (vài tài khoản cố định để test tay): script này dựng lịch sử như thể hệ thống đã chạy từ ~90 ngày
-trước tới nay — tin cũ đã xong và được đánh giá, tin mới đang mở trong 2 tuần tới, có mùa Trung thu, có 1 tài
+trước tới nay — tin cũ đã xong và được đánh giá, tin mới đang mở tới sau ngày bảo vệ (AHEAD), có mùa Trung thu, có 1 tài
 khoản lừa đảo bị khoá, 1 người nhận việc rồi bùng bị khoá, vài báo cáo đang chờ admin.
 
 Chạy (dev):  docker compose exec backend python seed_history.py
@@ -27,6 +27,9 @@ DOMAIN = "@example.net"
 PASSWORD = os.environ.get("SEED_PASSWORD", "matkhau123")
 NOW = datetime.now(VN)
 rng = random.Random(TODAY.toordinal())
+# Tin + lịch rảnh kéo tới 13/01/2027 (2 tuần sau buổi bảo vệ 30/12/2026) để ngày demo vẫn còn việc sắp tới;
+# qua mốc đó thì về lại 13 ngày như cũ
+AHEAD = max(13, (datetime(2027, 1, 13, tzinfo=VN) - TODAY).days)
 WEEKDAYS, WEEKEND, EVERYDAY = {T2, T3, T4, T5, T6}, {T7, CN}, set(range(7))
 HN, HCM, DN = "Hà Nội", "TP. Hồ Chí Minh", "Đà Nẵng"
 # Nhóm việc: tin thuộc nhóm nào thì người có kỹ năng nhóm đó mới ứng tuyển
@@ -60,6 +63,75 @@ LOC = {  # (đường, phường, thành phố, lat, lng)
     "ngoquyen": ("Kiệt 75 Ngô Quyền", "Phường An Hải", DN, 16.0650, 108.2350),
     "ledinhly": ("Kiệt 25 Lê Đình Lý", "Phường Thanh Khê", DN, 16.0600, 108.2080),
 }
+
+HP, CT, HUE, KH = "Hải Phòng", "Cần Thơ", "Huế", "Khánh Hòa"
+# Nhà khách của các bên dịch vụ (cột địa điểm của EMPLOYERS ghi tên tỉnh/thành): mỗi tin bốc 1 địa chỉ trong
+# danh sách đó, nên tin rải khắp thành phố thay vì dồn ở 1 chỗ. Cùng dạng với LOC.
+AREAS = {city: [(street, ward, city, lat, lng) for street, ward, lat, lng in rows] for city, rows in {
+    HN: [
+        ("Ngõ 120 Hoàng Quốc Việt", "Phường Nghĩa Đô", 21.0465, 105.7985),
+        ("Khu đô thị Việt Hưng, đường Đoàn Khuê", "Phường Việt Hưng", 21.0590, 105.9000),
+        ("Ngõ 165 Thái Hà", "Phường Đống Đa", 21.0130, 105.8195),
+        ("Ngõ 99 Định Công Hạ", "Phường Định Công", 20.9830, 105.8340),
+        ("Ngõ 381 Nguyễn Khang", "Phường Yên Hòa", 21.0255, 105.7985),
+        ("Vinhomes Smart City, đường Lê Trọng Tấn", "Phường Tây Mỗ", 21.0040, 105.7440),
+        ("Goldmark City, 136 Hồ Tùng Mậu", "Phường Phú Diễn", 21.0410, 105.7700),
+        ("Ngõ 230 Lạc Trung", "Phường Vĩnh Tuy", 21.0040, 105.8640),
+        ("Khu đô thị Ciputra, đường Nguyễn Văn Huyên", "Phường Phú Thượng", 21.0790, 105.8060),
+        ("Ngõ 1 Bùi Xương Trạch", "Phường Khương Đình", 20.9930, 105.8180),
+        ("Ngõ 105 Bạch Mai", "Phường Bạch Mai", 21.0050, 105.8500),
+        ("Phố Gia Thụy", "Phường Long Biên", 21.0450, 105.8870),
+        ("Ngõ 15 Thụy Khuê", "Phường Tây Hồ", 21.0430, 105.8180),
+        ("Chung cư Park Hill, 458 Minh Khai", "Phường Vĩnh Tuy", 20.9985, 105.8655),
+    ],
+    HCM: [
+        ("Hẻm 66 Nguyễn Văn Thương", "Phường Thạnh Mỹ Tây", 10.8050, 106.7140),
+        ("Vinhomes Grand Park, đường Nguyễn Xiển", "Phường Long Bình", 10.8420, 106.8380),
+        ("Hẻm 18 Võ Văn Ngân", "Phường Thủ Đức", 10.8500, 106.7600),
+        ("Sunrise City, 23 Nguyễn Hữu Thọ", "Phường Tân Hưng", 10.7460, 106.7010),
+        ("Khu Phú Mỹ Hưng, đường Nguyễn Văn Linh", "Phường Tân Mỹ", 10.7290, 106.7190),
+        ("Hẻm 42 Trần Quang Khải", "Phường Tân Định", 10.7920, 106.6890),
+        ("Hẻm 350 Nguyễn Văn Lượng", "Phường Gò Vấp", 10.8380, 106.6750),
+        ("Hẻm 25 Cộng Hòa", "Phường Tân Bình", 10.8010, 106.6530),
+        ("Hẻm 15 Trần Hưng Đạo", "Phường Chợ Quán", 10.7560, 106.6820),
+        ("The Sun Avenue, 28 Mai Chí Thọ", "Phường Bình Trưng", 10.7870, 106.7490),
+        ("Celadon City, đường Bờ Bao Tân Thắng", "Phường Phú Thạnh", 10.8020, 106.6170),
+    ],
+    DN: [
+        ("Kiệt 12 Hồ Nghinh", "Phường Sơn Trà", 16.0700, 108.2420),
+        ("Khu đô thị FPT City", "Phường Ngũ Hành Sơn", 15.9800, 108.2600),
+        ("Đường Nguyễn Hữu Thọ", "Phường Hòa Cường", 16.0330, 108.2140),
+        ("Kiệt 30 Tôn Đức Thắng", "Phường Hòa Khánh", 16.0730, 108.1500),
+        ("Đường Cách Mạng Tháng 8", "Phường Cẩm Lệ", 16.0100, 108.2050),
+        ("Kiệt 60 Trường Chinh", "Phường An Khê", 16.0520, 108.1860),
+        ("Đường Võ Nguyên Giáp, gần biển Mỹ Khê", "Phường Ngũ Hành Sơn", 16.0450, 108.2500),
+        ("Kiệt 120 Hoàng Diệu", "Phường Hải Châu", 16.0590, 108.2170),
+    ],
+    HP: [
+        ("Ngõ 125 Lạch Tray", "Phường Ngô Quyền", 20.8530, 106.6920),
+        ("Vinhomes Imperia, đường Bạch Đằng", "Phường Hồng Bàng", 20.8640, 106.6610),
+        ("Ngõ 200 Tô Hiệu", "Phường Lê Chân", 20.8470, 106.6750),
+        ("Đường Văn Cao", "Phường Hải An", 20.8420, 106.7080),
+    ],
+    CT: [
+        ("Hẻm 51 đường 3 Tháng 2", "Phường Ninh Kiều", 10.0270, 105.7700),
+        ("Đường Trần Văn Khéo", "Phường Cái Khế", 10.0450, 105.7860),
+        ("Hẻm 132 Mậu Thân", "Phường Tân An", 10.0330, 105.7770),
+        ("Khu dân cư Hồng Loan", "Phường Hưng Phú", 10.0130, 105.7820),
+    ],
+    HUE: [
+        ("Kiệt 15 Lê Lợi", "Phường Thuận Hóa", 16.4630, 107.5900),
+        ("Đường Phạm Văn Đồng", "Phường Vỹ Dạ", 16.4770, 107.6060),
+        ("Kiệt 42 Đặng Thái Thân", "Phường Phú Xuân", 16.4730, 107.5780),
+        ("Đường Hùng Vương", "Phường An Cựu", 16.4570, 107.6010),
+    ],
+    KH: [
+        ("Đường Trần Phú", "Phường Nha Trang", 12.2390, 109.1960),
+        ("Hẻm 18 Nguyễn Thiện Thuật", "Phường Nha Trang", 12.2420, 109.1930),
+        ("Khu đô thị VCN Phước Long", "Phường Nam Nha Trang", 12.2090, 109.1950),
+        ("Đường Phạm Văn Đồng, gần Hòn Chồng", "Phường Bắc Nha Trang", 12.2720, 109.2020),
+    ],
+}.items()}
 
 
 def T(title, descs, cat, days, start, end, salary, rate, heads=1, window=None):
@@ -168,11 +240,11 @@ EMPLOYERS = [
             "Nấu tối như mọi hôm. Hôm nay có ông bà nội lên chơi nên nấu cho 6 người nhé."],
           NAU, {T2, T3, T4, T5}, "16:00", "19:00", 200_000, 1.0),
     ], None),
-    ("dichvutiec.thanhnam", "0904 991 238", 82, "nct", "stingy", [
+    ("dichvutiec.thanhnam", "0904 991 238", 82, HN, "stingy", [
         T("Phục vụ tiệc buffet công ty", [
             "Bên mình nhận tổ chức tiệc buffet, cần bạn phục vụ: bày đồ ăn, thay khay, dọn bàn. Mặc áo trắng quần đen, "
-            "có mặt trước giờ tiệc 30 phút để phổ biến công việc. Tiệc ở các toà văn phòng khu Cầu Giấy, Đống Đa, "
-            "sẽ báo địa chỉ cụ thể.",
+            "có mặt trước giờ tiệc 30 phút để phổ biến công việc. Tiệc ở các toà văn phòng, nhà hàng khắp nội "
+            "thành, địa chỉ ghi trên tin.",
             "Tiệc của một công ty khoảng 150 khách. Cần 3 bạn phục vụ, ưu tiên nam cao ráo."],
           TIEC, {T5, T6, T7}, "17:00", "21:30", 300_000, 0.6, heads=3),
     ], None),
@@ -261,6 +333,96 @@ EMPLOYERS = [
         T("Nấu cơm trưa + dọn nhà", [
             "Nhà có ông bà lớn tuổi ở nhà ban ngày, cần người đi chợ nấu cơm trưa món miền Trung, dọn dẹp nhà cửa nhẹ "
             "nhàng. Ông bà dễ tính."], NAU, {T2, T4, T6}, "09:00", "12:30", 180_000, 0.4),
+    ], None),
+    # ---- Bên dịch vụ: tin đặt ở nhà khách, rải khắp thành phố (AREAS) ----
+    ("giupviec24h.hn", "0247 300 2468", 76, HN, "good", [
+        T("Dọn nhà theo giờ cho khách", [
+            "Bên mình là dịch vụ giúp việc theo giờ. Khách đặt dọn căn hộ 2 phòng ngủ: hút bụi, lau nhà, lau bếp, dọn "
+            "nhà tắm. Dụng cụ khách có sẵn, bạn chỉ cần đến đúng giờ theo địa chỉ trên tin.",
+            "Khách quen của công ty, nhà nhỏ, chủ yếu lau dọn và rửa bát. Đến nơi gọi số hotline để bên mình báo khách.",
+            "Nhà phố 3 tầng, khách đi làm cả ngày nên sẽ gửi chìa khoá ở bảo vệ. Làm xong chụp ảnh gửi lại công ty."],
+          DON, EVERYDAY, "08:00", "11:00", 200_000, 3.0),
+        T("Tổng vệ sinh nhà sau sửa chữa", [
+            "Khách vừa sơn sửa xong căn hộ, cần 2 bạn tổng vệ sinh: lau sàn, lau kính, cạo vết sơn, hút bụi. Công ty cấp "
+            "găng tay, khẩu trang và hoá chất.",
+            "Nhà mới nhận bàn giao, bụi xi măng nhiều. Làm cả ngày, nghỉ trưa 1 tiếng, khách bao cơm trưa."],
+          DON, WEEKEND, "08:00", "16:00", 450_000, 0.8, heads=2),
+        T("Giặt ủi tại nhà khách", [
+            "Khách đặt giặt và ủi đồ tại nhà: khoảng 20 bộ quần áo, ga gối. Nhà có máy giặt, bàn ủi hơi nước.",
+            "Ủi đồ công sở cho gia đình 4 người, khách cần gấp gọn và phân loại theo tủ."],
+          GIAT, {T2, T4, T6}, "14:00", "17:00", 180_000, 1.0),
+    ], None),
+    ("chuyennha.thanhcong", "0965 228 017", 64, HN, "good", [
+        T("Khuân đồ chuyển nhà", [
+            "Bên mình nhận chuyển nhà trọn gói, cần 2 bạn khoẻ khuân đồ lên xuống xe tải, đóng gói đồ dễ vỡ. Có tài xế "
+            "và trưởng nhóm đi cùng.",
+            "Chuyển căn hộ chung cư có thang máy, đồ không nhiều, khoảng 3 tiếng là xong."],
+          VAC, WEEKEND, "07:30", "11:30", 350_000, 1.2, heads=2),
+    ], None),
+    ("donnha.saigon", "0283 911 5566", 72, HCM, "good", [
+        T("Dọn căn hộ theo giờ", [
+            "Dịch vụ dọn nhà theo giờ, khách đặt dọn căn hộ 2PN: lau sàn, lau bếp, dọn toilet, thay ga. Địa chỉ ghi trên "
+            "tin, đến nơi báo bảo vệ toà nhà.",
+            "Căn hộ khách nước ngoài, dọn kỹ khu bếp và ban công. Nói được tiếng Anh cơ bản là điểm cộng."],
+          DON, EVERYDAY, "09:00", "12:00", 210_000, 2.5),
+        T("Nấu cơm chiều cho gia đình", [
+            "Khách đặt người đi chợ và nấu bữa tối cho gia đình 4 người, món miền Nam đơn giản. Tiền chợ khách đưa trước.",
+            "Gia đình có bé nhỏ, nấu ít mặn, có 1 món canh 2 món mặn. Nấu xong dọn bếp giúp khách."],
+          NAU, WEEKDAYS, "16:00", "19:00", 230_000, 1.0),
+    ], None),
+    ("tieccuoi.anphat", "0918 662 450", 68, HCM, "good", [
+        T("Phục vụ tiệc tại gia", [
+            "Bên mình nhận nấu tiệc tại nhà (thôi nôi, tân gia, đám giỗ), cần bạn bưng bê, dọn bàn, rửa chén. Áo đồng "
+            "phục bên mình phát.",
+            "Tiệc tân gia khoảng 10 bàn, cần thêm người phụ dọn và rửa chén sau tiệc."],
+          TIEC, {T6, T7, CN}, "16:00", "21:00", 320_000, 0.8, heads=2),
+    ], None),
+    ("giupviec.danang", "0236 388 1234", 66, DN, "good", [
+        T("Dọn nhà theo giờ", [
+            "Dịch vụ giúp việc theo giờ ở Đà Nẵng, khách đặt dọn nhà 2 tầng: lau nhà, lau cửa kính, dọn bếp. Dụng cụ "
+            "khách có sẵn.",
+            "Căn hộ cho thuê du lịch, dọn sau khi khách trả phòng, giặt khăn bằng máy."],
+          DON, EVERYDAY, "08:00", "11:00", 190_000, 1.8),
+        T("Trông trẻ tại nhà khách", [
+            "Khách cần người trông bé 5 tuổi buổi chiều cuối tuần để bố mẹ đi công việc. Bé ngoan, thích vẽ."],
+          TRE, WEEKEND, "14:00", "18:00", 260_000, 0.6),
+    ], None),
+    ("giupviec.haiphong", "0225 374 6688", 42, HP, "good", [
+        T("Dọn nhà theo giờ", [
+            "Bên mình mới mở dịch vụ giúp việc ở Hải Phòng, khách đặt dọn nhà ống 3 tầng: lau nhà, cầu thang, dọn bếp.",
+            "Khách cần dọn nhà trước khi có khách về chơi, chủ yếu lau dọn và sắp xếp lại đồ."],
+          DON, EVERYDAY, "08:00", "11:00", 180_000, 1.2),
+        T("Phụ bếp, bưng bê đám cưới", [
+            "Đám cưới tại gia khoảng 30 mâm, cần người phụ bếp, bưng mâm, rửa bát. Bao ăn."],
+          TIEC, {T7, CN}, "09:00", "14:00", 300_000, 0.5, heads=2),
+    ], None),
+    ("dichvu.cantho", "0292 381 5577", 40, CT, "good", [
+        T("Dọn nhà theo giờ", [
+            "Dịch vụ dọn nhà theo giờ ở Cần Thơ. Khách đặt dọn nhà phố: quét lau nhà, lau bếp, dọn sân trước.",
+            "Nhà có vườn nhỏ, ngoài dọn trong nhà thì quét sân, tưới cây giúp khách."],
+          DON, EVERYDAY, "07:30", "10:30", 170_000, 1.0),
+        T("Chăm người già ban ngày", [
+            "Khách cần người chăm ông 80 tuổi ban ngày: nấu cháo, cho ông ăn, nhắc uống thuốc, dìu ông đi lại trong nhà."],
+          GIA, WEEKDAYS, "08:00", "12:00", 200_000, 0.8),
+    ], None),
+    ("giupviec.hue", "0234 382 9900", 38, HUE, "good", [
+        T("Dọn nhà theo giờ", [
+            "Dịch vụ giúp việc ở Huế, khách đặt dọn nhà vườn: lau nhà, lau bàn thờ, dọn bếp. Làm nhẹ nhàng, cẩn thận đồ "
+            "gỗ cũ của khách."],
+          DON, EVERYDAY, "08:00", "11:00", 160_000, 1.0),
+        T("Nấu cơm trưa món Huế", [
+            "Khách là gia đình người lớn tuổi, cần người đi chợ nấu cơm trưa món Huế, nêm vừa, ít cay."],
+          NAU, {T2, T3, T4, T5, T6, T7}, "09:30", "12:30", 180_000, 0.8),
+    ], None),
+    ("canho.nhatrang", "0258 352 4466", 45, KH, "good", [
+        T("Dọn căn hộ du lịch sau khi khách trả phòng", [
+            "Bên mình quản lý căn hộ cho thuê du lịch ở Nha Trang, cần dọn sau khi khách trả: thay ga, lau nhà, dọn nhà "
+            "tắm, giặt khăn bằng máy. Cát nhiều nên lau kỹ.",
+            "Mùa khách đông, mỗi ca dọn 2 căn cạnh nhau trong cùng toà."],
+          DON, EVERYDAY, "10:00", "14:00", 200_000, 1.5),
+        T("Trông trẻ cho khách du lịch", [
+            "Khách du lịch thuê căn hộ cần người trông bé buổi tối để bố mẹ đi ăn. Nói được tiếng Anh cơ bản."],
+          TRE, {T5, T6, T7}, "18:00", "21:30", 300_000, 0.5),
     ], None),
 ]
 
@@ -405,6 +567,33 @@ SEEKERS = [
      "SV Kinh tế ĐN, phục vụ nhà hàng tiệc cưới được, buổi tối với cuối tuần.", "good", None),
     ("myle.sontra", None, True, 44, DN, {TRE, DON}, [(WEEKEND, "08:00", "18:00")],
      "Mình ở Sơn Trà, trông bé, dọn nhà cuối tuần.", "good", None),
+    ("lananh.hoakhanh", "0767 215 903", True, 47, DN, {DON, TRE}, [(EVERYDAY, "07:00", "12:00")],
+     "Em ở trọ Hòa Khánh gần ĐH Bách khoa, buổi sáng rảnh, nhận dọn nhà, trông bé.", "good", None),
+    ("thuytien.q7", "0938 406 172", True, 60, HCM, {DON, NAU, GIAT}, [(WEEKDAYS, "08:00", "17:00")],
+     "Chị ở Quận 7 cũ, con đi học cả ngày nên rảnh giờ hành chính. Dọn nhà, nấu cơm, ủi đồ đều được.", "good", None),
+    ("giabao.ute", "0352 908 614", True, 54, HCM, {TIEC, QUAN, VAC},
+     [(WEEKDAYS, "17:30", "22:00"), (WEEKEND, "07:00", "22:00")],
+     "SV Sư phạm Kỹ thuật, tối với cuối tuần rảnh. Phục vụ tiệc, bưng bê, khuân đồ ok, có xe máy.", "good", None),
+    ("thuha.hp", "0936 512 487", True, 40, HP, {DON, GIAT, NAU}, [(WEEKDAYS, "08:00", "15:00")],
+     "Chị ở Lê Chân, nhận dọn nhà, giặt ủi, nấu cơm trưa trong giờ hành chính.", "good", None),
+    ("quanghuy.vmu", "0386 744 015", True, 36, HP, {TIEC, QUAN, VAC},
+     [(WEEKDAYS, "17:30", "22:00"), (WEEKEND, "07:00", "21:00")],
+     "Sinh viên Hàng hải, nhận phụ đám cưới, bưng bê, khuân đồ buổi tối và cuối tuần.", "good", None),
+    ("kimngan.ctu", "0789 302 516", True, 38, CT, {TRE, DON, KEM},
+     [(WEEKDAYS, "13:00", "18:00"), ({T7}, "07:00", "18:00")],
+     "Em sv ĐH Cần Thơ, chiều rảnh, trông bé, kèm bài cấp 1, dọn nhà được ạ.", "good", None),
+    ("cobay.ninhkieu", "0939 118 264", True, 39, CT, {GIA, NAU, DON}, [(EVERYDAY, "07:00", "15:00")],
+     "Cô ở Ninh Kiều, từng chăm má chồng nhiều năm, nhận chăm người già, nấu cơm, dọn nhà ban ngày.", "good", None),
+    ("phuongnhi.hue", "0905 773 410", True, 35, HUE, {DON, NAU, TRE},
+     [(WEEKEND, "07:00", "19:00"), ({T3, T5}, "08:00", "12:30")],
+     "Em sv ĐH Khoa học Huế, nấu được món Huế, nhận dọn nhà, trông bé cuối tuần.", "good", None),
+    ("dinhbao.husc", "0349 620 158", True, 33, HUE, {DON, VAC, QUAN}, [(EVERYDAY, "07:00", "12:00")],
+     "Buổi sáng rảnh, dọn nhà, khuân đồ, phụ quán đều được.", "meh", None),
+    ("thanhthuy.nt", "0914 285 607", True, 44, KH, {DON, GIAT}, [(EVERYDAY, "08:00", "15:00")],
+     "Chị ở Nha Trang, quen dọn phòng khách sạn, nhận dọn căn hộ du lịch, giặt ủi.", "good", None),
+    ("minhkhang.ntu", "0366 471 920", True, 41, KH, {TRE, KEM, QUAN},
+     [(WEEKDAYS, "17:30", "21:30"), (WEEKEND, "08:00", "21:30")],
+     "SV ĐH Nha Trang, tiếng Anh khá, trông bé cho khách du lịch, kèm bài buổi tối được.", "good", None),
 ]
 
 SCORES = {  # tính cách → phân bố điểm người kia chấm cho mình
@@ -483,6 +672,17 @@ PROFILES = {
     "chinh.camle": ("Hồ Thị Chinh", "female", 1983, "Phường Cẩm Lệ"),
     "hoangnam.due": ("Nguyễn Hoàng Nam", "male", 2004, "Phường Thanh Khê"),
     "myle.sontra": (None, "female", None, "Phường Sơn Trà"),
+    "lananh.hoakhanh": ("Lê Lan Anh", "female", 2005, "Phường Hòa Khánh"),
+    "thuytien.q7": ("Nguyễn Thủy Tiên", "female", 1989, "Phường Tân Mỹ"),
+    "giabao.ute": ("Trần Gia Bảo", "male", 2004, "Phường Thủ Đức"),
+    "thuha.hp": ("Vũ Thu Hà", "female", 1983, "Phường Lê Chân"),
+    "quanghuy.vmu": ("Phạm Quang Huy", "male", 2005, "Phường Ngô Quyền"),
+    "kimngan.ctu": ("Huỳnh Kim Ngân", "female", 2005, "Phường Ninh Kiều"),
+    "cobay.ninhkieu": ("Nguyễn Thị Bảy", "female", 1968, "Phường Ninh Kiều"),
+    "phuongnhi.hue": ("Tôn Nữ Phương Nhi", "female", 2004, "Phường Phú Xuân"),
+    "dinhbao.husc": (None, "male", 2003, None),
+    "thanhthuy.nt": ("Lê Thanh Thủy", "female", 1986, "Phường Nha Trang"),
+    "minhkhang.ntu": ("Đặng Minh Khang", "male", 2004, "Phường Bắc Nha Trang"),
 }
 
 
@@ -530,7 +730,7 @@ def build():
     for email, phone, days_ago, loc, quality, templates, until in EMPLOYERS:
         u = User(id=uuid.uuid4(), role="employer", email=email + DOMAIN, phone=phone, email_verified=True,
                  created_at=joined(days_ago))
-        emp[email] = dict(user=u, loc=LOC[loc], quality=quality, templates=templates,
+        emp[email] = dict(user=u, locs=AREAS[loc] if loc in AREAS else [LOC[loc]], quality=quality, templates=templates,
                           until=at(day(-until), "10:00") if until else None)
         users.append(u)
     for email, phone, verified, days_ago, city, skills, pattern, desc, quality, until in SEEKERS:
@@ -544,13 +744,12 @@ def build():
                            until=at(day(-until), "22:00") if until else None)
         users.append(u)
 
-    # ---------- Tin: mỗi mẫu đăng lặp theo tuần từ lúc chủ tham gia tới 2 tuần tới ----------
+    # ---------- Tin: mỗi mẫu đăng lặp theo tuần từ lúc chủ tham gia tới mốc AHEAD ----------
     meta = {}  # job.id → (employer, mẫu)
     for e in emp.values():
-        street, ward, city, lat, lng = e["loc"]
         stop = min(NOW, e["until"] or NOW)
         for t in e["templates"]:
-            lo, hi = (e["user"].created_at.date() - TODAY.date()).days + 1, 13
+            lo, hi = (e["user"].created_at.date() - TODAY.date()).days + 1, AHEAD
             if t["window"]:
                 lo, hi = max(lo, -t["window"][0]), min(hi, -t["window"][1])
             seen = set()
@@ -560,11 +759,14 @@ def build():
                 options = [d for d in range(wk, min(wk + 7, hi + 1)) if day(d).weekday() in t["days"]]
                 for d in rng.sample(options, min(count, len(options))):
                     start, end = at(day(d), t["start"]), at(day(d), t["end"])
-                    created = max(start - timedelta(hours=rng.uniform(8, 330)),
+                    # Tin xa (tới mốc AHEAD) coi như chủ đăng sẵn trong 3 ngày qua
+                    created = max(min(start - timedelta(hours=rng.uniform(8, 330)),
+                                      NOW - timedelta(hours=rng.uniform(1, 72))),
                                   e["user"].created_at + timedelta(hours=rng.uniform(0.3, 30)))
                     if created >= min(start - timedelta(hours=1), stop) or d in seen:
-                        continue  # chưa tới lúc đăng / chủ đã bị khoá
+                        continue  # chủ mới tham gia / đã bị khoá
                     seen.add(d)
+                    street, ward, city, lat, lng = rng.choice(e["locs"])  # dịch vụ: mỗi tin 1 nhà khách
                     j = Job(id=uuid.uuid4(), employer_id=e["user"].id, title=t["title"],
                             description=rng.choice(t["descs"]), street=street, ward=ward, city=city, lat=lat, lng=lng,
                             time_start=start, time_end=end, salary=t["salary"], status="open", created_at=created)
@@ -736,11 +938,11 @@ def build():
         report(s["user"], boss, "Chủ bắt làm thêm việc ngoài tin đăng, em nói không kịp giờ thì to tiếng và trừ 50k "
                "tiền công.", j.time_end + timedelta(hours=3))
 
-    # ---------- Lịch rảnh: 10 ngày qua tới 2 tuần tới; vài người lâu không cập nhật ----------
+    # ---------- Lịch rảnh: 10 ngày qua tới mốc AHEAD; vài người lâu không cập nhật ----------
     for s in seek.values():
         if s["user"].is_blocked or not s["pattern"]:
             continue
-        horizon = 14 if rng.random() < 0.75 else rng.randint(0, 4)
+        horizon = AHEAD + 1 if rng.random() < 0.75 else rng.randint(0, 4)
         for d in range(-10, horizon + 1):
             if rng.random() < 0.1:
                 continue  # hôm đó bận

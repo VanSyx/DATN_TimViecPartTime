@@ -70,18 +70,18 @@ export function RecommendPage() {
           <p className="text-stone-500">Việc hợp giờ rảnh, gần chỗ bạn — kèm lý do cho từng gợi ý.</p>
         </div>
         {saved && !editing && (
-          <div className="flex items-center gap-3 rounded-xl border border-stone-200 bg-white py-1.5 pr-1.5 pl-4">
+          <div className="flex max-w-full min-w-0 items-center gap-3 rounded-xl border border-stone-200 bg-white py-1.5 pr-1.5 pl-4">
             <Icon name="pin" className="text-teal-700" />
-            <span className="max-w-[420px] truncate font-medium">{saved.label}</span>
-            <span className="text-stone-300">|</span>
-            <span className="text-stone-600">Bán kính {saved.radius} km</span>
+            <span className="max-w-[420px] min-w-0 truncate font-medium">{saved.label}</span>
+            <span className="text-stone-300 max-sm:hidden">|</span>
+            <span className="whitespace-nowrap text-stone-600 max-sm:hidden">Bán kính {saved.radius} km</span>
             <button type="button" className="btn btn-neutral h-10 px-3.5" onClick={() => setEditing(true)}>Đổi</button>
           </div>
         )}
       </div>
 
       {editing && (
-        <section className="card flex flex-col gap-[18px] p-6 shadow-sm">
+        <section className="card flex flex-col gap-[18px] p-4 shadow-sm md:p-6">
           <div className="flex flex-col gap-1">
             <h2 className="text-xl leading-7 font-semibold">Bạn muốn tìm việc quanh đâu?</h2>
             <p className="text-stone-500">Chỉ cần chọn một lần. Lần sau vị trí thu gọn thành một dòng ở góc trên.</p>
@@ -116,7 +116,7 @@ export function RecommendPage() {
         </Banner>
       )}
 
-      <div className="grid grid-cols-[minmax(0,1fr)_340px] items-start gap-7">
+      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_340px]">
         <div className="flex min-w-0 flex-col gap-4">
           {!saved ? (
             <div className="rounded-xl border border-dashed border-stone-300 p-10 text-center text-stone-500">Chọn một địa chỉ ở trên để xem việc phù hợp quanh bạn.</div>
@@ -262,13 +262,13 @@ export function SearchPage() {
 
   return (
     <main className="page gap-5 pt-7">
-      <div className="flex items-center justify-between gap-4">
+      <div className="flex flex-wrap items-center justify-between gap-4">
         <h1 className="h1">Tìm việc</h1>
         <Segmented label="Cách xem" value={view} onChange={(v) => set({ view: v === 'map' ? 'map' : null })} options={[['list', 'Danh sách'], ['map', 'Bản đồ']]} />
       </div>
 
       <div className="card flex flex-col gap-4 px-5 py-4">
-        <div className="grid grid-cols-[minmax(0,1fr)_auto] items-start gap-6">
+        <div className="grid grid-cols-1 items-start gap-4 md:grid-cols-[minmax(0,1fr)_auto] md:gap-6">
           <div className="flex min-w-0 flex-col gap-1.5">
             <span className="text-sm font-semibold text-stone-700">Vị trí</span>
             <PlaceSearch key={place?.label} initial={place?.label} gpsText={false} onPick={(p) => set({ lat: String(p.lat), lng: String(p.lng), label: p.label })} />
@@ -278,20 +278,20 @@ export function SearchPage() {
             <Segmented label="Bán kính" value={radius} onChange={(r) => set({ r: String(r) })} options={RADII} />
           </div>
         </div>
-        <div className="flex flex-wrap items-end gap-6">
-          <label className="flex w-[200px] flex-col gap-1.5">
+        <div className="flex flex-wrap items-end gap-4 md:gap-6">
+          <label className="flex w-full flex-col gap-1.5 sm:w-[200px]">
             <span className="text-sm font-semibold text-stone-700">Ngày</span>
             <input type="date" className="input" value={date} min={dateInput(new Date())} onChange={(e) => set({ date: e.target.value })} />
           </label>
-          <div className="flex flex-col gap-1.5">
+          <div className="flex flex-col gap-1.5 max-sm:w-full">
             <span className="text-sm font-semibold text-stone-700">Khung giờ</span>
             <div className="flex items-center gap-2" title={date ? undefined : 'Chọn ngày trước'}>
-              <input type="time" aria-label="Từ giờ" className="input w-[140px] tabular-nums" value={from} disabled={!date} aria-invalid={timeBad} onChange={(e) => set({ from: e.target.value })} />
+              <input type="time" aria-label="Từ giờ" className="input w-[140px] min-w-0 flex-1 tabular-nums sm:flex-none" value={from} disabled={!date} aria-invalid={timeBad} onChange={(e) => set({ from: e.target.value })} />
               <span className="text-stone-500">–</span>
-              <input type="time" aria-label="Đến giờ" className="input w-[140px] tabular-nums" value={to} disabled={!date} aria-invalid={timeBad} onChange={(e) => set({ to: e.target.value })} />
+              <input type="time" aria-label="Đến giờ" className="input w-[140px] min-w-0 flex-1 tabular-nums sm:flex-none" value={to} disabled={!date} aria-invalid={timeBad} onChange={(e) => set({ to: e.target.value })} />
             </div>
           </div>
-          <div className="flex-1 pb-3 text-sm text-stone-500">
+          <div className="flex-1 text-sm text-stone-500 md:pb-3">
             {timeBad ? <FieldError>Giờ kết thúc phải sau giờ bắt đầu.</FieldError>
               : !date ? 'Chọn ngày để lọc theo khung giờ bạn rảnh.'
                 : !place ? 'Chưa chọn vị trí nên bán kính chưa áp dụng.' : null}
@@ -300,7 +300,7 @@ export function SearchPage() {
       </div>
 
       {!user && (
-        <div className="flex items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
+        <div className="flex flex-wrap items-center gap-3 rounded-xl border border-sky-200 bg-sky-50 px-4 py-3">
           <Icon name="info" className="text-sky-600" />
           <span className="flex-1">Bạn đang xem với tư cách khách. <b className="font-semibold">Đăng nhập</b> để ứng tuyển và nhận gợi ý theo giờ rảnh.</span>
           <Link to={`/login?next=${encodeURIComponent(`/tim-viec?${params}`)}`} className="font-semibold no-underline">Đăng nhập</Link>
@@ -312,7 +312,7 @@ export function SearchPage() {
       {!jobs && !timeBad && (
         <>
           <div className="flex items-center gap-2.5 text-stone-600"><span className="text-teal-600"><Spinner /></span>Đang tìm việc quanh bạn…</div>
-          <div className="grid grid-cols-3 gap-5">{[1, 2, 3].map((i) => <CardSkeleton key={i} />)}</div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">{[1, 2, 3].map((i) => <CardSkeleton key={i} />)}</div>
         </>
       )}
 
@@ -327,7 +327,7 @@ export function SearchPage() {
       )}
 
       {!!jobs?.length && (
-        <div className="flex items-center gap-3 text-stone-600">
+        <div className="flex flex-wrap items-center gap-3 text-stone-600">
           <span>
             <b className="font-semibold text-stone-900">{jobs.length} việc</b>
             {place ? ` trong bán kính ${radius} km · gần nhất trước` : ' · mới đăng trước'}{dayText && ` · ${dayText}`}
@@ -338,7 +338,7 @@ export function SearchPage() {
 
       {!!jobs?.length && view === 'list' && (
         <>
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {jobs.map((job) => <JobCard key={job.id} job={job} onDetail={() => setDetail({ job })} action={applyButton(job, 'h-10')} />)}
           </div>
           <div className="pt-2 text-center text-sm text-stone-500">{place ? 'Đã hiện tất cả việc trong bán kính' : 'Đã hiện các việc mới nhất'}</div>
@@ -346,8 +346,8 @@ export function SearchPage() {
       )}
 
       {!!jobs?.length && view === 'map' && (
-        <div className="card grid h-[560px] grid-cols-[360px_minmax(0,1fr)] overflow-hidden">
-          <div className="flex flex-col overflow-auto border-r border-stone-200">
+        <div className="card grid h-[680px] grid-rows-[minmax(0,1.3fr)_minmax(0,1fr)] overflow-hidden md:h-[560px] md:grid-cols-[300px_minmax(0,1fr)] md:grid-rows-1 lg:grid-cols-[360px_minmax(0,1fr)]">
+          <div className="flex flex-col overflow-auto border-stone-200 max-md:order-2 max-md:border-t md:border-r">
             <div className="border-b border-stone-100 px-4 py-3.5 text-sm text-stone-600"><b className="font-semibold text-stone-900">{jobs.length} việc</b> trên bản đồ</div>
             {jobs.map((j) => (
               <button key={j.id} type="button" onClick={() => setSelected(j.id)}
@@ -364,7 +364,7 @@ export function SearchPage() {
           <div className="relative">
             <JobsMap jobs={jobs} place={place} selected={selected} onSelect={setSelected} />
             {sel && (
-              <div className="card absolute bottom-4 left-1/2 z-[1000] flex w-[340px] -translate-x-1/2 flex-col gap-2 p-4 shadow-[0_10px_30px_rgba(28,25,23,0.22)]">
+              <div className="card absolute bottom-3 left-1/2 z-[1000] flex w-[calc(100%-24px)] max-w-[340px] -translate-x-1/2 flex-col gap-2 p-4 shadow-[0_10px_30px_rgba(28,25,23,0.22)]">
                 <div className="leading-[22px] font-semibold">{sel.title}</div>
                 <div className="text-sm text-stone-600">{fmtSlot(sel.time_start, sel.time_end)}{sel.distance_km != null && ` · cách ${fmtNum(sel.distance_km)} km`}</div>
                 <div className="mt-1 flex flex-wrap items-center justify-between gap-2">
@@ -448,17 +448,17 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
 
   return (
     // Thân form cuộn được, chân (Huỷ/Lưu) luôn ở đáy: bật lặp lại thì form cao hơn màn hình
-    <form onSubmit={save} className="flex max-h-[calc(100vh-48px)] flex-col">
+    <form onSubmit={save} className="flex max-h-[calc(100dvh-24px)] flex-col md:max-h-[calc(100vh-48px)]">
       <ModalHeader title="Thêm khoảng rảnh" onClose={onClose} />
-      <div className="flex min-h-0 flex-col gap-[18px] overflow-auto px-7 py-5">
+      <div className="flex min-h-0 flex-col gap-[18px] overflow-auto px-5 py-5 md:px-7">
         <label className="field">
           <span className="label">{repeat ? 'Lặp từ ngày' : 'Ngày'}</span>
           <input type="date" required className="input" value={date} min={dateInput(new Date())} onChange={(e) => pickDate(e.target.value)} />
           {repeat && <span className="text-sm text-stone-500">Chỉ tạo buổi vào các thứ bạn chọn bên dưới, tính từ ngày này.</span>}
         </label>
         <div className="field">
-          <div className="flex items-baseline justify-between"><span className="label">Điền nhanh</span><span className="text-sm text-stone-500">Chỉ điền sẵn giờ, bạn vẫn sửa được</span></div>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3"><span className="label">Điền nhanh</span><span className="text-sm text-stone-500">Chỉ điền sẵn giờ, bạn vẫn sửa được</span></div>
+          <div className="flex flex-wrap gap-2">
             {QUICK.map(([label, a, b]) => (
               <button key={label} type="button" onClick={() => { setStart(a); setEnd(b) }}
                 className="h-10 cursor-pointer rounded-full border border-stone-300 px-4 hover:border-teal-600 hover:bg-teal-50">{label}</button>
@@ -505,7 +505,7 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
               <div className="flex flex-wrap items-center gap-3">
                 <Segmented label="Lặp trong" value={span} onChange={setSpan} options={SPANS} />
                 {span === 'custom' && (
-                  <input type="date" aria-label="Lặp đến ngày" required className="input w-[180px]" value={customUntil} min={date} max={addDays(date, MAX_SERIES_DAYS)} onChange={(e) => setCustomUntil(e.target.value)} />
+                  <input type="date" aria-label="Lặp đến ngày" required className="input w-full sm:w-[180px]" value={customUntil} min={date} max={addDays(date, MAX_SERIES_DAYS)} onChange={(e) => setCustomUntil(e.target.value)} />
                 )}
               </div>
             </div>
@@ -522,7 +522,7 @@ function AddSlotForm({ day, onClose, onSaved }: { day: string; onClose: () => vo
         )}
         {error && <FieldError>{error}</FieldError>}
       </div>
-      <div className="flex shrink-0 justify-end gap-3 border-t border-stone-200 px-7 py-4">
+      <div className="flex shrink-0 flex-wrap justify-end gap-3 border-t border-stone-200 px-5 py-4 md:px-7">
         <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
         <button className="btn btn-primary h-12 px-6" disabled={busy || bad || (repeat && !days.length)}>
           {busy && <Spinner />}{repeat ? `Lưu ${days.length} buổi rảnh` : 'Lưu khoảng rảnh'}
@@ -601,9 +601,9 @@ export function ProfilePage() {
         <h1 className="h1">Hồ sơ & lịch rảnh</h1>
         <p className="text-stone-500">AI dùng lịch rảnh và mô tả này để gợi ý việc cho bạn.</p>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-6">
-        <section className="card flex flex-col gap-[18px] p-6">
-          <div className="flex items-start justify-between gap-4">
+      <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+        <section className="card flex flex-col gap-[18px] p-4 md:p-6">
+          <div className="flex items-start justify-between gap-4 max-md:flex-wrap">
             <div className="flex flex-col gap-1">
               <h2 className="text-xl leading-7 font-semibold">Lịch rảnh</h2>
               <p className="text-stone-600">Khai theo từng ngày cụ thể, giờ nào cũng được — không cần theo ca.</p>
@@ -612,7 +612,7 @@ export function ProfilePage() {
           </div>
           {error && <FieldError>{error}</FieldError>}
           {days?.length === 0 && (
-            <div className="flex items-center gap-7 rounded-xl border border-dashed border-stone-300 px-8 py-9">
+            <div className="flex flex-col items-center gap-5 rounded-xl border border-dashed border-stone-300 px-5 py-7 md:flex-row md:gap-7 md:px-8 md:py-9">
               <span className="grid size-28 shrink-0 place-items-center rounded-full bg-teal-50 text-teal-700"><Icon name="calendarPlus" size={44} stroke={1.5} /></span>
               <div className="flex flex-col gap-2.5">
                 <h3 className="text-xl leading-7 font-semibold">Bạn chưa khai giờ rảnh nào</h3>
@@ -630,24 +630,25 @@ export function ProfilePage() {
           {!!days?.length && (
             <>
               <div className="flex flex-col gap-2.5">
-                <div className="grid grid-cols-[84px_minmax(0,1fr)_40px] gap-3">
+                <div className="grid grid-cols-[52px_minmax(0,1fr)_40px] gap-2 md:grid-cols-[84px_minmax(0,1fr)_40px] md:gap-3">
                   <span />
-                  <div className="flex justify-between text-sm text-stone-500 tabular-nums">{[0, 3, 6, 9, 12, 15, 18, 21, 24].map((h) => <span key={h}>{h}h</span>)}</div>
+                  <div className="flex justify-between text-xs text-stone-500 tabular-nums md:text-sm">{[0, 3, 6, 9, 12, 15, 18, 21, 24].map((h) => <span key={h}>{h}h</span>)}</div>
                   <span />
                 </div>
                 {days.map(([day, items]) => (
-                  <div key={day} className="grid grid-cols-[84px_minmax(0,1fr)_40px] items-center gap-3">
+                  <div key={day} className="grid grid-cols-[52px_minmax(0,1fr)_40px] items-center gap-2 md:grid-cols-[84px_minmax(0,1fr)_40px] md:gap-3">
                     <DayLabel day={day} />
                     <div className="relative h-12 rounded-lg border border-stone-200 bg-stone-50" style={GRID_3H}>
                       {items.map((i) => {
                         const label = `${fmtHM(i.start_time)}–${fmtHM(i.end_time)}`
                         return (
-                          <div key={i.id} title={label} style={spanStyle(hoursFrom(day, i.start_time), hoursFrom(day, i.end_time), 0, 24)}
-                            className="group absolute inset-y-[5px] flex items-center justify-center overflow-hidden rounded-md border border-teal-300 bg-teal-100 text-sm font-semibold whitespace-nowrap text-teal-900 tabular-nums">
+                          // Chạm vào khoảng rảnh = hỏi xoá (điện thoại không có hover để hiện nút ×)
+                          <div key={i.id} title={label} style={spanStyle(hoursFrom(day, i.start_time), hoursFrom(day, i.end_time), 0, 24)} onClick={() => setRemoving(i)}
+                            className="group absolute inset-y-[5px] flex cursor-pointer items-center justify-center overflow-hidden rounded-md border border-teal-300 bg-teal-100 text-sm font-semibold whitespace-nowrap text-teal-900 tabular-nums">
                             {i.series_id && <Icon name="repeat" size={13} stroke={2.25} className="ml-1 shrink-0 text-teal-700" />}
                             <span className="truncate px-1">{label}</span>
-                            <button type="button" title={`Xoá khoảng rảnh ${label}`} onClick={() => (i.series_id ? setRemoving(i) : remove(i))}
-                              className="absolute right-1 grid size-6 cursor-pointer place-items-center rounded-full border border-teal-200 bg-white text-red-700 opacity-0 group-hover:opacity-100 focus:opacity-100">
+                            <button type="button" title={`Xoá khoảng rảnh ${label}`} onClick={(e) => { e.stopPropagation(); if (i.series_id) setRemoving(i); else remove(i) }}
+                              className="absolute right-1 grid size-6 cursor-pointer place-items-center rounded-full border border-teal-200 bg-white text-red-700 opacity-0 group-hover:opacity-100 focus:opacity-100 pointer-coarse:hidden">
                               <Icon name="x" size={14} stroke={2.25} />
                             </button>
                           </div>
@@ -660,9 +661,9 @@ export function ProfilePage() {
                   </div>
                 ))}
               </div>
-              <div className="flex items-center gap-2 rounded-[10px] bg-teal-50 px-3.5 py-3 text-sm leading-5 text-teal-800">
+              <div className="flex items-start gap-2 rounded-[10px] bg-teal-50 px-3.5 py-3 text-sm leading-5 text-teal-800">
                 <Icon name="info" size={18} className="text-teal-700" />
-                Việc nằm trọn trong giờ rảnh (đã tính thời gian đi lại) được điểm giờ rảnh cao nhất, trùng một phần thì được điểm theo tỉ lệ. Rê chuột lên khoảng rảnh để xoá.
+                Việc nằm trọn trong giờ rảnh (đã tính thời gian đi lại) được điểm giờ rảnh cao nhất, trùng một phần thì được điểm theo tỉ lệ. Rê chuột lên khoảng rảnh để xoá (trên điện thoại: chạm vào khoảng rảnh).
               </div>
             </>
           )}
@@ -696,14 +697,17 @@ export function ProfilePage() {
       <Modal open={!!removing} onClose={() => setRemoving(null)} className="w-[480px]">
         {removing && (
           <div className="flex flex-col gap-3.5 p-6">
-            <h2 className="text-2xl leading-8 font-semibold">Xoá khoảng rảnh lặp lại?</h2>
+            <h2 className="text-xl leading-7 font-semibold md:text-2xl md:leading-8">{removing.series_id ? 'Xoá khoảng rảnh lặp lại?' : 'Xoá khoảng rảnh?'}</h2>
             <p className="text-stone-700">
-              {fmtSlot(removing.start_time, removing.end_time)} thuộc một chuỗi {intervals?.filter((x) => x.series_id === removing.series_id).length} buổi lặp lại.
+              {fmtSlot(removing.start_time, removing.end_time)}
+              {removing.series_id && ` thuộc một chuỗi ${intervals?.filter((x) => x.series_id === removing.series_id).length} buổi lặp lại.`}
             </p>
-            <div className="mt-1.5 flex justify-end gap-2.5">
+            <div className="mt-1.5 flex flex-wrap justify-end gap-2.5">
               <button type="button" className="btn btn-plain" onClick={() => setRemoving(null)}>Huỷ</button>
-              <button type="button" className="btn btn-neutral" onClick={() => remove(removing)}>Chỉ buổi này</button>
-              <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" onClick={() => remove(removing, true)}>Xoá cả chuỗi</button>
+              {removing.series_id ? <>
+                <button type="button" className="btn btn-neutral" onClick={() => remove(removing)}>Chỉ buổi này</button>
+                <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" onClick={() => remove(removing, true)}>Xoá cả chuỗi</button>
+              </> : <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" onClick={() => remove(removing)}>Xoá</button>}
             </div>
           </div>
         )}
@@ -770,12 +774,12 @@ export function MyApplicationsPage() {
       )}
       {!!apps?.length && (
         <>
-          <div role="tablist" className="flex gap-1 border-b border-stone-200">
+          <div role="tablist" className="flex gap-1 overflow-x-auto border-b border-stone-200">
             {TABS.map(([k, label, f]) => {
               const on = k === tab
               return (
                 <button key={k} type="button" role="tab" aria-selected={on} onClick={() => setTab(k)}
-                  className={`flex h-12 cursor-pointer items-center gap-2 px-4 ${on ? 'font-semibold text-teal-800 shadow-[inset_0_-3px_0_#0D9488]' : 'font-medium text-stone-600 hover:text-stone-900'}`}>
+                  className={`flex h-12 shrink-0 cursor-pointer items-center gap-2 px-3 md:px-4 ${on ? 'font-semibold text-teal-800 shadow-[inset_0_-3px_0_#0D9488]' : 'font-medium text-stone-600 hover:text-stone-900'}`}>
                   {label}
                   <span className={`grid h-6 min-w-6 place-items-center rounded-full px-[7px] text-[13px] font-bold ${on ? 'bg-teal-100 text-teal-800' : 'bg-stone-100 text-stone-600'}`}>
                     {apps.filter((a) => f(a.status)).length}
@@ -786,9 +790,9 @@ export function MyApplicationsPage() {
           </div>
           {shown?.length === 0 && <p className="py-6 text-center text-stone-500">Không có đơn nào ở mục này.</p>}
           {shown?.map((a) => (
-            <article key={a.id} className={`card flex flex-col gap-3.5 px-6 py-5 ${a.status === 'rejected' || a.status === 'cancelled' ? 'opacity-85' : ''}`}>
-              <div className="flex items-start gap-4">
-                <div className="flex min-w-0 flex-1 flex-col gap-1.5">
+            <article key={a.id} className={`card flex flex-col gap-3.5 px-4 py-4 md:px-6 md:py-5 ${a.status === 'rejected' || a.status === 'cancelled' ? 'opacity-85' : ''}`}>
+              <div className="flex flex-wrap-reverse items-start gap-3 md:flex-nowrap md:gap-4">
+                <div className="flex min-w-[220px] flex-1 flex-col gap-1.5">
                   <h3 className="text-xl leading-7 font-semibold">{a.job.title}</h3>
                   <div className="flex flex-wrap gap-x-[18px] gap-y-1.5 text-stone-600">
                     <IconLine icon="clock">{fmtSlot(a.job.time_start, a.job.time_end)}</IconLine>
@@ -799,8 +803,8 @@ export function MyApplicationsPage() {
                 </div>
                 <AppStatusBadge status={a.status} />
               </div>
-              <div className="flex items-center gap-3 border-t border-stone-100 pt-3.5">
-                <span className={`flex-1 text-sm leading-5 ${a.status === 'accepted' ? 'text-green-700' : 'text-stone-600'}`}>{NOTE[a.status](a)}</span>
+              <div className="flex flex-wrap items-center gap-3 border-t border-stone-100 pt-3.5">
+                <span className={`min-w-full flex-1 text-sm md:min-w-0 leading-5 ${a.status === 'accepted' ? 'text-green-700' : 'text-stone-600'}`}>{NOTE[a.status](a)}</span>
                 <button type="button" className="btn btn-ghost h-10 px-3.5" onClick={() => setDetail({ job: a.job })}>Xem việc</button>
                 {a.status === 'pending' && <button type="button" className="btn btn-danger h-10 px-4" onClick={() => setCancel(a)}>Hủy đơn</button>}
                 {canRate(a, me) && <button type="button" className="btn btn-primary h-10 px-4" onClick={() => setRating(a)}><Icon name="star" size={18} />Đánh giá</button>}

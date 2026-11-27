@@ -10,17 +10,17 @@ const asApiError = (err: unknown) => (err instanceof ApiError ? err : new ApiErr
 
 function AuthLayout({ children }: { children: ReactNode }) {
   return (
-    <div className="grid min-h-screen grid-cols-2 bg-white">
-      <div className="flex flex-col px-12 py-6">
-        <div className="flex h-12 items-center justify-between">
-          <Link to="/" className="no-underline"><Logo /></Link>
+    <div className="grid min-h-screen grid-cols-1 bg-white lg:grid-cols-2">
+      <div className="flex flex-col px-4 py-4 md:px-12 md:py-6">
+        <div className="flex h-12 items-center justify-between gap-3">
+          <Link to="/" className="no-underline"><Logo compact /></Link>
           <Link to="/" className="font-semibold no-underline">← Về trang chủ</Link>
         </div>
-        <div className="flex flex-1 items-center justify-center py-10">
+        <div className="flex flex-1 items-center justify-center py-6 md:py-10">
           <div className="flex w-full max-w-[440px] flex-col gap-5">{children}</div>
         </div>
       </div>
-      <div className="flex flex-col gap-6 border-l border-teal-100 bg-teal-50 p-10">
+      <div className="hidden flex-col gap-6 border-l border-teal-100 bg-teal-50 p-10 lg:flex">
         <HeroArt className="flex-1" />
         <div className="flex flex-col gap-1.5 px-2 pb-2">
           <div className="text-2xl leading-8 font-semibold text-teal-900">Việc làm thêm vừa với giờ rảnh của bạn</div>
@@ -145,7 +145,7 @@ export function RegisterPage() {
         </div>
         <fieldset className="flex flex-col gap-2">
           <legend className="label mb-2">Bạn muốn</legend>
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-1 gap-3 min-[400px]:grid-cols-2">
             {ROLES.map(([k, title, desc]) => (
               <label key={k} className={`relative flex cursor-pointer flex-col gap-2 rounded-xl border p-4 has-[:focus-visible]:ring-2 has-[:focus-visible]:ring-teal-600 ${role === k ? 'border-teal-600 bg-teal-50 text-teal-800 ring-1 ring-teal-600' : 'border-stone-300 hover:border-stone-400 hover:bg-stone-50'}`}>
                 <input type="radio" name="role" value={k} checked={role === k} onChange={() => setRole(k)} className="sr-only" />
@@ -189,9 +189,9 @@ export function RegisterPage() {
 function OtpInput({ value, onChange, invalid }: { value: string; onChange: (v: string) => void; invalid: boolean }) {
   const [focus, setFocus] = useState(false)
   return (
-    <div className="relative grid grid-cols-6 gap-2.5">
+    <div className="relative grid grid-cols-6 gap-1.5 sm:gap-2.5">
       {Array.from({ length: 6 }, (_, i) => (
-        <div key={i} className={`flex h-16 items-center justify-center rounded-[10px] border text-[28px] font-semibold ${invalid ? 'border-2 border-red-600 bg-red-50' : focus && i === Math.min(value.length, 5) ? 'border-2 border-teal-600 ring-4 ring-teal-100' : 'border-stone-300'}`}>
+        <div key={i} className={`flex h-14 items-center justify-center rounded-[10px] border text-2xl font-semibold sm:h-16 sm:text-[28px] ${invalid ? 'border-2 border-red-600 bg-red-50' : focus && i === Math.min(value.length, 5) ? 'border-2 border-teal-600 ring-4 ring-teal-100' : 'border-stone-300'}`}>
           {value[i]}
         </div>
       ))}

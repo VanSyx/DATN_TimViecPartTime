@@ -120,7 +120,7 @@ export function PlaceSearch({ initial = '', onPick, buttonLabel = 'Tìm', gpsTex
   }
 
   const input = (
-    <label className={`input flex items-center gap-2.5 ${hero ? '' : 'flex-1'}`}>
+    <label className={`input flex items-center gap-2.5 ${hero ? '' : 'min-w-[220px] flex-1'}`}>
       <Icon name="pin" className="text-teal-700" />
       <input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nhập số nhà, tên đường…" aria-label="Địa chỉ"
         onKeyDown={(e) => { if (e.key === 'Enter') { e.preventDefault(); search() } }}
@@ -144,8 +144,8 @@ export function PlaceSearch({ initial = '', onPick, buttonLabel = 'Tìm', gpsTex
   return (
     <div className="relative flex flex-col gap-3">
       {hero
-        ? <>{input}<div className="flex items-center justify-between gap-3">{gpsButton}{searchButton}</div></>
-        : <div className="flex items-center gap-3">{input}{searchButton}{gpsButton}</div>}
+        ? <>{input}<div className="flex flex-wrap items-center justify-between gap-3">{gpsButton}{searchButton}</div></>
+        : <div className="flex flex-wrap items-center gap-3">{input}{searchButton}{gpsButton}</div>}
       {hits && <div className="absolute top-full right-0 left-0 z-[1100] mt-1 shadow-lg"><HitList hits={hits} onPick={pick} /></div>}
       {error && <FieldError>{error}</FieldError>}
     </div>
@@ -220,7 +220,7 @@ export function LocationPicker({ initial, invalid }: { initial?: { lat: number; 
   return (
     <div className={`flex flex-col gap-3 rounded-xl border bg-stone-50 p-4 ${invalid && !coords ? 'border-red-200' : 'border-stone-100'}`}>
       <div className="flex flex-wrap items-center gap-2.5">
-        <span className="flex-1 font-semibold">Vị trí trên bản đồ</span>
+        <span className="flex-1 font-semibold whitespace-nowrap">Vị trí trên bản đồ</span>
         <button type="button" className="btn btn-secondary h-10 px-3.5" onClick={search} disabled={busy}>
           {busy ? <Spinner /> : <Icon name="map" size={18} />}Định vị trên bản đồ
         </button>
@@ -331,7 +331,7 @@ function Reasons({ job, rec, cols = 2 }: { job: Job; rec: Rec; cols?: 1 | 2 }) {
     ['star', job.rating_count ? 'text-amber-500' : 'text-stone-400', `Người đăng tin: ${fmtRating(job.rating_avg, job.rating_count)}`],
   ]
   return (
-    <div className={`grid gap-x-6 gap-y-3 ${cols === 2 ? 'grid-cols-2' : ''}`}>
+    <div className={`grid gap-x-6 gap-y-3 ${cols === 2 ? 'md:grid-cols-2' : ''}`}>
       {items.map(([icon, cls, text]) => (
         <div key={icon} className={`flex items-start gap-2.5 ${icon === 'star' ? 'text-stone-600' : ''}`}>
           <Icon name={icon} className={`mt-0.5 ${cls}`} /><span>{text}</span>
@@ -352,15 +352,15 @@ function Breakdown({ job, rec, radius }: { job: Job; rec: Rec; radius?: number }
     ['Tin cậy', '10%', b.trust, fmtRating(job.rating_avg, job.rating_count), !job.rating_count],
   ]
   return (
-    <div className="flex flex-col gap-3.5 rounded-[10px] border border-stone-200 bg-stone-50 p-5">
+    <div className="flex flex-col gap-3.5 rounded-[10px] border border-stone-200 bg-stone-50 p-4 md:p-5">
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="font-semibold">Cách tính điểm {fmtPct(rec.final_score)}</div>
         <div className="rounded-full border border-stone-200 bg-white px-3 py-1 text-sm text-stone-700">35% mô tả + 35% giờ rảnh + 20% khoảng cách + 10% tin cậy</div>
       </div>
       {rows.map(([label, weight, v, text, muted]) => (
-        <div key={label} className="grid grid-cols-[140px_minmax(0,1fr)_190px] items-center gap-4">
+        <div key={label} className="grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-4 gap-y-1.5 md:grid-cols-[140px_minmax(0,1fr)_190px]">
           <div>{label} <span className="text-sm text-stone-500">· {weight}</span></div>
-          <div className="h-2.5 overflow-hidden rounded-full bg-stone-200">
+          <div className="col-span-full row-start-2 h-2.5 overflow-hidden rounded-full bg-stone-200 md:col-span-1 md:row-start-auto">
             <div className={`h-full rounded-full ${muted ? 'bg-stone-400' : 'bg-teal-600'}`} style={{ width: fmtPct(v) }} />
           </div>
           <div className="text-right text-sm text-stone-700">{text}</div>
@@ -424,26 +424,26 @@ export function JobCard({ job, rec, intervals = [], radius, onDetail, action, de
 
   const ai = !!rec.breakdown
   return (
-    <article className="card flex flex-col gap-5 p-6 shadow-sm transition-shadow hover:shadow-md">
-      <div className="flex items-start gap-5">
+    <article className="card flex flex-col gap-5 p-4 shadow-sm transition-shadow hover:shadow-md md:p-6">
+      <div className="flex flex-wrap items-start gap-x-5 gap-y-3 md:flex-nowrap">
         {ai ? <ScoreRing value={rec.final_score} /> : (
           <div className="flex size-[84px] shrink-0 flex-col items-center justify-center gap-0.5 rounded-xl border border-teal-100 bg-teal-50 text-teal-800">
             <Icon name="pin" size={18} className="text-teal-700" />
             <div className="text-lg leading-6 font-bold">{fmtNum(job.distance_km ?? 0)} km</div>
           </div>
         )}
-        <div className="flex min-w-0 flex-1 flex-col gap-1.5 pt-1 text-stone-600">
+        <div className="flex min-w-[180px] flex-1 flex-col gap-1.5 pt-1 text-stone-600">
           <h3 className="text-xl leading-7 font-semibold text-pretty text-stone-900">{title}</h3>
           <IconLine icon="pin">{fullAddress(job)}</IconLine>
           {!ai && <IconLine icon="clock">{fmtSlot(job.time_start, job.time_end)}</IconLine>}
           <ApplicantCount job={job} />
         </div>
-        <div className="shrink-0 pt-1 text-right">{money}</div>
+        <div className="shrink-0 pt-1 max-md:w-full max-md:border-t max-md:border-stone-100 max-md:pt-3 md:text-right">{money}</div>
       </div>
       {ai && <DayTimeline job={job} intervals={intervals} />}
       {ai && <Reasons job={job} rec={rec} />}
       {ai && expanded && <Breakdown job={job} rec={rec} radius={radius} />}
-      <div className="flex items-center gap-3 border-t border-stone-100 pt-4">
+      <div className="flex flex-wrap items-center gap-3 border-t border-stone-100 pt-4">
         {ai ? (
           <button type="button" aria-expanded={expanded} onClick={() => setExpanded(!expanded)} className="btn btn-ghost -ml-3 h-10 px-3">
             {expanded ? 'Ẩn cách tính điểm' : 'Xem cách tính điểm'}
@@ -466,7 +466,7 @@ export type Detail = { job: Job; rec?: Rec }
 
 function Tile({ label, main, sub }: { label: string; main: string; sub: string }) {
   return (
-    <div className="flex flex-1 flex-col gap-0.5 rounded-[10px] border border-stone-100 bg-stone-50 px-4 py-3.5">
+    <div className="flex min-w-[130px] flex-1 flex-col gap-0.5 rounded-[10px] border border-stone-100 bg-stone-50 px-4 py-3.5">
       <span className="text-sm text-stone-500">{label}</span>
       <span className="text-lg font-semibold">{main}</span>
       <span className="text-stone-700">{sub}</span>
@@ -483,22 +483,22 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
   return (
     <Modal open={!!item} onClose={onClose} className="w-[760px]">
       {job && (
-        <div className="flex max-h-[calc(100vh-48px)] flex-col">
-          <div className="flex items-start gap-4 border-b border-stone-100 pt-6 pr-6 pb-[18px] pl-7">
+        <div className="flex max-h-[calc(100dvh-24px)] flex-col md:max-h-[calc(100vh-48px)]">
+          <div className="flex items-start gap-4 border-b border-stone-100 pt-5 pr-4 pb-4 pl-5 md:pt-6 md:pr-6 md:pb-[18px] md:pl-7">
             <div className="flex flex-1 flex-col gap-2">
               {job.status === 'rejected' || job.status === 'filled' ? <span className="w-fit"><JobStatusBadge status={job.status} /></span> : ended ? (
                 <span className="inline-flex h-7 w-fit items-center gap-1.5 rounded-full border border-stone-200 bg-stone-100 px-3 text-sm font-semibold text-stone-700">
                   <Icon name="lock" size={14} stroke={2.25} />Đã kết thúc
                 </span>
               ) : <span className="w-fit"><JobStatusBadge status="open" /></span>}
-              <h2 className="text-2xl leading-8 font-semibold">{job.title}</h2>
+              <h2 className="text-xl leading-7 font-semibold md:text-2xl md:leading-8">{job.title}</h2>
             </div>
             <button type="button" title="Đóng" onClick={onClose} className="grid size-11 cursor-pointer place-items-center rounded-[10px] text-stone-700 hover:bg-stone-100">
               <Icon name="x" size={22} stroke={2} />
             </button>
           </div>
-          <div className="flex flex-col gap-6 overflow-auto px-7 py-6">
-            <div className="flex gap-3">
+          <div className="flex flex-col gap-6 overflow-auto px-5 py-5 md:px-7 md:py-6">
+            <div className="flex flex-wrap gap-3">
               <Tile label="Thời gian" main={fmtDay(job.time_start)} sub={`${fmtHM(job.time_start)}–${fmtHM(job.time_end)} · ${fmtHours(job.time_start, job.time_end)}`} />
               <Tile label="Tiền công" main={fmtMoney(job.salary)} sub="cho cả buổi" />
               {job.distance_km != null && (
@@ -514,7 +514,7 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
               <p className="leading-[26px] text-pretty whitespace-pre-line text-stone-800">{job.description}</p>
             </div>
             {rec?.breakdown && (
-              <div className="flex flex-col gap-4 rounded-xl border border-teal-100 bg-teal-50 p-5">
+              <div className="flex flex-col gap-4 rounded-xl border border-teal-100 bg-teal-50 p-4 md:p-5">
                 <div className="flex items-center gap-4">
                   <ScoreRing value={rec.final_score} />
                   <div className="text-lg font-semibold">Vì sao gợi ý việc này</div>
@@ -524,13 +524,13 @@ export function JobDetailModal({ item, onClose, action }: { item: Detail | null;
               </div>
             )}
           </div>
-          <div className="flex items-center gap-3 border-t border-stone-200 px-7 py-4">
+          <div className="flex flex-wrap items-center gap-3 border-t border-stone-200 px-5 py-3 md:px-7 md:py-4">
             {canReport && (
               <button type="button" className="btn btn-plain h-12 px-3 text-stone-600" title="Báo cáo người đăng tin này"
                 onClick={() => setReporting({ id: job.employer_id, label: 'người đăng tin' })}><Icon name="flag" size={18} />Báo cáo</button>
             )}
             {ended
-              ? <div className="flex flex-1 items-center gap-2 text-stone-700"><Icon name="info" className="text-stone-600" />Tin đã kết thúc — không nhận thêm đơn ứng tuyển.</div>
+              ? <div className="flex min-w-[200px] flex-1 items-center gap-2 text-stone-700"><Icon name="info" className="text-stone-600" />Tin đã kết thúc — không nhận thêm đơn ứng tuyển.</div>
               : <><div className="flex-1" /><button type="button" className="btn btn-plain h-12" onClick={onClose}>Đóng</button></>}
             {action}
           </div>
@@ -597,7 +597,7 @@ function ApplyButton({ job, status, onApplied, className = '' }: {
       </button>
       <Modal open={askLogin} onClose={() => setAskLogin(false)} className="w-[460px]">
         <ModalHeader title="Đăng nhập để ứng tuyển" onClose={() => setAskLogin(false)} />
-        <div className="flex flex-col gap-4 px-7 pt-3 pb-7">
+        <div className="flex flex-col gap-4 px-5 pt-3 pb-5 md:px-7 md:pb-7">
           <p className="text-stone-700">Bạn đang ứng tuyển <b className="font-semibold">{job.title}</b>. Sau khi đăng nhập, bạn quay lại đúng trang này.</p>
           <div className="mt-1 flex flex-col gap-2.5">
             <Link to={`/login?next=${next}`} className="btn btn-primary h-12">Đăng nhập</Link>
@@ -649,7 +649,7 @@ function RatingForm({ app, target, onClose, onSaved }: { app: Application; targe
   return (
     <form onSubmit={save}>
       <ModalHeader title={`Đánh giá ${target}`} onClose={onClose} />
-      <div className="flex flex-col gap-[18px] px-7 py-5">
+      <div className="flex flex-col gap-[18px] px-5 py-5 md:px-7">
         <p className="text-stone-600">{app.job.title} · {fmtSlot(app.job.time_start, app.job.time_end)}</p>
         <div className="field"><span className="label">Số sao</span><Segmented label="Số sao" options={STARS} value={score} onChange={setScore} /></div>
         <label className="field"><span className="label">Nhận xét <span className="font-normal text-stone-500">(không bắt buộc)</span></span>
@@ -657,7 +657,7 @@ function RatingForm({ app, target, onClose, onSaved }: { app: Application; targe
         <p className="text-sm text-stone-500">Đánh giá không sửa được sau khi gửi. Hai bên đều thấy đánh giá của nhau.</p>
         {error && <FieldError>{error}</FieldError>}
       </div>
-      <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
+      <div className="flex justify-end gap-3 border-t border-stone-200 px-5 py-4 md:px-7">
         <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
         <button className="btn btn-primary h-12 px-6" disabled={busy}>{busy && <Spinner />}Gửi đánh giá</button>
       </div>
@@ -689,14 +689,14 @@ function ReportForm({ target, onClose }: { target: ReportTarget; onClose: () => 
   return (
     <form onSubmit={send}>
       <ModalHeader title={`Báo cáo ${target.label}`} onClose={onClose} />
-      <div className="flex flex-col gap-[18px] px-7 py-5">
+      <div className="flex flex-col gap-[18px] px-5 py-5 md:px-7">
         <label className="field"><span className="label">Lý do</span>
           <textarea name="reason" required maxLength={1000} className="input h-auto min-h-[120px] py-3 leading-6"
             placeholder="Ví dụ: hẹn rồi không đến, đòi đặt cọc trước, nội dung tin không đúng sự thật…" /></label>
         <p className="text-sm text-stone-500">Người bị báo cáo không biết ai đã báo cáo. Quản trị viên có thể khoá tài khoản nếu vi phạm.</p>
         {error && <FieldError>{error}</FieldError>}
       </div>
-      <div className="flex justify-end gap-3 border-t border-stone-200 px-7 py-4">
+      <div className="flex justify-end gap-3 border-t border-stone-200 px-5 py-4 md:px-7">
         <button type="button" className="btn btn-plain h-12" onClick={onClose}>Huỷ</button>
         <button className="btn btn-primary h-12 px-6" disabled={busy}>{busy && <Spinner />}Gửi báo cáo</button>
       </div>

@@ -26,12 +26,12 @@ function AccountMenu() {
     <details className="relative shrink-0">
       <summary className="flex h-10 cursor-pointer items-center gap-2.5 rounded-full border border-stone-200 pr-2.5 pl-1 hover:bg-stone-50">
         <span className="grid size-8 place-items-center rounded-full bg-teal-100 text-sm font-bold text-teal-800">{user.email[0].toUpperCase()}</span>
-        <span className="text-sm text-stone-700">{user.email}</span>
+        <span className="hidden text-sm text-stone-700 md:inline">{user.email}</span>
         <Icon name="chevronDown" size={16} stroke={2} className="text-stone-500" />
       </summary>
       {/* Bấm một mục thì đóng menu (details không tự đóng khi chuyển trang) */}
       <div className="card absolute right-0 z-[1100] mt-2 flex w-60 flex-col p-1.5 shadow-md" onClick={(e) => { (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
-        <div className="px-3 py-2 text-sm text-stone-500">{roleLabel[user.role]}</div>
+        <div className="px-3 py-2 text-sm text-stone-500"><div className="truncate font-medium text-stone-700 md:hidden">{user.email}</div>{roleLabel[user.role]}</div>
         {user.role === 'job_seeker' && <Link to="/seeker/profile" className="menu-item">Hồ sơ & lịch rảnh</Link>}
         <button type="button" className="menu-item text-red-700" onClick={logout}>Đăng xuất</button>
       </div>
@@ -67,7 +67,7 @@ function NotificationBell() {
         <Icon name="bell" size={22} />
         {!!unread && <span className="absolute top-0.5 right-0.5 grid h-5 min-w-5 place-items-center rounded-full bg-orange-700 px-1 text-xs font-bold text-white">{unread > 9 ? '9+' : unread}</span>}
       </summary>
-      <div className="card absolute right-0 z-[1100] mt-2 flex max-h-[420px] w-[380px] flex-col overflow-auto p-1.5 shadow-md"
+      <div className="card fixed inset-x-3 top-16 z-[1100] flex max-h-[420px] flex-col sm:absolute sm:inset-x-auto sm:top-auto sm:right-0 sm:mt-2 sm:w-[380px] overflow-auto p-1.5 shadow-md"
         onClick={(e) => { if ((e.target as HTMLElement).closest('a')) (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
         <div className="px-3 py-2 font-semibold">Thông báo</div>
         {!items.length && <p className="px-3 pb-3 text-sm text-stone-500">Chưa có thông báo nào.</p>}
@@ -87,14 +87,36 @@ function NotificationBell() {
   )
 }
 
+/** Dưới lg (điện thoại/máy tính bảng): thanh nav gộp vào nút menu */
+function MobileMenu() {
+  const { user } = useAuth()
+  return (
+    <details className="relative shrink-0 lg:hidden">
+      <summary aria-label="Menu" title="Menu" className="grid size-10 cursor-pointer place-items-center rounded-full text-stone-700 hover:bg-stone-100">
+        <Icon name="menu" size={22} />
+      </summary>
+      <nav className="card absolute right-0 z-[1100] mt-2 flex w-60 flex-col p-1.5 shadow-md" onClick={(e) => { if ((e.target as HTMLElement).closest('a')) (e.currentTarget.parentElement as HTMLDetailsElement).open = false }}>
+        {user
+          ? NAV[user.role].map(([to, label]) => (
+            <NavLink key={to} to={to} end className={({ isActive }) => `menu-item ${isActive ? 'bg-teal-50 font-semibold text-teal-700' : ''}`}>{label}</NavLink>
+          ))
+          : <>
+            {GUEST_NAV.map(([href, label]) => <a key={href} href={href} className="menu-item">{label}</a>)}
+            <Link to="/login" className="menu-item sm:hidden">Đăng nhập</Link>
+          </>}
+      </nav>
+    </details>
+  )
+}
+
 function Shell() {
   const { user } = useAuth()
   return (
     <ToastProvider>
       <header className="h-16 border-b border-stone-200 bg-white">
-        <div className="mx-auto flex h-full w-[calc(100%-48px)] max-w-[1120px] items-center gap-10">
-          <Link to="/" className="shrink-0 no-underline"><Logo /></Link>
-          <nav className="flex min-w-0 flex-1 gap-1">
+        <div className="mx-auto flex h-full w-[calc(100%-32px)] max-w-[1120px] items-center gap-3 md:w-[calc(100%-48px)] lg:gap-10">
+          <Link to="/" className="shrink-0 no-underline"><Logo compact /></Link>
+          <nav className="hidden min-w-0 flex-1 gap-1 lg:flex">
             {user
               ? NAV[user.role].map(([to, label]) => (
                 <NavLink key={to} to={to} end className={({ isActive }) => (isActive ? `${navItem} bg-teal-50 font-semibold text-teal-700` : navIdle)}>{label}</NavLink>
@@ -102,14 +124,16 @@ function Shell() {
               : GUEST_NAV.map(([href, label]) => <a key={href} href={href} className={navIdle}>{label}</a>)}
           </nav>
           {user ? (
-            <div className="flex shrink-0 items-center gap-2">
+            <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
               {user.role !== 'admin' && <NotificationBell />}
               <AccountMenu />
+              <MobileMenu />
             </div>
           ) : (
-            <div className="flex shrink-0 items-center gap-2">
-              <Link to="/login" className="btn btn-plain h-10 px-4">Đăng nhập</Link>
+            <div className="ml-auto flex shrink-0 items-center gap-2 lg:ml-0">
+              <Link to="/login" className="btn btn-plain hidden h-10 px-4 sm:inline-flex">Đăng nhập</Link>
               <Link to="/register" className="btn btn-primary h-10">Đăng ký</Link>
+              <MobileMenu />
             </div>
           )}
         </div>

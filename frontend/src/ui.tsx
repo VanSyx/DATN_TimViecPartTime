@@ -71,6 +71,7 @@ const ICONS = {
   gift: <><rect x="3" y="8" width="18" height="4" rx="1" /><path d="M12 8v13M19 12v7a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2v-7M7.5 8a2.5 2.5 0 0 1 0-5A4.8 8 0 0 1 12 8a4.8 8 0 0 1 4.5-5 2.5 2.5 0 0 1 0 5" /></>,
   hourglass: <path d="M5 22h14M5 2h14M17 22v-4.172a2 2 0 0 0-.586-1.414L12 12l-4.414 4.414A2 2 0 0 0 7 17.828V22M7 2v4.172a2 2 0 0 0 .586 1.414L12 12l4.414-4.414A2 2 0 0 0 17 6.172V2" />,
   ban: <><circle cx="12" cy="12" r="10" /><path d="M4.9 4.9l14.2 14.2" /></>,
+  menu: <path d="M4 6h16M4 12h16M4 18h16" />,
   bell: <><path d="M10.268 21a2 2 0 0 0 3.464 0" /><path d="M3.262 15.326A1 1 0 0 0 4 17h16a1 1 0 0 0 .74-1.673C19.41 13.956 18 12.499 18 8A6 6 0 0 0 6 8c0 4.499-1.411 5.956-2.738 7.326" /></>,
   flag: <><path d="M4 15s1-1 4-1 5 2 8 2 4-1 4-1V3s-1 1-4 1-5-2-8-2-4 1-4 1z" /><path d="M4 22v-7" /></>,
   users: <><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2" /><circle cx="9" cy="7" r="4" /><path d="M22 21v-2a4 4 0 0 0-3-3.87M16 3.13a4 4 0 0 1 0 7.75" /></>,
@@ -95,7 +96,8 @@ export const Spinner = () => (
   </svg>
 )
 
-export function Logo({ dark = false }: { dark?: boolean }) {
+/** compact: điện thoại chỉ hiện biểu tượng, chừa chỗ cho các nút trên header */
+export function Logo({ dark = false, compact = false }: { dark?: boolean; compact?: boolean }) {
   return (
     <span className="flex items-center gap-2.5">
       <span className="grid size-9 place-items-center rounded-[10px] bg-teal-600">
@@ -104,7 +106,7 @@ export function Logo({ dark = false }: { dark?: boolean }) {
           <path d="M12 7.5V12l3 2" stroke="#FDBA74" strokeWidth="2.25" />
         </svg>
       </span>
-      <span className={`text-xl font-bold tracking-[-0.02em] ${dark ? 'text-white' : 'text-stone-900'}`}>
+      <span className={`text-xl font-bold tracking-[-0.02em] ${dark ? 'text-white' : 'text-stone-900'} ${compact ? 'max-sm:hidden' : ''}`}>
         TimViec<span className={dark ? 'text-teal-300' : 'text-teal-700'}>PartTime</span>
       </span>
     </span>
@@ -168,9 +170,9 @@ export function Banner({ tone = 'info', icon, title, children, action }: {
 }) {
   const [box, iconCls, text, defIcon] = TONES[tone]
   return (
-    <div role={tone === 'error' ? 'alert' : 'status'} className={`flex items-center gap-4 rounded-xl border py-4 pr-4 pl-5 ${box}`}>
+    <div role={tone === 'error' ? 'alert' : 'status'} className={`flex flex-wrap items-center gap-4 rounded-xl border py-4 pr-4 pl-5 ${box}`}>
       <Icon name={icon ?? defIcon} size={24} className={iconCls} />
-      <div className={`flex flex-1 flex-col gap-0.5 ${text}`}>
+      <div className={`flex min-w-[200px] flex-1 flex-col gap-0.5 ${text}`}>
         <div className="font-semibold">{title}</div>
         {children && <div>{children}</div>}
       </div>
@@ -189,11 +191,11 @@ export function FieldError({ children }: { children: ReactNode }) {
 
 export function EmptyState({ icon, title, children, actions }: { icon: IconName; title: string; children?: ReactNode; actions?: ReactNode }) {
   return (
-    <div className="card flex flex-col items-center gap-3.5 px-8 py-12 text-center">
+    <div className="card flex flex-col items-center gap-3.5 px-5 py-10 text-center md:px-8 md:py-12">
       <span className="grid size-24 place-items-center rounded-full bg-teal-50 text-teal-700"><Icon name={icon} size={40} stroke={1.5} /></span>
       <h2 className="mt-2 text-xl font-semibold">{title}</h2>
       {children && <p className="max-w-[460px] text-pretty text-stone-600">{children}</p>}
-      {actions && <div className="mt-1.5 flex gap-3">{actions}</div>}
+      {actions && <div className="mt-1.5 flex flex-wrap justify-center gap-3">{actions}</div>}
     </div>
   )
 }
@@ -211,7 +213,7 @@ export function Segmented<T extends string | number>({ options, value, onChange,
   options: [T, string][]; value: T; onChange: (v: T) => void; label: string
 }) {
   return (
-    <div role="radiogroup" aria-label={label} className="flex w-fit gap-1 rounded-xl bg-stone-100 p-1">
+    <div role="radiogroup" aria-label={label} className="flex w-fit max-w-full gap-1 overflow-x-auto rounded-xl bg-stone-100 p-1">
       {options.map(([v, text]) => (
         <button key={v} type="button" role="radio" aria-checked={v === value} onClick={() => onChange(v)}
           className={`h-10 cursor-pointer rounded-[9px] px-4 text-base whitespace-nowrap ${v === value ? 'bg-white font-semibold text-teal-800 shadow-sm' : 'text-stone-600 hover:text-stone-900'}`}>
@@ -247,7 +249,7 @@ export function HeroArt({ className = '' }: { className?: string }) {
   const days: [string, [number, number][]][] = [['T6', [[13, 18]]], ['T7', [[7, 12.5]]], ['CN', [[8, 17]]], ['T2', [[13.5, 17.5]]], ['T3', [[14, 18]]]]
   const x = (h: number) => `${((h - 6) / 16) * 100}%`
   return (
-    <div className={`relative flex items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-teal-100 via-teal-50 to-orange-50 p-10 ${className}`}>
+    <div className={`relative flex items-center justify-center overflow-hidden rounded-[20px] bg-gradient-to-br from-teal-100 via-teal-50 to-orange-50 p-5 md:p-10 ${className}`}>
       <div className="card flex w-full max-w-[400px] flex-col gap-3 p-5 shadow-md">
         <div className="flex items-center gap-2 font-semibold"><Icon name="calendar" className="text-teal-700" />Giờ rảnh tuần này</div>
         {days.map(([d, blocks]) => (
@@ -284,7 +286,7 @@ export function Modal({ open, onClose, className = '', children }: { open: boole
   return (
     // React cho sự kiện close của dialog con nổi bọt lên dialog cha: chỉ nhận close của chính nó
     <dialog ref={ref} onClose={(e) => e.target === e.currentTarget && onClose()} onClick={(e) => e.target === e.currentTarget && onClose()}
-      className={`m-auto max-h-[calc(100vh-48px)] max-w-[calc(100vw-48px)] overflow-hidden rounded-2xl bg-white p-0 text-stone-900 shadow-[0_24px_60px_rgba(28,25,23,0.28)] backdrop:bg-stone-900/50 ${className}`}>
+      className={`m-auto max-h-[calc(100dvh-24px)] max-w-[calc(100vw-24px)] md:max-h-[calc(100vh-48px)] md:max-w-[calc(100vw-48px)] overflow-hidden rounded-2xl bg-white p-0 text-stone-900 shadow-[0_24px_60px_rgba(28,25,23,0.28)] backdrop:bg-stone-900/50 ${className}`}>
       {shown && children}
     </dialog>
   )
@@ -292,8 +294,8 @@ export function Modal({ open, onClose, className = '', children }: { open: boole
 
 export function ModalHeader({ title, onClose }: { title: ReactNode; onClose: () => void }) {
   return (
-    <div className="flex items-start justify-between gap-4 pt-6 pr-6 pl-7">
-      <h2 className="text-2xl leading-8 font-semibold">{title}</h2>
+    <div className="flex items-start justify-between gap-4 pt-5 pr-4 pl-5 md:pt-6 md:pr-6 md:pl-7">
+      <h2 className="text-xl leading-7 font-semibold md:text-2xl md:leading-8">{title}</h2>
       <button type="button" title="Đóng" onClick={onClose} className="grid size-10 shrink-0 cursor-pointer place-items-center rounded-[10px] text-stone-700 hover:bg-stone-100">
         <Icon name="x" size={22} stroke={2} />
       </button>
@@ -309,7 +311,7 @@ export function ConfirmModal({ open, title, keep, confirm, busy, onConfirm, onCl
       <div className="flex flex-col gap-3.5 p-6">
         <h2 className="text-2xl leading-8 font-semibold">{title}</h2>
         <p className="text-stone-700">{children}</p>
-        <div className="mt-1.5 flex justify-end gap-2.5">
+        <div className="mt-1.5 flex flex-wrap justify-end gap-2.5">
           <button type="button" className="btn btn-plain" onClick={onClose}>{keep}</button>
           <button type="button" className="btn bg-red-600 text-white hover:not-disabled:bg-red-700" disabled={busy} onClick={onConfirm}>{busy && <Spinner />}{confirm}</button>
         </div>
@@ -335,7 +337,7 @@ export function ToastProvider({ children }: { children: ReactNode }) {
     <ToastContext.Provider value={setMsg}>
       {children}
       {msg && (
-        <div role="status" className={`fixed top-[84px] right-6 z-[2000] flex w-[380px] items-start gap-3 rounded-xl border bg-white p-4 shadow-[0_10px_30px_rgba(28,25,23,0.14)] ${msg.error ? 'border-red-200' : 'border-green-200'}`}>
+        <div role="status" className={`fixed inset-x-3 top-[76px] z-[2000] flex sm:inset-x-auto sm:top-[84px] sm:right-6 sm:w-[380px] items-start gap-3 rounded-xl border bg-white p-4 shadow-[0_10px_30px_rgba(28,25,23,0.14)] ${msg.error ? 'border-red-200' : 'border-green-200'}`}>
           <Icon name={msg.error ? 'xCircle' : 'checkCircle'} size={22} className={msg.error ? 'text-red-600' : 'text-green-600'} />
           <div className="flex flex-1 flex-col gap-0.5">
             <div className={`font-semibold ${msg.error ? 'text-red-700' : 'text-green-700'}`}>{msg.title}</div>

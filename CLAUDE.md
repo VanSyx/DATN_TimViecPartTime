@@ -8,7 +8,7 @@ Nền tảng web kết nối Job Seeker và Employer cho công việc bán thờ
 ## 2. Tech Stack
 | Thành phần | Công nghệ |
 |---|---|
-| Frontend | React (Vite) + TailwindCSS v4 (plugin `@tailwindcss/vite`, cấu hình trong `src/index.css`). Giao diện chỉ cho laptop/máy tính, theo mockup Claude Design (`docs/design/mockups/README.md`): component dùng chung ở `src/ui.tsx` (icon Lucide inline, modal `<dialog>`, toast) và `src/job-ui.tsx` (JobCard, chi tiết việc, bản đồ) |
+| Frontend | React (Vite) + TailwindCSS v4 (plugin `@tailwindcss/vite`, cấu hình trong `src/index.css`). Giao diện co dãn theo thiết bị (điện thoại/máy tính bảng/laptop: mặc định mobile, `md:`/`lg:` khôi phục bố cục desktop gốc — từ 1024px trở lên giữ đúng như mockup), theo mockup Claude Design (`docs/design/mockups/README.md`): component dùng chung ở `src/ui.tsx` (icon Lucide inline, modal `<dialog>`, toast) và `src/job-ui.tsx` (JobCard, chi tiết việc, bản đồ) |
 | Backend chính | Python FastAPI |
 | AI Service | Python FastAPI (microservice riêng, tách khỏi backend chính) |
 | Database | PostgreSQL 15+ + PostGIS (không dùng pgvector — giữ TF-IDF, quyết định 2026-09-30) |

@@ -39,8 +39,9 @@ const SAMPLE_JOB: Job = {
 const SAMPLE_REC = { job: SAMPLE_JOB, final_score: 0.83, travel_minutes: 2, breakdown: { semantic: 0.55, time_feasibility: 1, geo: 0.9, trust: 1 } }
 const SAMPLE_FREE = [{ id: 'sample', start_time: '2026-09-26T07:00:00+07:00', end_time: '2026-09-26T12:30:00+07:00' }]
 
-const section = 'mx-auto w-[calc(100%-48px)] max-w-[1120px]'
-const h2 = 'text-[30px] leading-[38px] font-semibold tracking-[-0.01em]'
+const section = 'mx-auto w-[calc(100%-32px)] max-w-[1120px] md:w-[calc(100%-48px)]'
+const h2 = 'text-2xl leading-8 font-semibold tracking-[-0.01em] md:text-[30px] md:leading-[38px]'
+const gap = 'pt-14 md:pt-[88px]'
 
 export function HomePage() {
   const navigate = useNavigate()
@@ -57,25 +58,25 @@ export function HomePage() {
 
   return (
     <>
-      <section className={`${section} grid grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] items-center gap-14 pt-16 pb-4`}>
+      <section className={`${section} grid grid-cols-1 items-center gap-10 pt-8 pb-4 md:pt-16 lg:grid-cols-[minmax(0,1.05fr)_minmax(0,1fr)] lg:gap-14`}>
         <div className="flex flex-col gap-6">
-          <h1 className="text-5xl leading-[58px] font-bold tracking-[-0.025em] text-balance">
+          <h1 className="text-[34px] leading-[42px] font-bold md:text-5xl md:leading-[58px] tracking-[-0.025em] text-balance">
             Việc làm thêm vừa với <span className="text-teal-700">giờ rảnh</span> của bạn
           </h1>
           <p className="max-w-[520px] text-lg leading-7 text-pretty text-stone-600">
             Khai giờ rảnh và vài câu về bản thân — AI gợi ý việc gần nhà, nằm trong giờ bạn rảnh, và nói rõ vì sao.
           </p>
-          <div className="card flex flex-col gap-3 p-5 shadow-sm">
+          <div className="card flex flex-col gap-3 p-4 shadow-sm md:p-5">
             <span className="label">Bạn ở đâu?</span>
             <PlaceSearch onPick={goSearch} buttonLabel="Tìm việc quanh đây" hero />
           </div>
           <Link to="/register?role=employer" className="w-fit font-semibold no-underline">Bạn cần tuyển người? Đăng tin miễn phí →</Link>
         </div>
-        <HeroArt className="h-[480px]" />
+        <HeroArt className="h-[400px] md:h-[480px]" />
       </section>
 
-      <section id="viec-moi" className={`${section} flex flex-col gap-6 pt-[72px]`}>
-        <div className="flex items-end justify-between gap-4">
+      <section id="viec-moi" className={`${section} flex flex-col gap-6 pt-14 md:pt-[72px]`}>
+        <div className="flex flex-wrap items-end justify-between gap-4">
           <div className="flex flex-wrap items-center gap-3.5">
             <h2 className={h2}>Việc mới đăng</h2>
             {!!jobs?.length && (
@@ -87,7 +88,7 @@ export function HomePage() {
           {!!jobs?.length && <Link to="/tim-viec" className="font-semibold no-underline">Xem tất cả việc →</Link>}
         </div>
         {!jobs && (
-          <div className="grid grid-cols-3 gap-5" aria-busy="true">{[1, 2, 3].map((i) => <CardSkeleton key={i} />)}</div>
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3" aria-busy="true">{[1, 2, 3].map((i) => <CardSkeleton key={i} />)}</div>
         )}
         {jobs?.length === 0 && (
           <EmptyState icon="calendarPlus" title="Chưa có việc nào đang mở"
@@ -96,7 +97,7 @@ export function HomePage() {
           </EmptyState>
         )}
         {!!jobs?.length && (
-          <div className="grid grid-cols-3 gap-5">
+          <div className="grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
             {jobs.slice(0, 6).map((job) => (
               <JobCard key={job.id} job={job} onDetail={() => setDetail({ job })} action={applyButton(job, 'h-10')} />
             ))}
@@ -104,12 +105,12 @@ export function HomePage() {
         )}
       </section>
 
-      <section className={`${section} flex flex-col gap-6 pt-[88px]`}>
+      <section className={`${section} flex flex-col gap-6 ${gap}`}>
         <div className="flex flex-col gap-1.5">
           <h2 className={h2}>Loại việc thường gặp</h2>
           <p className="text-stone-600">Một vài việc hay được đăng. Bạn tìm theo vị trí và giờ rảnh, không cần chọn ngành.</p>
         </div>
-        <div className="grid grid-cols-6 gap-4">
+        <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:gap-4 lg:grid-cols-6">
           {KINDS.map(([icon, label, warm]) => (
             <div key={label} className="card flex flex-col items-start gap-3.5 px-4 py-5">
               <span className={`grid size-12 place-items-center rounded-full ${warm ? 'bg-orange-50 text-orange-700' : 'bg-teal-50 text-teal-700'}`}><Icon name={icon} size={24} stroke={1.5} /></span>
@@ -119,14 +120,14 @@ export function HomePage() {
         </div>
       </section>
 
-      <section id="cach-hoat-dong" className={`${section} flex scroll-mt-6 flex-col gap-7 pt-[88px]`}>
+      <section id="cach-hoat-dong" className={`${section} flex scroll-mt-6 flex-col gap-7 ${gap}`}>
         <div className="flex flex-wrap items-end justify-between gap-6">
           <h2 className={h2}>Cách hoạt động</h2>
           <Segmented label="Vai trò" value={tab} onChange={setTab} options={[['seeker', 'Người tìm việc'], ['employer', 'Người đăng tin']]} />
         </div>
-        <div className="grid grid-cols-3 gap-5">
+        <div className="grid grid-cols-1 gap-5 md:grid-cols-3">
           {STEPS[tab].map(([title, desc], i) => (
-            <div key={title} className="card flex flex-col gap-3 p-6">
+            <div key={title} className="card flex flex-col gap-3 p-5 md:p-6">
               <span className="grid size-11 place-items-center rounded-full border border-orange-200 bg-orange-50 text-xl font-bold text-orange-700">{i + 1}</span>
               <h3 className="text-lg leading-[26px] font-semibold text-pretty">{title}</h3>
               <p className="text-pretty text-stone-600">{desc}</p>
@@ -135,8 +136,8 @@ export function HomePage() {
         </div>
       </section>
 
-      <section id="goi-y-ai" className="mt-[88px] scroll-mt-6 border-y border-stone-200 bg-white">
-        <div className={`${section} grid grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] items-center gap-14 py-[72px]`}>
+      <section id="goi-y-ai" className="mt-14 scroll-mt-6 md:mt-[88px] border-y border-stone-200 bg-white">
+        <div className={`${section} grid grid-cols-1 items-center gap-10 py-12 md:py-[72px] lg:grid-cols-[minmax(0,0.85fr)_minmax(0,1.15fr)] lg:gap-14`}>
           <div className="flex flex-col gap-7">
             <div className="flex flex-col gap-2.5">
               <span className="text-sm font-semibold tracking-[0.04em] text-teal-700 uppercase">Gợi ý AI khác gì</span>
@@ -160,9 +161,9 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className={`${section} flex flex-col gap-7 pt-[88px]`}>
+      <section className={`${section} flex flex-col gap-7 ${gap}`}>
         <h2 className={h2}>An tâm khi làm việc</h2>
-        <div className="grid grid-cols-4 gap-5">
+        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4 lg:gap-5">
           {([
             ['clock', 'Tin ghi rõ giờ, địa chỉ, tiền công', 'Mỗi tin là một khung giờ trong một ngày, tiền công tính cho cả buổi.'],
             ['userCheck', 'Người đăng tin tự chọn người', 'Họ xem từng đơn ứng tuyển và quyết định nhận ai.'],
@@ -180,9 +181,9 @@ export function HomePage() {
         </div>
       </section>
 
-      <section className={`${section} pt-[88px]`}>
-        <div className="flex flex-wrap items-center gap-8 rounded-2xl bg-teal-700 px-12 py-11">
-          <div className="flex min-w-[280px] flex-1 flex-col gap-2">
+      <section className={`${section} ${gap}`}>
+        <div className="flex flex-wrap items-center gap-6 rounded-2xl bg-teal-700 px-6 py-8 md:gap-8 md:px-12 md:py-11">
+          <div className="flex min-w-[240px] flex-1 flex-col gap-2">
             <h2 className={`${h2} text-white`}>Cần người giúp việc theo giờ?</h2>
             <p className="text-lg text-teal-50">Đăng tin miễn phí, chọn người ở gần.</p>
           </div>
@@ -190,16 +191,16 @@ export function HomePage() {
         </div>
       </section>
 
-      <section id="cau-hoi" className="mx-auto flex w-[calc(100%-48px)] max-w-[800px] scroll-mt-6 flex-col gap-6 pt-[88px] pb-24">
+      <section id="cau-hoi" className={`mx-auto flex w-[calc(100%-32px)] max-w-[800px] scroll-mt-6 flex-col gap-6 pb-16 md:w-[calc(100%-48px)] md:pb-24 ${gap}`}>
         <h2 className={`${h2} text-center`}>Câu hỏi thường gặp</h2>
         <div className="card overflow-hidden">
           {FAQ.map(([q, a], i) => (
             <details key={q} open={i === 0} className="group border-b border-stone-100 last:border-0">
-              <summary className="flex min-h-[60px] cursor-pointer items-center gap-4 pr-5 pl-6 text-lg font-semibold hover:bg-stone-50">
+              <summary className="flex min-h-[60px] cursor-pointer items-center gap-4 py-3 pr-4 pl-4 text-lg font-semibold hover:bg-stone-50 md:pr-5 md:pl-6">
                 <span className="flex-1">{q}</span>
                 <Icon name="chevronDown" stroke={2} className="text-stone-600 group-open:rotate-180" />
               </summary>
-              <p className="pr-14 pb-5 pl-6 leading-[26px] text-pretty text-stone-700">{a}</p>
+              <p className="pr-4 pb-5 pl-4 leading-[26px] md:pr-14 md:pl-6 text-pretty text-stone-700">{a}</p>
             </details>
           ))}
         </div>
@@ -207,8 +208,8 @@ export function HomePage() {
 
       <footer className="bg-stone-900 text-stone-200">
         <div className={`${section} flex flex-col gap-10 pt-14 pb-7`}>
-          <div className="grid grid-cols-[2fr_1fr_1fr] gap-10">
-            <div className="flex flex-col gap-3.5">
+          <div className="grid grid-cols-2 gap-8 md:grid-cols-[2fr_1fr_1fr] md:gap-10">
+            <div className="col-span-full flex flex-col gap-3.5 md:col-span-1">
               <Logo dark />
               <p className="max-w-[380px] text-stone-300">Kết nối người làm thêm theo giờ với hộ gia đình và cơ sở nhỏ quanh bạn.</p>
             </div>

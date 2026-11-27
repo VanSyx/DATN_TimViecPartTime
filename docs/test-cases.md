@@ -421,6 +421,23 @@ Seed mới (chưa có báo cáo, chưa có thông báo nào). J1 = "Dọn nhà s
 | UI-09 | P2 | Định dạng | Soát toàn app | Ngày `T7, 03/10 · 08:00–11:00`; tiền `250.000 đ`; km dùng dấu phẩy `0,51 km` | Đạt |
 | UI-10 | P3 | Menu tài khoản | Mở menu rồi bấm ra ngoài | *Đã biết: menu không tự đóng khi bấm ra ngoài* — ghi nhận | Đạt |
 
+## 15b. Giao diện co dãn (responsive)
+
+Bố cục mặc định cho điện thoại, `md:` (≥768px) và `lg:` (≥1024px) khôi phục bố cục desktop gốc. Kiểm bằng Edge headless (playwright-core), điện thoại mô phỏng 375×812 có cảm ứng.
+
+| ID | UT | Tình huống | Các bước | Kết quả mong đợi | KQ |
+|---|---|---|---|---|---|
+| RESP-01 | P1 | Không cuộn ngang | Mở 15 trang (trang chủ, đăng nhập, đăng ký, tìm việc dạng danh sách + bản đồ, gợi ý, hồ sơ, đơn ứng tuyển, tin đã đăng, đăng tin, đơn của 1 tin, hồ sơ ứng viên, 3 trang quản trị) ở 375 / 768 / 1280px | `scrollWidth ≤ clientWidth` ở mọi trang, mọi cỡ (bản cũ: 13/15 trang tràn ngang ở 375px, rộng 598–817px) | Đạt |
+| RESP-02 | P1 | Desktop giữ nguyên | Chụp 17 màn ở 1280px trên `main` và trên nhánh mới, so từng điểm ảnh | Trùng khít, trừ tile bản đồ tải khác lúc và dòng hướng dẫn xoá lịch rảnh (thêm "trên điện thoại: chạm vào khoảng rảnh"). Ở 1280px có thanh menu ngang, không có nút ☰ | Đạt |
+| RESP-03 | P1 | Menu điện thoại | lan ở 375px → bấm ☰ → "Tìm việc" | Thanh menu ngang ẩn; menu thả xuống có 4 mục của vai trò; bấm mục → tới `/tim-viec`, menu tự đóng | Đạt |
+| RESP-04 | P2 | Header của khách | Khách mở trang chủ ở 375px → ☰ → "Đăng nhập" | Header còn logo thu gọn + "Đăng ký" + ☰; "Đăng nhập" nằm trong menu, bấm tới `/login` | Đạt |
+| RESP-05 | P1 | Chi tiết việc trên điện thoại | 375px, `/tim-viec` → bấm tên một việc | Modal vừa màn hình, 3 ô thông tin xếp 2 + 1, nội dung cuộn được, nút "Đóng"/"Ứng tuyển" luôn ở đáy | Đạt |
+| RESP-06 | P1 | Xoá lịch rảnh bằng cảm ứng | 375px, Hồ sơ & lịch rảnh: chạm khoảng rảnh thuộc chuỗi → Huỷ; tạo 1 khoảng lẻ → chạm → "Xoá" | Nút × (chỉ hiện khi rê chuột) ẩn trên màn cảm ứng; chuỗi → "Xoá khoảng rảnh lặp lại?" (Huỷ không xoá gì); khoảng lẻ → "Xoá khoảng rảnh?" với Huỷ/Xoá, bấm Xoá → mất khỏi `GET /availability` | Đạt |
+| RESP-07 | P2 | Bản đồ tìm việc | 375px, `/tim-viec?view=map` | Bản đồ ở trên, danh sách ở dưới; thẻ việc nổi trên bản đồ vừa chiều ngang | Đạt |
+| RESP-08 | P2 | Form lặp lại lịch rảnh | 375px → "Thêm khoảng rảnh" → bật "Lặp lại hằng tuần" | Thân form cuộn, Huỷ/Lưu luôn thấy; chip thứ và nút điền nhanh xuống dòng, không tràn | Đạt |
+| RESP-09 | P2 | Đăng nhập / đăng ký | 375px | Ẩn khối minh hoạ bên phải, form chiếm hết chiều ngang; 6 ô mã xác minh vừa một hàng | Đạt |
+| RESP-10 | P2 | Máy tính bảng | 768px: gợi ý, tin đã đăng, đơn của 1 tin | Thẻ gợi ý có lý do 2 cột; hàng tin đã đăng xếp nội dung trên, cụm nút dưới (không bóp tiêu đề); cột phụ (lịch rảnh, xem trước) xuống dưới | Đạt |
+
 ## 16. Kiểm thử tự động (bắt buộc xanh trước khi merge)
 
 | ID | UT | Lệnh | Kết quả mong đợi | KQ |
@@ -487,9 +504,10 @@ Bằng chứng: ảnh chụp / log Console / request trong tab Network
 | 14. Quản trị | 10 | 10 | 0 | 0 |
 | 14b. Báo cáo & thông báo | 13 | 13 | 0 | 0 |
 | 15. Giao diện chung | 10 | 10 | 0 | 0 |
+| 15b. Giao diện co dãn | 10 | 10 | 0 | 0 |
 | 16. Tự động | 5 | 5 | 0 | 0 |
 | 17. Production | 12 | 12 | 0 | 0 |
-| **Tổng** | **278** | **278** | **0** | **0** |
+| **Tổng** | **288** | **288** | **0** | **0** |
 
 Mục 1–16 chạy lại toàn bộ 2026-10-05 trên `feat/week8-forgot-password` (xem mục 26); mục 17 chạy lại 2026-10-05 sau merge PR #17/#18 (FR7/FR9): 9/9.
 
@@ -598,4 +616,12 @@ Chạy tự động sau setup-log #25, bằng tài khoản mô phỏng `@example
 | W9-UI-2 | Giao diện production: Tin đã đăng → Xem đơn → bấm tên ứng viên | Có nút "Đăng lại"; trang hồ sơ có lịch rảnh sắp tới (`prod-tin-da-dang.png`, `prod-ho-so-ung-vien.png`) | Đạt |
 
 Kết quả **13/13 Đạt**. Ghi chú: hồi quy toàn bộ mục 1–15 chưa chạy lại cho lần merge này (bộ script cũ đã mất, xem mục 28); merge theo yêu cầu của người thực hiện, với phạm vi kiểm thử hiện có (70 + 22 test tự động, 24 case mục 13c, 4 case cũ đổi kỳ vọng, smoke 13/13).
+
+## 30. Kết quả chạy 2026-11-27 (nhánh `feat/responsive`, giao diện co dãn)
+
+- **Phạm vi**: chỉ frontend (Tailwind `md:`/`lg:`), không đổi backend, API, DB hay AI.
+- **Mục 15b**: **10/10 Đạt** (tự động bằng playwright-core + Edge headless, dữ liệu `seed.py` ở local). Ảnh: `screenshots/responsive/`.
+- **Hồi quy desktop**: so điểm ảnh 17 màn 1280px với `main` (RESP-02), chỉ khác tile bản đồ và một dòng hướng dẫn; UI-02 (1366×768) không đổi vì từ 1024px bố cục giữ nguyên.
+- **Mục 16**: `npm run build` đạt, `npm run lint` 0 lỗi (các cảnh báo có từ trước). Backend/ai-service không đổi nên không chạy lại.
+- **Mục 1–15 (hồi quy chức năng)**: không chạy lại toàn bộ — thay đổi chỉ là class giao diện; luồng duy nhất đổi hành vi là xoá lịch rảnh (thêm chạm-để-xoá, RESP-06), nút × trên desktop giữ nguyên.
 

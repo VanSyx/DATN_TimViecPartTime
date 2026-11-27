@@ -65,7 +65,7 @@ export function EmployerJobsPage() {
 
   return (
     <main className="page">
-      <div className="flex items-end justify-between gap-6">
+      <div className="flex flex-wrap items-end justify-between gap-4 md:gap-6">
         <div className="flex flex-col gap-1.5">
           <h1 className="h1">Tin đã đăng</h1>
           <p className="text-stone-500">Mỗi tin là một buổi làm. Bấm “Xem đơn” để chọn người.</p>
@@ -82,7 +82,7 @@ export function EmployerJobsPage() {
       )}
       <div className="flex flex-col gap-3.5">
         {jobs?.map((job) => (
-          <article key={job.id} className="card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 gap-y-4 px-6 py-5">
+          <article key={job.id} className="card grid grid-cols-1 items-center gap-x-6 gap-y-4 px-4 py-4 md:px-6 md:py-5 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="flex min-w-0 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-xl leading-7 font-semibold">{job.title}</h3>
@@ -96,7 +96,7 @@ export function EmployerJobsPage() {
               </div>
               {jobNote(job) && <div className="text-sm text-stone-600">{jobNote(job)}</div>}
             </div>
-            <div className="flex flex-wrap items-center justify-end gap-2">
+            <div className="flex flex-wrap items-center gap-2 lg:justify-end">
               {job.status === 'open' && <button type="button" className="btn px-3.5 text-red-700 hover:not-disabled:bg-red-50" onClick={() => setClosing(job)}>Đóng tin</button>}
               <FillButton job={job} onDone={reload} />
               {job.status !== 'closed' && <Link to={`/employer/jobs/${job.id}/edit`} className="btn btn-neutral px-4"><Icon name="pencil" size={16} />Sửa</Link>}
@@ -133,7 +133,7 @@ export function JobFormPage({ copy = false }: { copy?: boolean }) {
 
 function Step({ n, id, title, children }: { n: number; id: string; title: string; children: ReactNode }) {
   return (
-    <section id={id} className="card flex scroll-mt-6 flex-col gap-[18px] p-6">
+    <section id={id} className="card flex scroll-mt-6 flex-col gap-[18px] p-4 md:p-6">
       <div className="flex items-center gap-3">
         <span className="grid size-8 place-items-center rounded-full bg-teal-700 font-bold text-white">{n}</span>
         <h2 className="text-xl leading-7 font-semibold">{title}</h2>
@@ -215,12 +215,12 @@ function JobForm({ job, copy }: { job: Job | null; copy: boolean }) {
           {copy ? `Nội dung lấy từ tin “${job?.title}”. Chọn ngày mới rồi đăng — tin cũ giữ nguyên.` : 'Một tin là một khung giờ liền trong một ngày. Tiền công tính cho cả buổi.'}
         </p>
       </div>
-      <div className="grid grid-cols-[minmax(0,1fr)_360px] items-start gap-7">
+      <div className="grid grid-cols-1 items-start gap-7 lg:grid-cols-[minmax(0,1fr)_360px]">
         <form className="flex min-w-0 flex-col gap-5" onSubmit={onSubmit} onInput={onInput}>
           {shownInvalid && (
-            <div role="alert" className="flex items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-red-900">
+            <div role="alert" className="flex flex-wrap items-center gap-3 rounded-xl border border-red-200 bg-red-50 px-4 py-3.5 text-red-900">
               <Icon name="alert" size={22} className="text-red-600" />
-              <span className="flex-1"><b className="font-semibold">Còn 1 mục cần sửa trước khi đăng:</b> {shownInvalid === 'pin' ? 'chưa ghim vị trí trên bản đồ (mục 2).' : 'giờ làm chưa hợp lệ (mục 3).'}</span>
+              <span className="min-w-[200px] flex-1"><b className="font-semibold">Còn 1 mục cần sửa trước khi đăng:</b> {shownInvalid === 'pin' ? 'chưa ghim vị trí trên bản đồ (mục 2).' : 'giờ làm chưa hợp lệ (mục 3).'}</span>
               <a href={shownInvalid === 'pin' ? '#muc-2' : '#muc-3'} className="font-semibold text-red-700">Tới mục đó</a>
             </div>
           )}
@@ -237,7 +237,7 @@ function JobForm({ job, copy }: { job: Job | null; copy: boolean }) {
           <Step n={2} id="muc-2" title="Địa điểm">
             <label className="field"><span className="label">Số nhà + đường</span>
               <input name="street" className="input" required minLength={2} maxLength={200} defaultValue={job?.street} placeholder="06 Phan Huy Ôn" /></label>
-            <div className="grid grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
               <label className="field"><span className="label">Phường / xã</span>
                 <input name="ward" className="input" required minLength={2} maxLength={100} defaultValue={job?.ward} placeholder="Phường Hải Châu" /></label>
               <label className="field"><span className="label">Tỉnh / thành phố</span>
@@ -247,8 +247,8 @@ function JobForm({ job, copy }: { job: Job | null; copy: boolean }) {
           </Step>
 
           <Step n={3} id="muc-3" title="Thời gian & tiền công">
-            <div className="grid grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)] gap-4">
-              <label className="field"><span className="label">Ngày</span>
+            <div className="grid grid-cols-2 gap-4 sm:grid-cols-[minmax(0,1.3fr)_minmax(0,1fr)_minmax(0,1fr)]">
+              <label className="field max-sm:col-span-2"><span className="label">Ngày</span>
                 <input name="date" type="date" className="input" required defaultValue={date} min={editing ? undefined : dateInput(new Date())} /></label>
               <label className="field"><span className="label">Giờ bắt đầu</span>
                 <input name="start" type="time" className="input text-lg font-semibold tabular-nums" required defaultValue={start} /></label>
@@ -274,8 +274,8 @@ function JobForm({ job, copy }: { job: Job | null; copy: boolean }) {
           </div>
         </form>
 
-        <aside className="sticky top-6 flex flex-col gap-3">
-          <div className="flex items-baseline justify-between"><span className="font-semibold">Xem trước</span><span className="text-sm text-stone-500">Người tìm việc sẽ thấy thế này</span></div>
+        <aside className="flex flex-col gap-3 lg:sticky lg:top-6">
+          <div className="flex flex-wrap items-baseline justify-between gap-x-3"><span className="font-semibold">Xem trước</span><span className="text-sm text-stone-500">Người tìm việc sẽ thấy thế này</span></div>
           <JobCard job={preview} action={<span aria-hidden="true" className="btn btn-primary pointer-events-none h-10">Ứng tuyển</span>} />
           <div className="rounded-xl bg-teal-50 px-4 py-3.5 text-sm leading-5 text-teal-800">
             Người tìm việc có hồ sơ còn thấy thêm điểm phù hợp và lý do gợi ý, dựa trên giờ rảnh và khoảng cách của họ.
@@ -319,9 +319,9 @@ export function JobApplicantsPage() {
     <main className="page max-w-[960px] gap-5 pt-7">
       <Link to="/employer" className="text-sm font-semibold no-underline">← Tin đã đăng</Link>
       {job && (
-        <section className="card flex items-center gap-6 px-6 py-5">
-          <div className="flex flex-1 flex-col gap-2">
-            <div className="flex flex-wrap items-center gap-3"><h1 className="text-2xl leading-8 font-semibold">{job.title}</h1><JobStatusBadge status={job.status} /></div>
+        <section className="card flex flex-wrap items-center gap-3 px-4 py-4 md:gap-6 md:px-6 md:py-5">
+          <div className="flex min-w-full flex-1 flex-col gap-2 md:min-w-0">
+            <div className="flex flex-wrap items-center gap-3"><h1 className="text-xl leading-7 font-semibold md:text-2xl md:leading-8">{job.title}</h1><JobStatusBadge status={job.status} /></div>
             <div className="flex flex-wrap gap-x-5 gap-y-1.5 text-stone-600">
               <span>{fmtSlot(job.time_start, job.time_end)}</span><span>{fullAddress(job)}</span><b className="font-semibold text-stone-900">{fmtMoney(job.salary)}</b>
             </div>
@@ -344,8 +344,8 @@ export function JobApplicantsPage() {
             const phone = a.job_seeker.phone
             const faded = a.status === 'rejected' || a.status === 'cancelled'
             return (
-              <div key={a.id} className={`grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-4 border-b border-stone-100 px-6 py-[18px] last:border-0 ${a.status === 'accepted' ? 'bg-green-50/40' : ''}`}>
-                <span className={`grid size-12 place-items-center rounded-full text-xl font-bold ${faded ? 'bg-stone-100 text-stone-500' : 'bg-teal-100 text-teal-800'}`}>
+              <div key={a.id} className={`grid grid-cols-[48px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-stone-100 px-4 py-4 last:border-0 md:grid-cols-[48px_minmax(0,1fr)_auto] md:px-6 md:py-[18px] ${a.status === 'accepted' ? 'bg-green-50/40' : ''}`}>
+                <span className={`grid size-12 place-items-center self-start rounded-full text-xl font-bold md:self-center ${faded ? 'bg-stone-100 text-stone-500' : 'bg-teal-100 text-teal-800'}`}>
                   {seekerName(a.job_seeker)[0].toUpperCase()}
                 </span>
                 <div className="flex min-w-0 flex-col gap-1">
@@ -368,7 +368,7 @@ export function JobApplicantsPage() {
                   )}
                   <RatingNotes app={a} me={me} other="Người làm" />
                 </div>
-                <div className="flex items-center gap-2">
+                <div className="col-span-full flex flex-wrap items-center gap-2 max-md:justify-end md:col-span-1">
                   <button type="button" className="btn btn-plain px-3 text-stone-600" title="Báo cáo người này" aria-label={`Báo cáo ${a.job_seeker.email}`}
                     onClick={() => setReporting({ id: a.job_seeker.id, label: a.job_seeker.email })}><Icon name="flag" size={18} /></button>
                   {canRate(a, me) ? (
@@ -419,12 +419,12 @@ export function SeekerProfilePage() {
       {error && <EmptyState icon="userCheck" title="Không tìm thấy hồ sơ">Bạn chỉ xem được hồ sơ của người đã ứng tuyển vào tin của mình.</EmptyState>}
       {!p && !error && <p className="text-stone-500">Đang tải…</p>}
       {p && (
-        <div className="grid grid-cols-[minmax(0,1fr)_380px] items-start gap-6">
-          <section className="card flex flex-col gap-5 p-6">
-            <div className="flex items-center gap-5">
+        <div className="grid grid-cols-1 items-start gap-6 lg:grid-cols-[minmax(0,1fr)_380px]">
+          <section className="card flex flex-col gap-5 p-4 md:p-6">
+            <div className="flex items-center gap-4 md:gap-5">
               <span className="grid size-16 shrink-0 place-items-center rounded-full bg-teal-100 text-2xl font-bold text-teal-800">{seekerName(p)[0].toUpperCase()}</span>
               <div className="flex min-w-0 flex-col gap-1">
-                <h1 className="text-2xl leading-8 font-semibold">{seekerName(p)}</h1>
+                <h1 className="text-xl leading-7 font-semibold break-words md:text-2xl md:leading-8">{seekerName(p)}</h1>
                 {!!facts?.length && <div className="text-stone-600">{facts.join(' · ')}</div>}
                 <span className="flex items-center gap-1.5 text-stone-600">
                   <Icon name="star" size={16} className={p.rating_count ? 'text-amber-500' : 'text-stone-400'} />{fmtRating(p.rating_avg, p.rating_count)}

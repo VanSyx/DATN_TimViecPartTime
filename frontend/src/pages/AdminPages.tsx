@@ -11,7 +11,7 @@ import {
 function AdminTitle({ title, sub }: { title: string; sub: string }) {
   return (
     <div className="flex flex-col gap-1.5">
-      <div className="flex items-center gap-3">
+      <div className="flex flex-wrap items-center gap-3">
         <h1 className="h1">{title}</h1>
         <span className="flex h-7 items-center rounded-full bg-stone-900 px-3 text-[13px] font-semibold text-white">Quản trị viên</span>
       </div>
@@ -51,7 +51,7 @@ export function AdminJobsPage() {
       {shown?.length === 0 && <EmptyState icon="list" title="Không có tin nào ở mục này" />}
       <div className="flex flex-col gap-3.5">
         {shown?.map((job) => (
-          <article key={job.id} className="card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 px-6 py-5">
+          <article key={job.id} className="card grid grid-cols-1 items-center gap-x-6 gap-y-4 px-4 py-4 md:px-6 md:py-5 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="flex min-w-0 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-3">
                 <h3 className="text-xl leading-7 font-semibold">{job.title}</h3>
@@ -68,7 +68,7 @@ export function AdminJobsPage() {
                 {job.status === 'open' && jobEnded(job) && <span>Đã qua giờ làm</span>}
               </div>
             </div>
-            <div className="flex items-center gap-2">
+            <div className="flex flex-wrap items-center gap-2">
               <button type="button" className="btn btn-neutral px-4" onClick={() => setDetail(job)}><Icon name="eye" size={16} />Xem tin</button>
               {job.status === 'open' && <button type="button" className="btn btn-danger px-4" onClick={() => { setReason(''); setRemoving(job) }}>Gỡ tin</button>}
               {job.status === 'rejected' && (
@@ -113,8 +113,8 @@ export function AdminUsersPage() {
   return (
     <main className="page gap-5">
       <AdminTitle title="Người dùng" sub="Tài khoản bị khoá không đăng nhập được, bị đăng xuất ngay, và tin họ đăng bị ẩn khỏi người tìm việc." />
-      <form className="flex max-w-[560px] gap-2" onSubmit={(e) => { e.preventDefault(); setQ(String(new FormData(e.currentTarget).get('q')).trim()) }}>
-        <input name="q" type="search" className="input flex-1" placeholder="Tìm theo email" aria-label="Tìm theo email" defaultValue={q} />
+      <form className="flex w-full max-w-[560px] gap-2" onSubmit={(e) => { e.preventDefault(); setQ(String(new FormData(e.currentTarget).get('q')).trim()) }}>
+        <input name="q" type="search" className="input min-w-0 flex-1" placeholder="Tìm theo email" aria-label="Tìm theo email" defaultValue={q} />
         <button className="btn btn-primary px-5"><Icon name="search" size={18} />Tìm</button>
       </form>
       {error && <Banner tone="error" title="Không tải được danh sách người dùng">{error}</Banner>}
@@ -123,11 +123,11 @@ export function AdminUsersPage() {
       {!!users?.length && (
         <div className="card overflow-hidden">
           {users.map((u) => (
-            <div key={u.id} className={`grid grid-cols-[48px_minmax(0,1fr)_auto] items-center gap-4 border-b border-stone-100 px-6 py-4 last:border-0 ${u.is_blocked ? 'bg-red-50/40' : ''}`}>
+            <div key={u.id} className={`grid grid-cols-[48px_minmax(0,1fr)] items-center gap-x-4 gap-y-3 border-b border-stone-100 px-4 py-4 last:border-0 md:grid-cols-[48px_minmax(0,1fr)_auto] md:px-6 ${u.is_blocked ? 'bg-red-50/40' : ''}`}>
               <span className={`grid size-12 place-items-center rounded-full text-xl font-bold ${u.is_blocked ? 'bg-stone-100 text-stone-500' : 'bg-teal-100 text-teal-800'}`}>{u.email[0].toUpperCase()}</span>
               <div className="flex min-w-0 flex-col gap-1">
                 <div className="flex flex-wrap items-center gap-2.5">
-                  <span className="truncate text-lg font-semibold">{u.email}</span>
+                  <span className="min-w-0 truncate text-lg font-semibold">{u.email}</span>
                   {u.is_blocked && (
                     <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 text-sm font-semibold text-red-700"><Icon name="lock" size={14} stroke={2.25} />Bị khoá</span>
                   )}
@@ -139,7 +139,7 @@ export function AdminUsersPage() {
                   <span className="text-stone-500">Tạo {fmtStamp(u.created_at)}</span>
                 </div>
               </div>
-              <div>
+              <div className="col-span-full flex justify-end md:col-span-1">
                 {u.role === 'admin' ? null : u.is_blocked ? (
                   <button type="button" className="btn btn-secondary px-4" disabled={busyId === u.id} onClick={() => setBlocked(u, false)}>
                     {busyId === u.id && <Spinner />}Mở khoá
@@ -191,10 +191,10 @@ export function AdminReportsPage() {
       {shown?.length === 0 && <EmptyState icon="flag" title={filter === 'pending' ? 'Không có báo cáo nào chờ xử lý' : 'Không có báo cáo nào ở mục này'} />}
       <div className="flex flex-col gap-3.5">
         {shown?.map((r) => (
-          <article key={r.id} className="card grid grid-cols-[minmax(0,1fr)_auto] items-center gap-x-6 px-6 py-5">
+          <article key={r.id} className="card grid grid-cols-1 items-center gap-x-6 gap-y-4 px-4 py-4 md:px-6 md:py-5 lg:grid-cols-[minmax(0,1fr)_auto]">
             <div className="flex min-w-0 flex-col gap-2">
               <div className="flex flex-wrap items-center gap-2.5">
-                <h3 className="truncate text-xl leading-7 font-semibold">{r.reported.email}</h3>
+                <h3 className="min-w-0 truncate text-xl leading-7 font-semibold">{r.reported.email}</h3>
                 <span className="text-stone-600">{roleLabel[r.reported.role]}</span>
                 {r.reported.is_blocked && (
                   <span className="inline-flex h-7 items-center gap-1.5 rounded-full border border-red-200 bg-red-50 px-2.5 text-sm font-semibold text-red-700"><Icon name="lock" size={14} stroke={2.25} />Bị khoá</span>
@@ -208,7 +208,7 @@ export function AdminReportsPage() {
               </div>
             </div>
             {r.status === 'pending' && (
-              <div className="flex items-center gap-2">
+              <div className="flex flex-wrap items-center gap-2">
                 <button type="button" className="btn btn-secondary px-4" disabled={busyId === r.id} onClick={() => decide(r, 'dismiss')}>
                   {busyId === r.id && !blocking && <Spinner />}Bỏ qua
                 </button>
